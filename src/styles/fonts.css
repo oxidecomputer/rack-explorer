@@ -1,0 +1,45 @@
+@font-face {
+  font-family: 'GT America Mono';
+  font-style: normal;
+  font-weight: 400;
+  src:
+    url('/fonts/GT-America-Mono-Regular-OCC.woff2') format('woff2'),
+    url('/fonts/GT-America-Mono-Regular-OCC.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'SuisseIntl';
+  font-style: normal;
+  font-weight: 300;
+  src:
+    url('/fonts/SuisseIntl-Light-WebS.woff2') format('woff2'),
+    url('/fonts/SuisseIntl-Light-WebS.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'SuisseIntl';
+  src:
+    url('/fonts/SuisseIntl-Regular-WebS.woff2') format('woff2'),
+    url('/fonts/SuisseIntl-Regular-WebS.woff') format('woff');
+  font-style: normal;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: 'SuisseIntl';
+  font-style: italic;
+  font-weight: 400;
+  src:
+    url('/fonts/SuisseIntl-RegularItalic-WebS.woff2') format('woff2'),
+    url('/fonts/SuisseIntl-RegularItalic-WebS.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'SuisseIntl';
+  src:
+    url('/fonts/SuisseIntl-Medium-WebS.woff2') format('woff2'),
+    url('/fonts/SuisseIntl-Medium-WebS.woff') format('woff');
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
