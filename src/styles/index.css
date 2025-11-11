@@ -1,0 +1,20 @@
+@import './fonts.css' layer(base);
+@import '@oxide/design-system/styles/main.css';
+@import '@oxide/design-system/styles/tailwind.css';
+@import '@oxide/design-system/components/asciidoc.css';
+
+@import 'tailwindcss';
+
+:root {
+  --header-height: 40px;
+}
+
+html,
+body,
+#root {
+  @apply h-full w-full;
+}
+
+body {
+  @apply bg-secondary text-default;
+}
