@@ -1,24 +1,44 @@
 import { NextArrow12Icon } from '@oxide/design-system/icons/react'
 import clsx from 'clsx'
+import { motion } from 'motion/react'
 
 export const Card = ({
   title,
   children,
   open,
+  onClick,
 }: {
   title: string
   children: React.ReactNode
   open?: boolean
+  onClick?: () => void
 }) => {
   return (
-    <div className={clsx('bg-default overflow-hidden rounded-lg', open ? 'h-full' : 'h-8')}>
-      <button className="text-mono-xs hover:bg-hover text-secondary flex w-full items-center justify-between px-2.5 py-2">
+    <motion.div
+      initial={false}
+      animate={{
+        height: open ? '100%' : 32,
+      }}
+      transition={{ type: 'spring', duration: 0.325, bounce: 0 }}
+      className="bg-default/80 overflow-hidden rounded-lg backdrop-blur-lg"
+    >
+      <button
+        onClick={onClick}
+        disabled={!onClick}
+        className={clsx(
+          'text-mono-xs text-secondary flex w-full items-center justify-between px-2.5 py-2',
+          onClick && 'hover:bg-hover cursor-pointer',
+          !onClick && 'cursor-default',
+        )}
+      >
         {title}
-        <NextArrow12Icon
-          className={clsx('text-tertiary transition-transform', open ? 'rotate-90' : '')}
-        />
+        {onClick && (
+          <NextArrow12Icon
+            className={clsx('text-tertiary transition-transform', open ? 'rotate-90' : '')}
+          />
+        )}
       </button>
-      {open && <div className="border-secondary border-t p-3">{children}</div>}
-    </div>
+      <div className="border-secondary border-t p-3 text-nowrap">{children}</div>
+    </motion.div>
   )
 }
