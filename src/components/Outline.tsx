@@ -13,7 +13,7 @@ import {
 import clsx from 'clsx'
 import { type ReactNode } from 'react'
 import { useValue } from '@tldraw/state-react'
-import { selectedId } from '../atoms'
+import { selectedId, hoveredId } from '../atoms'
 
 type OutlineItemProps = {
   label: string
@@ -38,8 +38,10 @@ const hasSelectedDescendant = (
 
 function OutlineItem({ level = 0, label, icon, children, id }: OutlineItemProps) {
   const currentSelectedId = useValue(selectedId)
+  const currentHoveredId = useValue(hoveredId)
   const hasChildren = children && children.length > 0
   const selected = isSelected(id, currentSelectedId)
+  const hovered = id === currentHoveredId
   const shouldShowChildren =
     hasChildren && hasSelectedDescendant({ id, label, icon, children }, currentSelectedId)
 
@@ -47,15 +49,22 @@ function OutlineItem({ level = 0, label, icon, children, id }: OutlineItemProps)
     <>
       <button
         onClick={() => selectedId.set(id)}
+        onMouseEnter={() => hoveredId.set(id)}
+        onMouseLeave={() => hoveredId.set(null)}
         className={clsx(
           'text-sans-sm group relative flex w-full items-center px-2 text-left',
         )}
       >
-        {selected && (
-          <div className="bg-accent absolute inset-y-0 right-0 w-50 rounded opacity-11" />
-        )}
+        <div
+          className={clsx(
+            'absolute inset-y-0 right-0 w-50 rounded opacity-0 transition-opacity',
+            (hovered || selected) && 'opacity-11',
+            selected && hovered && 'opacity-20',
+            selected ? 'bg-accent' : 'bg-neutral-700',
+          )}
+        />
         <div className="relative flex w-full">
-          <div className="flex items-center gap-1.5 py-1.5">
+          <div className="flex items-center gap-1.5 py-1.25">
             {icon && (
               <span className={selected ? 'text-accent' : 'text-quaternary'}>{icon}</span>
             )}
@@ -64,7 +73,7 @@ function OutlineItem({ level = 0, label, icon, children, id }: OutlineItemProps)
         </div>
       </button>
       {shouldShowChildren && (
-        <div className="border-default mx-2 my-1 w-full border-l px-2">
+        <div className="border-default mx-2 flex w-full flex-col gap-0.5 border-l px-2">
           {children.map((child, i) => (
             <OutlineItem key={i} {...child} level={level + 1} />
           ))}
@@ -106,7 +115,7 @@ export function Outline() {
     <>
       <OutlineItem label="Oxide Rack" icon={<Servers16Icon />} id="oxide-rack" />
       <div className="my-1 h-px w-full bg-(--stroke-secondary)" />
-      <div className="flex flex-col">
+      <div className="flex flex-col gap-0.5">
         {outlineItems.map((item, i) => (
           <OutlineItem key={i} {...item} />
         ))}

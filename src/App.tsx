@@ -1,13 +1,15 @@
 import { OpenLink12Icon, PrevArrow12Icon } from '@oxide/design-system/icons/react'
 import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
-import { navigationMode, specificationsOpen, selectedId } from './atoms'
-import { Scene } from './Scene'
+import { motion } from 'motion/react'
+import * as R from 'remeda'
+
+import { navigationMode, selectedId, specificationsOpen } from './atoms'
 import { Card } from './components/Card'
+import { SidebarIcon } from './components/Icons'
 import { Outline, outlineItems } from './components/Outline'
 import { Specifications } from './components/Specifications'
-import { SidebarIcon } from './components/Icons'
-import { motion } from 'motion/react'
+import { Scene } from './Scene'
 
 type OutlineItemProps = {
   label: string
@@ -15,23 +17,25 @@ type OutlineItemProps = {
   children?: OutlineItemProps[]
 }
 
+function flattenWithPath(
+  items: OutlineItemProps[],
+  path: OutlineItemProps[] = [],
+): Array<{ item: OutlineItemProps; path: OutlineItemProps[] }> {
+  return R.flatMap(items, (item) => [
+    { item, path: [...path, item] },
+    ...(item.children ? flattenWithPath(item.children, [...path, item]) : []),
+  ])
+}
+
 function findPath(
   items: OutlineItemProps[],
   targetId: string | null,
-  path: OutlineItemProps[] = [],
 ): OutlineItemProps[] | null {
   if (!targetId) return null
 
-  for (const item of items) {
-    if (item.id === targetId) {
-      return [...path, item]
-    }
-    if (item.children) {
-      const result = findPath(item.children, targetId, [...path, item])
-      if (result) return result
-    }
-  }
-  return null
+  const flattened = flattenWithPath(items)
+  const found = flattened.find(({ item }) => item.id === targetId)
+  return found?.path || null
 }
 
 function App() {
@@ -50,7 +54,7 @@ function App() {
     <>
       <Scene />
 
-      <div className="pointer-events-none absolute inset-0 flex flex-col">
+      <div className="pointer-events-none absolute inset-0 flex h-screen flex-col">
         <header className="pointer-events-auto flex w-full items-center justify-between px-4 pt-4">
           <div className="flex flex-1 flex-col">
             <div className="text-raise text-mono-xs opacity-40">Oxide Computer</div>
@@ -88,7 +92,7 @@ function App() {
           </button>
         </header>
 
-        <div className="flex grow justify-between">
+        <div className="flex min-h-0 grow justify-between">
           <nav className="pointer-events-auto flex h-full w-64 flex-col gap-2 p-4">
             <Card
               title="Explore the hardware"
