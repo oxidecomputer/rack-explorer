@@ -1,6 +1,7 @@
 import { atom } from '@tldraw/state'
 
-export const selectedId = atom('selectedId', 'fans')
+export const selectedId = atom('selectedId', 'oxide-rack')
+export const hoveredId = atom<string | null>('hoveredId', null)
 
 type NavigationMode = 'free' | 'guided'
 export const navigationMode = atom<NavigationMode>('navigationMode', 'free')

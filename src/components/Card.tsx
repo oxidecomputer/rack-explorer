@@ -20,7 +20,7 @@ export const Card = ({
         height: open ? '100%' : 32,
       }}
       transition={{ type: 'spring', duration: 0.325, bounce: 0 }}
-      className="bg-default/80 overflow-hidden rounded-lg backdrop-blur-lg"
+      className="bg-default/80 flex flex-col overflow-hidden rounded-lg backdrop-blur-lg"
     >
       <button
         onClick={onClick}
@@ -38,7 +38,9 @@ export const Card = ({
           />
         )}
       </button>
-      <div className="border-secondary border-t p-3 text-nowrap">{children}</div>
+      <div className="border-secondary h-full overflow-x-hidden overflow-y-auto border-t p-3 text-nowrap">
+        {children}
+      </div>
     </motion.div>
   )
 }
