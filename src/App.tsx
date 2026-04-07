@@ -154,7 +154,7 @@ function App() {
             </Card>
             <a
               href="https://oxide.computer/contact"
-              className="hover:bg-hover/80 border-default block overflow-clip rounded-lg border bg-transparent p-2.5 text-nowrap backdrop-blur-lg transition-colors"
+              className="hover:bg-hover/80 block overflow-clip rounded-md bg-transparent p-2.5 text-nowrap ring ring-neutral-900/10 backdrop-blur-lg transition-colors"
             >
               <div className="text-mono-xs text-tertiary flex items-center justify-between">
                 Contact Sales <OpenLink12Icon className="text-quaternary" />
