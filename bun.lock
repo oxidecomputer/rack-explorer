@@ -6,7 +6,7 @@
       "dependencies": {
         "@ctrl/tinycolor": "^4.2.0",
         "@ianvs/prettier-plugin-sort-imports": "^4.7.0",
-        "@oxide/design-system": "^4.0.2",
+        "@oxide/design-system": "^6.0.4",
         "@pmndrs/detect-gpu": "^6.0.0",
         "@react-three/drei": "^10.7.6",
         "@react-three/fiber": "^9.4.0",
@@ -16,6 +16,7 @@
         "@tldraw/state-react": "^4.1.2",
         "@types/three": "^0.181.0",
         "clsx": "^2.1.1",
+        "meshline": "^3.3.1",
         "motion": "^12.23.24",
         "react": "^19.2.0",
         "react-dom": "^19.2.0",
@@ -168,7 +169,7 @@
 
     "@oxc-project/types": ["@oxc-project/types@0.96.0", "", {}, "sha512-r/xkmoXA0xEpU6UGtn18CNVjXH6erU3KCpCDbpLmbVxBFor1U9MqN5Z2uMmCHJuXjJzlnDR+hWY+yPoLo8oHDw=="],
 
-    "@oxide/design-system": ["@oxide/design-system@4.0.2", "", { "dependencies": { "@floating-ui/react": "^0.27.16", "@headlessui/react": "^2.2.8", "@radix-ui/react-accordion": "^1.2.12", "@radix-ui/react-tabs": "^1.1.13", "classnames": "^2.5.1", "prettier-plugin-tailwindcss": "^0.6.14", "shiki": "^3.13.0" }, "peerDependencies": { "@asciidoctor/core": "^3.0.0", "@oxide/react-asciidoc": "^1.3.0", "react": ">=18.0.0", "react-dom": ">=18.0.0" } }, "sha512-DQd/nhUj1vMnPMeEWA5Vp4wec7mdXvud+OdxxP0apknOpifnJRZoE8XdUdO0iVWpCefnnL4xceiRMPwQRdYpEA=="],
+    "@oxide/design-system": ["@oxide/design-system@6.0.4", "", { "dependencies": { "@floating-ui/react": "^0.27.16", "@headlessui/react": "^2.2.8", "@radix-ui/react-accordion": "^1.2.12", "@radix-ui/react-tabs": "^1.1.13", "classnames": "^2.5.1", "prettier-plugin-tailwindcss": "^0.6.14", "shiki": "^3.13.0" }, "peerDependencies": { "@asciidoctor/core": "^3.0.0", "@oxide/react-asciidoc": "^1.3.0", "react": ">=18.0.0", "react-dom": ">=18.0.0" } }, "sha512-lZA1Biuoq81vICrMH0PzvZ68F55HRj+XldUIowXiBzBs8Bm3aCNMI4zZcmPAvJ4hqoITow/zrHtyibwrqYjWXg=="],
 
     "@oxide/react-asciidoc": ["@oxide/react-asciidoc@1.3.0", "", { "dependencies": { "html-react-parser": "^5.2.6" }, "peerDependencies": { "@asciidoctor/core": "^3.0.0", "react": ">=18.0.0", "react-dom": ">=18.0.0" } }, "sha512-0QNKE03z3nh82AjmJD7Gx7uxpEa0Io4bb/3Zlqh7b87c6iyQ99nV1bdiIel/Ja7FfSdC/qqIfmcedxutvKuD7Q=="],
 

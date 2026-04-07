@@ -12,7 +12,7 @@
   "dependencies": {
     "@ctrl/tinycolor": "^4.2.0",
     "@ianvs/prettier-plugin-sort-imports": "^4.7.0",
-    "@oxide/design-system": "^4.0.2",
+    "@oxide/design-system": "^6.0.4",
     "@pmndrs/detect-gpu": "^6.0.0",
     "@react-three/drei": "^10.7.6",
     "@react-three/fiber": "^9.4.0",
@@ -22,6 +22,7 @@
     "@tldraw/state-react": "^4.1.2",
     "@types/three": "^0.181.0",
     "clsx": "^2.1.1",
+    "meshline": "^3.3.1",
     "motion": "^12.23.24",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
