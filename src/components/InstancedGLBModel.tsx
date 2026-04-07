@@ -21,7 +21,10 @@ interface InstancedGLBModelProps {
   instances: GLBInstance[]
 }
 
+const DRAG_THRESHOLD = 5
+
 export const InstancedGLBModel = ({ path, instances }: InstancedGLBModelProps) => {
+  const pointerDownPos = useRef<{ x: number; y: number } | null>(null)
   const gltf = useLoader(GLTFLoader, path, (loader) => {
     loader.setDRACOLoader(dracoLoader)
   })
@@ -43,6 +46,11 @@ export const InstancedGLBModel = ({ path, instances }: InstancedGLBModelProps) =
     })
     return result
   }, [gltf.scene])
+
+  const indexToId = useMemo(
+    () => instances.map((inst) => inst.id),
+    [instances],
+  )
 
   // Create refs for all instanced meshes to update their matrices
   const instancedMeshRefs = useRef<(THREE.InstancedMesh | null)[]>([])
@@ -85,7 +93,23 @@ export const InstancedGLBModel = ({ path, instances }: InstancedGLBModelProps) =
   }, [selectedScene, selectedInstance])
 
   return (
-    <group>
+    <group
+      onPointerDown={(e) => {
+        pointerDownPos.current = { x: e.clientX, y: e.clientY }
+      }}
+      onClick={(e) => {
+        e.stopPropagation()
+        if (pointerDownPos.current) {
+          const dx = e.clientX - pointerDownPos.current.x
+          const dy = e.clientY - pointerDownPos.current.y
+          if (dx * dx + dy * dy > DRAG_THRESHOLD * DRAG_THRESHOLD) return
+        }
+        const intersection = e.intersections[0]
+        if (intersection?.instanceId != null) {
+          selectedId.set(indexToId[intersection.instanceId])
+        }
+      }}
+    >
       {meshes.map((mesh, meshIdx) => (
         <instancedMesh
           key={meshIdx}

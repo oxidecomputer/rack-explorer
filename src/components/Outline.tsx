@@ -23,15 +23,18 @@ type OutlineItemProps = {
   id: string
 }
 
+const baseId = (id: string) => id.split(':')[0]
+
 const isSelected = (id: string, selectedId: string | null): boolean => {
-  return id === selectedId
+  if (!selectedId) return false
+  return id === selectedId || id === baseId(selectedId)
 }
 
 const hasSelectedDescendant = (
   item: OutlineItemProps,
   selectedId: string | null,
 ): boolean => {
-  if (item.id === selectedId) return true
+  if (isSelected(item.id, selectedId)) return true
   if (!item.children) return false
   return item.children.some((child) => hasSelectedDescendant(child, selectedId))
 }
