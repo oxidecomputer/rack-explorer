@@ -2,40 +2,41 @@ import { OpenLink12Icon, PrevArrow12Icon } from '@oxide/design-system/icons/reac
 import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
 import { motion } from 'motion/react'
-import * as R from 'remeda'
 
 import { navigationMode, selectedId, specificationsOpen } from './atoms'
 import { Card } from './components/Card'
 import { SidebarIcon } from './components/Icons'
-import { Outline, outlineItems } from './components/Outline'
+import { Outline } from './components/Outline'
 import { Specifications } from './components/Specifications'
+import { getNode, type ComponentNode } from './data/componentTree'
 import { Scene } from './Scene'
+import { useKeyboardNavigation } from './useKeyboardNavigation'
 
-type OutlineItemProps = {
-  label: string
-  id: string
-  children?: OutlineItemProps[]
-}
-
-function flattenWithPath(
-  items: OutlineItemProps[],
-  path: OutlineItemProps[] = [],
-): Array<{ item: OutlineItemProps; path: OutlineItemProps[] }> {
-  return R.flatMap(items, (item) => [
-    { item, path: [...path, item] },
-    ...(item.children ? flattenWithPath(item.children, [...path, item]) : []),
-  ])
-}
-
-function findPath(
-  items: OutlineItemProps[],
-  targetId: string | null,
-): OutlineItemProps[] | null {
+function findPath(targetId: string | null): { id: string; label: string }[] | null {
   if (!targetId) return null
 
-  const flattened = flattenWithPath(items)
-  const found = flattened.find(({ item }) => item.id === targetId)
-  return found?.path || null
+  const [base, indexStr] = targetId.split(':')
+  const entry = getNode(base)
+  if (!entry) return null
+
+  // Build path from ancestors + self (skip root since breadcrumb always shows "Oxide Rack")
+  const path = [...entry.ancestors.slice(1), entry.node].map((n) => ({
+    id: n.id,
+    label: n.label,
+  }))
+
+  // Append instance index to the instanced ancestor's label
+  if (indexStr != null) {
+    for (let i = 0; i < path.length; i++) {
+      const node = getNode(path[i].id)
+      if (node?.node.instances) {
+        path[i] = { ...path[i], label: `${path[i].label} ${indexStr}` }
+        break
+      }
+    }
+  }
+
+  return path
 }
 
 function App() {
@@ -47,8 +48,9 @@ function App() {
     specificationsOpen.set(!specsOpen)
   }
 
-  const allItems = [{ id: 'oxide-rack', label: 'Oxide Rack' }, ...outlineItems]
-  const breadcrumbPath = findPath(allItems, currentSelectedId)
+  useKeyboardNavigation()
+
+  const breadcrumbPath = findPath(currentSelectedId)
 
   return (
     <>
@@ -139,7 +141,7 @@ function App() {
             </Card>
             <a
               href="https://oxide.computer/contact"
-              className="hover:bg-hover/80 border-default block overflow-clip rounded-lg border bg-transparent p-2.5 text-nowrap backdrop-blur-lg transition-colors"
+              className="hover:bg-hover/80 block overflow-clip rounded-md bg-transparent p-2.5 text-nowrap ring ring-neutral-900/10 backdrop-blur-lg transition-colors"
             >
               <div className="text-mono-xs text-tertiary flex items-center justify-between">
                 Contact Sales <OpenLink12Icon className="text-quaternary" />

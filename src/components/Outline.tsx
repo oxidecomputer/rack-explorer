@@ -10,46 +10,69 @@ import {
   Servers16Icon,
   Ssd16Icon,
 } from '@oxide/design-system/icons/react'
+import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
 import { type ReactNode } from 'react'
-import { useValue } from '@tldraw/state-react'
-import { selectedId, hoveredId } from '../atoms'
 
-type OutlineItemProps = {
-  label: string
-  icon?: ReactNode
+import { hoveredId, selectedId } from '../atoms'
+import {
+  componentTree,
+  inheritInstanceIndex,
+  type ComponentNode,
+} from '../data/componentTree'
+
+/** Map component IDs to icons for the outline */
+const iconMap: Record<string, ReactNode> = {
+  'oxide-rack': <Servers16Icon />,
+  'compute-sled': <Servers16Icon />,
+  pcba: <Ssd16Icon />,
+  disks: <Action16Icon />,
+  cpu: <Cpu16Icon />,
+  ram: <Ram16Icon />,
+  fans: <Instances16Icon />,
+  connectors: <Images16Icon />,
+  'airflow-shroud': <Gateway16Icon />,
+  'network-switch': <Networking16Icon />,
+  'power-shelf': <Action16Icon />,
+  'patch-panel': <LoadBalancer16Icon />,
+}
+
+const baseId = (id: string) => id.split(':')[0]
+
+const isSelected = (id: string, sid: string | null): boolean => {
+  if (!sid) return false
+  return id === sid || id === baseId(sid)
+}
+
+const hasSelectedDescendant = (node: ComponentNode, sid: string | null): boolean => {
+  if (isSelected(node.id, sid)) return true
+  if (!node.children) return false
+  return node.children.some((child) => hasSelectedDescendant(child, sid))
+}
+
+function OutlineItem({
+  node,
+  level = 0,
+  hideChildren = false,
+}: {
+  node: ComponentNode
   level?: number
-  children?: OutlineItemProps[]
-  id: string
-}
-
-const isSelected = (id: string, selectedId: string | null): boolean => {
-  return id === selectedId
-}
-
-const hasSelectedDescendant = (
-  item: OutlineItemProps,
-  selectedId: string | null,
-): boolean => {
-  if (item.id === selectedId) return true
-  if (!item.children) return false
-  return item.children.some((child) => hasSelectedDescendant(child, selectedId))
-}
-
-function OutlineItem({ level = 0, label, icon, children, id }: OutlineItemProps) {
+  hideChildren?: boolean
+}) {
   const currentSelectedId = useValue(selectedId)
   const currentHoveredId = useValue(hoveredId)
-  const hasChildren = children && children.length > 0
-  const selected = isSelected(id, currentSelectedId)
-  const hovered = id === currentHoveredId
+  const hasChildren = node.children && node.children.length > 0
+  const selected = isSelected(node.id, currentSelectedId)
+  const hovered = node.id === currentHoveredId
   const shouldShowChildren =
-    hasChildren && hasSelectedDescendant({ id, label, icon, children }, currentSelectedId)
+    !hideChildren && hasChildren && hasSelectedDescendant(node, currentSelectedId)
+  const icon = iconMap[node.id]
 
   return (
     <>
       <button
-        onClick={() => selectedId.set(id)}
-        onMouseEnter={() => hoveredId.set(id)}
+        onClick={() => selectedId.set(inheritInstanceIndex(selectedId.get(), node.id))}
+        onMouseEnter={() => hoveredId.set(node.id)}
         onMouseLeave={() => hoveredId.set(null)}
         className={clsx(
           'text-sans-sm group relative flex w-full items-center px-2 text-left',
@@ -60,7 +83,7 @@ function OutlineItem({ level = 0, label, icon, children, id }: OutlineItemProps)
             'absolute inset-y-0 right-0 w-50 rounded opacity-0 transition-opacity',
             (hovered || selected) && 'opacity-11',
             selected && hovered && 'opacity-20',
-            selected ? 'bg-accent' : 'bg-neutral-700',
+            selected ? 'bg-accent-inverse' : 'bg-neutral-700',
           )}
         />
         <div className="relative flex w-full">
@@ -68,14 +91,16 @@ function OutlineItem({ level = 0, label, icon, children, id }: OutlineItemProps)
             {icon && (
               <span className={selected ? 'text-accent' : 'text-quaternary'}>{icon}</span>
             )}
-            <span className={selected ? 'text-accent' : 'text-secondary'}>{label}</span>
+            <span className={selected ? 'text-accent' : 'text-secondary'}>
+              {node.label}
+            </span>
           </div>
         </div>
       </button>
       {shouldShowChildren && (
         <div className="border-default mx-2 flex w-full flex-col gap-0.5 border-l px-2">
-          {children.map((child, i) => (
-            <OutlineItem key={i} {...child} level={level + 1} />
+          {node.children!.map((child) => (
+            <OutlineItem key={child.id} node={child} level={level + 1} />
           ))}
         </div>
       )}
@@ -83,41 +108,17 @@ function OutlineItem({ level = 0, label, icon, children, id }: OutlineItemProps)
   )
 }
 
-export const outlineItems: OutlineItemProps[] = [
-  {
-    id: 'compute-sled',
-    label: 'Compute Sled',
-    icon: <Servers16Icon />,
-    children: [
-      {
-        id: 'disk-group',
-        label: 'Disk',
-        icon: <Ssd16Icon />,
-        children: [
-          { id: 'disk', label: 'Disk', icon: <Action16Icon /> },
-          { id: 'cpu-nested', label: 'CPU', icon: <Cpu16Icon /> },
-        ],
-      },
-      { id: 'cpu', label: 'CPU', icon: <Cpu16Icon /> },
-      { id: 'ram', label: 'RAM', icon: <Ram16Icon /> },
-      { id: 'fans', label: 'Fans', icon: <Instances16Icon /> },
-      { id: 'connectors', label: 'Connectors', icon: <Images16Icon /> },
-      { id: 'airflow-shroud', label: 'Airflow Shroud', icon: <Gateway16Icon /> },
-    ],
-  },
-  { id: 'network-switch', label: 'Network Switch', icon: <Networking16Icon /> },
-  { id: 'power-shelf', label: 'Power Shelf', icon: <Action16Icon /> },
-  { id: 'patch-panel', label: 'Patch Panel', icon: <LoadBalancer16Icon /> },
-]
+/** The top-level children (everything under oxide-rack) for use in breadcrumbs / nav */
+export const outlineItems = componentTree.children ?? []
 
 export function Outline() {
   return (
     <>
-      <OutlineItem label="Oxide Rack" icon={<Servers16Icon />} id="oxide-rack" />
+      <OutlineItem node={componentTree} hideChildren />
       <div className="my-1 h-px w-full bg-(--stroke-secondary)" />
       <div className="flex flex-col gap-0.5">
-        {outlineItems.map((item, i) => (
-          <OutlineItem key={i} {...item} />
+        {outlineItems.map((item) => (
+          <OutlineItem key={item.id} node={item} />
         ))}
       </div>
     </>
