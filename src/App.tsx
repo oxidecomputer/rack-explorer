@@ -1,14 +1,22 @@
 import { OpenLink12Icon, PrevArrow12Icon } from '@oxide/design-system/icons/react'
 import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
-import { motion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 
-import { navigationMode, selectedId, specificationsOpen } from './atoms'
+import {
+  landingOpen,
+  navigationMode,
+  sceneReady,
+  selectedId,
+  specificationsOpen,
+} from './atoms'
 import { Card } from './components/Card'
 import { SidebarIcon } from './components/Icons'
+import { LandingModal } from './components/LandingModal'
 import { Outline } from './components/Outline'
+import { OutlineSkeleton, SpecificationsSkeleton } from './components/Skeletons'
 import { Specifications } from './components/Specifications'
-import { getNode, type ComponentNode } from './data/componentTree'
+import { getNode } from './data/componentTree'
 import { Scene } from './Scene'
 import { useKeyboardNavigation } from './useKeyboardNavigation'
 
@@ -43,6 +51,8 @@ function App() {
   const currentNavigationMode = useValue(navigationMode)
   const specsOpen = useValue(specificationsOpen)
   const currentSelectedId = useValue(selectedId)
+  const isLandingOpen = useValue(landingOpen)
+  const isSceneReady = useValue(sceneReady)
 
   const toggleSpecifications = () => {
     specificationsOpen.set(!specsOpen)
@@ -54,12 +64,32 @@ function App() {
 
   return (
     <>
-      <Scene />
+      <motion.div
+        className="absolute inset-0"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: isSceneReady ? 1 : 0 }}
+        transition={{ duration: 1.2, ease: 'easeOut' }}
+      >
+        <Scene />
+      </motion.div>
 
       <div className="pointer-events-none absolute inset-0 flex h-screen flex-col">
-        <header className="pointer-events-auto flex w-full items-center justify-between px-4 pt-4">
+        {/* Blur overlay for landing state — behind sidebars */}
+        <AnimatePresence>
+          {isLandingOpen && (
+            <motion.div
+              className="pointer-events-none absolute inset-0 backdrop-blur-xl"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
+            />
+          )}
+        </AnimatePresence>
+
+        <header className="pointer-events-auto relative z-10 flex w-full items-center justify-between px-4 pt-4">
           <div className="flex flex-1 flex-col">
-            <div className="text-raise text-mono-xs opacity-40">Oxide Computer</div>
+            <div className="text-raise text-mono-xs opacity-40">Oxide Computer Co.</div>
             <div className="text-sans-sm text-default">3D Rack Explorer</div>
           </div>
           <div className="text-secondary flex flex-1 items-center justify-center gap-2">
@@ -94,19 +124,19 @@ function App() {
           </button>
         </header>
 
-        <div className="flex min-h-0 grow justify-between">
+        <div className="relative z-10 flex min-h-0 grow justify-between">
           <nav className="pointer-events-auto flex h-full w-64 flex-col gap-2 p-4">
             <Card
               title="Explore the hardware"
               open={currentNavigationMode === 'free'}
-              onClick={() => navigationMode.set('free')}
+              onClick={isLandingOpen ? undefined : () => navigationMode.set('free')}
             >
-              <Outline />
+              {isLandingOpen ? <OutlineSkeleton /> : <Outline />}
             </Card>
             <Card
               title="Guided tour"
               open={currentNavigationMode === 'guided'}
-              onClick={() => navigationMode.set('guided')}
+              onClick={isLandingOpen ? undefined : () => navigationMode.set('guided')}
             >
               Guided Tour
             </Card>
@@ -114,11 +144,11 @@ function App() {
 
           <motion.button
             initial={false}
-            animate={{ right: specsOpen ? 22 : 12 }}
+            animate={{ right: specsOpen ? 22 : 16 }}
             transition={{ type: 'spring', duration: 0.5, bounce: 0 }}
             onClick={toggleSpecifications}
             className={clsx(
-              'hover:bg-hover pointer-events-auto absolute top-[calc(var(--header-height)+30px)] z-10 rounded border p-0.5 transition-colors',
+              'hover:bg-hover pointer-events-auto absolute top-5 z-10 rounded border p-0.5 transition-colors',
               specsOpen ? 'border-transparent' : 'border-default',
             )}
           >
@@ -130,14 +160,13 @@ function App() {
             animate={{
               width: specsOpen ? 256 : 200,
               opacity: specsOpen ? 1 : 0,
-              translateX: specsOpen ? 0 : 16,
             }}
             transition={{ type: 'spring', duration: 0.325, bounce: 0 }}
             style={{ minWidth: 0 }}
             className="pointer-events-auto flex w-64 flex-col gap-2 overflow-hidden p-4"
           >
             <Card title="Specifications" open>
-              <Specifications />
+              {isLandingOpen ? <SpecificationsSkeleton /> : <Specifications />}
             </Card>
             <a
               href="https://oxide.computer/contact"
@@ -153,6 +182,14 @@ function App() {
             </a>
           </motion.div>
         </div>
+
+        <AnimatePresence>
+          {isLandingOpen && (
+            <div className="absolute inset-0 z-20">
+              <LandingModal />
+            </div>
+          )}
+        </AnimatePresence>
       </div>
     </>
   )

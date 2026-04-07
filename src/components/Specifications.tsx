@@ -28,7 +28,7 @@ export const Specifications = () => {
         {specs.map((spec, i) => (
           <div key={i} className="flex flex-col gap-0.5">
             <div className="text-mono-xs text-quaternary uppercase">{spec.label}</div>
-            <div className="text-sans-sm text-secondary">
+            <div className="text-sans-sm text-secondary text-wrap">
               {Array.isArray(spec.value)
                 ? spec.value.map((line, j) => <div key={j}>{line}</div>)
                 : spec.value}
