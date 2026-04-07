@@ -52,7 +52,7 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
       const animate = !isFirstRender.current
       isFirstRender.current = false
       if (animate) cameraControlsRef.current.normalizeRotations()
-      cameraControlsRef.current.setLookAt(...waypoint.position, ...waypoint.target, true)
+      cameraControlsRef.current.setLookAt(...waypoint.position, ...waypoint.target, animate)
     }
   }, [currentSelectedId, camera])
 
@@ -241,6 +241,7 @@ export const Scene = () => {
       }}
       dpr={gpuConfig.dpr}
       linear
+      frameloop="demand"
     >
       <SceneContent enableAO={gpuConfig.enableAO} />
     </Canvas>
