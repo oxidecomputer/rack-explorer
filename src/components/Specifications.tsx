@@ -1,53 +1,18 @@
 import { useValue } from '@tldraw/state-react'
-import * as R from 'remeda'
 
 import { selectedId } from '../atoms'
+import { getNode } from '../data/componentTree'
 import { specifications } from '../data/specifications'
-import { outlineItems } from './Outline'
-
-type OutlineItem = {
-  label: string
-  id: string
-  children?: OutlineItem[]
-}
-
-function flattenItems(items: OutlineItem[]): OutlineItem[] {
-  return R.flatMap(items, (item) => [
-    item,
-    ...(item.children ? flattenItems(item.children) : []),
-  ])
-}
-
-function findAncestors(id: string | null, items: OutlineItem[]): string[] {
-  if (!id) return []
-  // Strip instance index (e.g. 'compute-sled:0' -> 'compute-sled')
-  id = id.split(':')[0]
-
-  const allItems = [{ id: 'oxide-rack', label: 'Oxide Rack', children: items }]
-  const flat = flattenItems(allItems)
-
-  const ancestors: string[] = [id]
-  let currentId = id
-
-  while (currentId) {
-    const parent = flat.find((item) =>
-      item.children?.some((child) => child.id === currentId),
-    )
-    if (!parent) break
-    ancestors.push(parent.id)
-    currentId = parent.id
-  }
-
-  return ancestors
-}
 
 export const Specifications = () => {
   const currentSelectedId = useValue(selectedId)
+  const baseId = currentSelectedId.split(':')[0]
+  const entry = getNode(baseId)
 
-  const ancestors = findAncestors(currentSelectedId, outlineItems)
-  const nearestSpecId = ancestors.find((id) => specifications[id])
-  const specs =
-    specifications[nearestSpecId || 'oxide-rack'] || specifications['oxide-rack']
+  // Walk from self up through ancestors to find the nearest node with specs
+  const candidates = entry ? [entry.node, ...entry.ancestors].map((n) => n.id) : []
+  const nearestSpecId = candidates.find((id) => specifications[id]) ?? 'oxide-rack'
+  const specs = specifications[nearestSpecId] ?? specifications['oxide-rack']
 
   return (
     <div className="flex flex-col gap-3">

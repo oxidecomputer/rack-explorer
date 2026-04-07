@@ -2,53 +2,41 @@ import { OpenLink12Icon, PrevArrow12Icon } from '@oxide/design-system/icons/reac
 import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
 import { motion } from 'motion/react'
-import * as R from 'remeda'
 
 import { navigationMode, selectedId, specificationsOpen } from './atoms'
 import { Card } from './components/Card'
 import { SidebarIcon } from './components/Icons'
-import { Outline, outlineItems } from './components/Outline'
+import { Outline } from './components/Outline'
 import { Specifications } from './components/Specifications'
+import { getNode, type ComponentNode } from './data/componentTree'
 import { Scene } from './Scene'
 import { useKeyboardNavigation } from './useKeyboardNavigation'
 
-type OutlineItemProps = {
-  label: string
-  id: string
-  children?: OutlineItemProps[]
-}
-
-function flattenWithPath(
-  items: OutlineItemProps[],
-  path: OutlineItemProps[] = [],
-): Array<{ item: OutlineItemProps; path: OutlineItemProps[] }> {
-  return R.flatMap(items, (item) => [
-    { item, path: [...path, item] },
-    ...(item.children ? flattenWithPath(item.children, [...path, item]) : []),
-  ])
-}
-
-function findPath(
-  items: OutlineItemProps[],
-  targetId: string | null,
-): OutlineItemProps[] | null {
+function findPath(targetId: string | null): { id: string; label: string }[] | null {
   if (!targetId) return null
 
-  const flattened = flattenWithPath(items)
   const [base, indexStr] = targetId.split(':')
-  const found =
-    flattened.find(({ item }) => item.id === targetId) ||
-    flattened.find(({ item }) => item.id === base)
-  if (!found) return null
+  const entry = getNode(base)
+  if (!entry) return null
 
-  // Append instance index to the last breadcrumb label
+  // Build path from ancestors + self (skip root since breadcrumb always shows "Oxide Rack")
+  const path = [...entry.ancestors.slice(1), entry.node].map((n) => ({
+    id: n.id,
+    label: n.label,
+  }))
+
+  // Append instance index to the instanced ancestor's label
   if (indexStr != null) {
-    const path = [...found.path]
-    const last = path[path.length - 1]
-    path[path.length - 1] = { ...last, label: `${last.label} ${indexStr}` }
-    return path
+    for (let i = 0; i < path.length; i++) {
+      const node = getNode(path[i].id)
+      if (node?.node.instances) {
+        path[i] = { ...path[i], label: `${path[i].label} ${indexStr}` }
+        break
+      }
+    }
   }
-  return found.path
+
+  return path
 }
 
 function App() {
@@ -62,8 +50,7 @@ function App() {
 
   useKeyboardNavigation()
 
-  const allItems = [{ id: 'oxide-rack', label: 'Oxide Rack' }, ...outlineItems]
-  const breadcrumbPath = findPath(allItems, currentSelectedId)
+  const breadcrumbPath = findPath(currentSelectedId)
 
   return (
     <>

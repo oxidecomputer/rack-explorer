@@ -6,6 +6,7 @@ import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 
 import { selectedId } from '../atoms'
+import { isDescendantOf } from '../data/componentTree'
 import { ModifiedSelect } from './Selection'
 
 const dracoLoader = new DRACOLoader()
@@ -106,7 +107,12 @@ export const InstancedGLBModel = ({ path, instances }: InstancedGLBModelProps) =
         }
         const intersection = e.intersections[0]
         if (intersection?.instanceId != null) {
-          selectedId.set(indexToId[intersection.instanceId])
+          const targetId = indexToId[intersection.instanceId]
+          // Don't re-select the parent sled if we're already viewing one of its children
+          const currentBase = selectedId.get().split(':')[0]
+          const targetBase = targetId.split(':')[0]
+          if (isDescendantOf(currentBase, targetBase)) return
+          selectedId.set(targetId)
         }
       }}
     >

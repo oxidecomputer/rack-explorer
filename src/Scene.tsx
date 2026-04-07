@@ -1,25 +1,53 @@
 import { getGPUTier, type TierResult } from '@pmndrs/detect-gpu'
 import { CameraControls, Environment, Grid } from '@react-three/drei'
-import { Canvas, useThree } from '@react-three/fiber'
+import { Canvas, extend, useThree } from '@react-three/fiber'
 import { EffectComposer, N8AO, Outline } from '@react-three/postprocessing'
 import { useValue } from '@tldraw/state-react'
 import CameraControlsImpl from 'camera-controls'
+import { MeshLineGeometry, MeshLineMaterial } from 'meshline'
 import { BlendFunction } from 'postprocessing'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { selectedId } from './atoms'
 import { InstancedGLBModel } from './components/InstancedGLBModel'
 import { SelectableGLBModel } from './components/SelectableGLBModel'
 import { ModifiedSelection } from './components/Selection'
+import { WireframeCube } from './components/WireframeCube'
 import {
-  cameraWaypoints,
-  getWaypointEntries,
-  getWaypointEntry,
-} from './data/cameraWaypoints'
+  componentTree,
+  getInstanceContext,
+  getNode,
+  inheritInstanceIndex,
+  isDescendantOf,
+  resolveWaypoint,
+} from './data/componentTree'
+
+extend({ MeshLineGeometry, MeshLineMaterial })
 
 const { ACTION } = CameraControlsImpl
 
 const DRAG_THRESHOLD = 5
+
+/** A simple colored box used as a placeholder for child component models */
+function PlaceholderCube({ position }: { position: [number, number, number] }) {
+  return (
+    <mesh position={position}>
+      <boxGeometry args={[0.2, 0.04, 0.12]} />
+      <meshStandardMaterial transparent opacity={0.35} />
+    </mesh>
+  )
+}
+
+function RackWireframe() {
+  return (
+    <WireframeCube
+      size={[0.64, 2.28, 1.07]}
+      position={[0, 1.205, 0]}
+      color="#5D5E61"
+      lineWidth={0.0025}
+    />
+  )
+}
 
 function SceneContent({ enableAO }: { enableAO: boolean }) {
   const cameraControlsRef = useRef<CameraControls>(null)
@@ -27,16 +55,45 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
   const { camera } = useThree()
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null)
 
+  // Determine if we're viewing a child of an instanced component (e.g. compute sled internals)
+  const baseId = currentSelectedId.split(':')[0]
+  const isViewingChild = isDescendantOf(baseId, 'compute-sled')
+  const instanceCtx = isViewingChild ? getInstanceContext(currentSelectedId) : null
+
+  const isFirstRender = useRef(true)
+
   useEffect(() => {
     if (!cameraControlsRef.current || !currentSelectedId) return
 
-    const [id, indexStr] = currentSelectedId.split(':')
-    const waypoint = cameraWaypoints[id]
+    const waypoint = resolveWaypoint(currentSelectedId)
     if (waypoint) {
-      const entry = getWaypointEntry(waypoint, Number(indexStr ?? 0))
-      cameraControlsRef.current.setLookAt(...entry.position, ...entry.target, true)
+      const animate = !isFirstRender.current
+      isFirstRender.current = false
+      if (animate) cameraControlsRef.current.normalizeRotations()
+      cameraControlsRef.current.setLookAt(...waypoint.position, ...waypoint.target, true)
     }
   }, [currentSelectedId, camera])
+
+  // Compute sled instances for the 3D models
+  const sledInstances = useMemo(() => {
+    const sledNode = componentTree.children?.find((c) => c.id === 'compute-sled')
+    if (!sledNode?.instances) return []
+    return sledNode.instances.map((pos, i) => ({
+      id: `compute-sled:${i}`,
+      position: pos as [number, number, number],
+    }))
+  }, [])
+
+  const powerShelfInstances = useMemo(() => {
+    const node = componentTree.children?.find((c) => c.id === 'power-shelf')
+    if (!node?.instances) return []
+    return node.instances.map((pos, i) => ({
+      id: `power-shelf:${i}`,
+      position: pos as [number, number, number],
+    }))
+  }, [])
+
+  const patchPanelWaypoint = resolveWaypoint('patch-panel')
 
   return (
     <>
@@ -78,35 +135,62 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
               selectedId.set(intersectedObject.userData.id)
             }
           }}
+          onDoubleClick={(e) => {
+            e.stopPropagation()
+            const current = selectedId.get()
+            if (!current) return
+            const base = current.split(':')[0]
+            const entry = getNode(base)
+            const firstChild = entry?.node.children?.[0]
+            if (firstChild) {
+              selectedId.set(inheritInstanceIndex(current, firstChild.id))
+            }
+          }}
         >
-          <SelectableGLBModel
-            id="oxide-rack"
-            path="./models/rack-frame/rack-frame-lod1.glb"
-            clickable={false}
-          />
+          {/* Hide everything except the selected sled when viewing child components */}
+          {!isViewingChild && (
+            <>
+              <SelectableGLBModel
+                id="oxide-rack"
+                path="./models/rack-frame/rack-frame-lod1.glb"
+                clickable={false}
+              />
+              <InstancedGLBModel
+                path="./models/power-shelf/power-shelf.glb"
+                instances={powerShelfInstances}
+              />
+              {patchPanelWaypoint && (
+                <SelectableGLBModel
+                  id="patch-panel"
+                  path="./models/patch-panel/patch-panel.glb"
+                  position={patchPanelWaypoint.target}
+                />
+              )}
+            </>
+          )}
+
+          {/* Wireframe rack outline when the full rack is hidden */}
+          {isViewingChild && <RackWireframe />}
+
+          {/* Compute sleds — always visible (instanced when viewing rack, single when viewing child) */}
           <InstancedGLBModel
             path="./models/cosmo/cosmo-lod1.glb"
-            instances={getWaypointEntries(cameraWaypoints['compute-sled']).map(
-              (entry, i) => ({
-                id: `compute-sled:${i}`,
-                position: entry.target,
-              }),
-            )}
+            instances={
+              isViewingChild && instanceCtx
+                ? [
+                    {
+                      id: `compute-sled:${instanceCtx.instanceIndex}`,
+                      position: instanceCtx.instancePosition,
+                    },
+                  ]
+                : sledInstances
+            }
           />
-          <InstancedGLBModel
-            path="./models/power-shelf/power-shelf.glb"
-            instances={getWaypointEntries(cameraWaypoints['power-shelf']).map(
-              (entry, i) => ({
-                id: `power-shelf:${i}`,
-                position: entry.target,
-              }),
-            )}
-          />
-          <SelectableGLBModel
-            id="patch-panel"
-            path="./models/patch-panel/patch-panel.glb"
-            position={getWaypointEntry(cameraWaypoints['patch-panel'], 0).target}
-          />
+
+          {/* Placeholder cube — only visible when viewing compute sled child components */}
+          {isViewingChild && instanceCtx && (
+            <PlaceholderCube position={instanceCtx.instancePosition} />
+          )}
         </group>
       </ModifiedSelection>
       <CameraControls
@@ -152,10 +236,12 @@ export const Scene = () => {
     })
   }, [])
 
+  const initialWaypoint = resolveWaypoint('oxide-rack')
+
   return (
     <Canvas
       camera={{
-        position: getWaypointEntry(cameraWaypoints['oxide-rack'], 0).position,
+        position: initialWaypoint?.position ?? [5, 5, 10],
         fov: 15,
         near: 1,
         far: 100,
