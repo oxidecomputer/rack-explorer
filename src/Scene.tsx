@@ -5,7 +5,7 @@ import { useValue } from '@tldraw/state-react'
 import CameraControlsImpl from 'camera-controls'
 import { lazy, useEffect, useMemo, useRef, useState } from 'react'
 
-import { selectedId } from './atoms'
+import { sceneReady, selectedId } from './atoms'
 import { InstancedGLBModel } from './components/InstancedGLBModel'
 import { SelectableGLBModel } from './components/SelectableGLBModel'
 import { ModifiedSelection } from './components/Selection'
@@ -242,6 +242,7 @@ export const Scene = () => {
       dpr={gpuConfig.dpr}
       linear
       frameloop="demand"
+      onCreated={() => sceneReady.set(true)}
     >
       <SceneContent enableAO={gpuConfig.enableAO} />
     </Canvas>
