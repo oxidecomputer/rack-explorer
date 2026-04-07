@@ -1,12 +1,9 @@
 import { getGPUTier, type TierResult } from '@pmndrs/detect-gpu'
 import { CameraControls, Environment, Grid } from '@react-three/drei'
-import { Canvas, extend, useThree } from '@react-three/fiber'
-import { EffectComposer, N8AO, Outline } from '@react-three/postprocessing'
+import { Canvas, useThree } from '@react-three/fiber'
 import { useValue } from '@tldraw/state-react'
 import CameraControlsImpl from 'camera-controls'
-import { MeshLineGeometry, MeshLineMaterial } from 'meshline'
-import { BlendFunction } from 'postprocessing'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, useEffect, useMemo, useRef, useState } from 'react'
 
 import { selectedId } from './atoms'
 import { InstancedGLBModel } from './components/InstancedGLBModel'
@@ -22,30 +19,15 @@ import {
   resolveWaypoint,
 } from './data/componentTree'
 
-extend({ MeshLineGeometry, MeshLineMaterial })
+const PostProcessing = lazy(() =>
+  import('./components/PostProcessing').then((m) => ({ default: m.PostProcessing })),
+)
 
 const { ACTION } = CameraControlsImpl
 
-const DRAG_THRESHOLD = 5
-
-/** A simple colored box used as a placeholder for child component models */
-function PlaceholderCube({ position }: { position: [number, number, number] }) {
-  return (
-    <mesh position={position}>
-      <boxGeometry args={[0.2, 0.04, 0.12]} />
-      <meshStandardMaterial transparent opacity={0.35} />
-    </mesh>
-  )
-}
-
 function RackWireframe() {
   return (
-    <WireframeCube
-      size={[0.64, 2.28, 1.07]}
-      position={[0, 1.205, 0]}
-      color="#5D5E61"
-      lineWidth={0.0025}
-    />
+    <WireframeCube size={[0.64, 2.28, 1.07]} position={[0, 1.205, 0]} color="#5D5E61" />
   )
 }
 
@@ -97,7 +79,7 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
 
   return (
     <>
-      <Environment files="./hdri/hdri.jpg" environmentIntensity={2} />
+      <Environment files="./common/hdri.jpg" environmentIntensity={2} />
       <Grid
         cellSize={0.025}
         sectionSize={0.025}
@@ -109,26 +91,18 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
         fadeStrength={1}
       />
       <ModifiedSelection>
-        <EffectComposer enableNormalPass={enableAO} autoClear={false}>
-          {enableAO ? <N8AO color="black" aoRadius={0.1} intensity={5} /> : <></>}
-          <Outline
-            edgeStrength={2.5}
-            blendFunction={BlendFunction.ALPHA}
-            visibleEdgeColor={4773271}
-            hiddenEdgeColor={4773271}
-            blur
-          />
-        </EffectComposer>
+        <PostProcessing enableAO={enableAO} />
         <group
           onPointerDown={(e) => {
             pointerDownPos.current = { x: e.clientX, y: e.clientY }
           }}
           onClick={(e) => {
             e.stopPropagation()
+
             if (pointerDownPos.current) {
               const dx = e.clientX - pointerDownPos.current.x
               const dy = e.clientY - pointerDownPos.current.y
-              if (dx * dx + dy * dy > DRAG_THRESHOLD * DRAG_THRESHOLD) return
+              if (dx * dx + dy * dy > 5 * 5) return
             }
             const intersectedObject = e.intersections[0]?.object
             if (intersectedObject?.userData?.id) {
@@ -173,23 +147,36 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
           {isViewingChild && <RackWireframe />}
 
           {/* Compute sleds — always visible (instanced when viewing rack, single when viewing child) */}
-          <InstancedGLBModel
-            path="./models/cosmo/cosmo-lod1.glb"
-            instances={
-              isViewingChild && instanceCtx
-                ? [
-                    {
-                      id: `compute-sled:${instanceCtx.instanceIndex}`,
-                      position: instanceCtx.instancePosition,
-                    },
-                  ]
-                : sledInstances
-            }
-          />
+          {/* Hack because we dont have seprate cosmo internal meshes yet, remove `isViewingChild` when we do */}
+          {!isViewingChild && (
+            <InstancedGLBModel
+              path="./models/cosmo/cosmo-lod1.glb"
+              instances={
+                isViewingChild && instanceCtx
+                  ? [
+                      {
+                        id: `compute-sled:${instanceCtx.instanceIndex}`,
+                        position: instanceCtx.instancePosition,
+                      },
+                    ]
+                  : sledInstances
+              }
+            />
+          )}
 
-          {/* Placeholder cube — only visible when viewing compute sled child components */}
+          {/* Only visible when viewing compute sled child components */}
           {isViewingChild && instanceCtx && (
-            <PlaceholderCube position={instanceCtx.instancePosition} />
+            <group position={instanceCtx.instancePosition}>
+              <SelectableGLBModel
+                id="oxide-rack"
+                path="./models/cosmo/cosmo-lod0.glb"
+                clickable={false}
+                // Todo: remove this by adding airflow shroud as a separate mesh
+                hideMaterials={
+                  baseId === 'ram' || baseId == 'cpu' ? ['Plastic_Transparent'] : []
+                }
+              />
+            </group>
           )}
         </group>
       </ModifiedSelection>

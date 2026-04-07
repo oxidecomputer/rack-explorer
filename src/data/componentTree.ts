@@ -57,39 +57,39 @@ export const componentTree: ComponentNode = {
         {
           id: 'disks',
           label: 'Disks',
-          waypoint: { position: [1.5, 0.5, 1.5], target: [0, 0, 0] },
+          waypoint: { position: [1.25, 0.5, 1.25], target: [0, 0, 0.25] },
         },
         {
           id: 'pcba',
           label: 'PCBA',
-          waypoint: { position: [1.5, 0.5, 1.5], target: [0, 0, 0.25] },
+          waypoint: { position: [1.5, 1, 1.5], target: [0, 0, 0] },
           children: [
             {
               id: 'cpu',
               label: 'CPU',
-              waypoint: { position: [1.5, 0.5, 1.5], target: [0, 0, 0] },
+              waypoint: { position: [0.75, 1.25, 0.75], target: [0, 0, 0] },
             },
             {
               id: 'ram',
               label: 'RAM',
-              waypoint: { position: [1.5, 0.5, 1.5], target: [0, 0, 0] },
+              waypoint: { position: [0.6, 1.5, 0.6], target: [0, 0, 0] },
             },
             {
               id: 'connectors',
               label: 'Connectors',
-              waypoint: { position: [1.5, 0.5, 1.5], target: [0, 0, 0] },
+              waypoint: { position: [1, 0.75, -1], target: [0, 0, -0.35] },
             },
           ],
         },
         {
           id: 'fans',
           label: 'Fans',
-          waypoint: { position: [1.5, 0.5, 1.5], target: [0, 0, 0] },
+          waypoint: { position: [1.25, 1, -1.25], target: [0, 0.05, -0.25] },
         },
         {
           id: 'airflow-shroud',
           label: 'Airflow Shroud',
-          waypoint: { position: [1.5, 0.5, 1.5], target: [0, 0, 0] },
+          waypoint: { position: [1.25, 1.5, 1.25], target: [0, 0, 0] },
         },
       ],
     },
@@ -196,8 +196,9 @@ export function resolveWaypoint(selectedId: string): ComponentWaypoint | null {
     const idx = indexStr != null ? Number(indexStr) : 0
     const instancePos = node.node.instances[idx]
     if (!instancePos) return null
+    const biasedPos: Vec3 = [instancePos[0], instancePos[1] * 0.25, instancePos[2]]
     return {
-      position: addVec3(waypoint.position, instancePos),
+      position: addVec3(waypoint.position, biasedPos),
       target: instancePos,
     }
   }

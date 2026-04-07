@@ -1,6 +1,7 @@
 import { useLoader, type Vector3 } from '@react-three/fiber'
 import { useValue } from '@tldraw/state-react'
 import { useEffect, useMemo } from 'react'
+import type { Mesh, MeshStandardMaterial } from 'three'
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 
@@ -15,6 +16,7 @@ interface SelectableGLBModelProps {
   path: string
   position?: Vector3
   clickable?: boolean
+  hideMaterials?: string[]
 }
 
 export const SelectableGLBModel = ({
@@ -22,6 +24,7 @@ export const SelectableGLBModel = ({
   path,
   position = [0, 0, 0],
   clickable = true,
+  hideMaterials,
 }: SelectableGLBModelProps) => {
   const gltf = useLoader(GLTFLoader, path, (loader) => {
     loader.setDRACOLoader(dracoLoader)
@@ -37,6 +40,16 @@ export const SelectableGLBModel = ({
       child.userData = clickable ? { id } : {}
     })
   }, [scene, id, clickable])
+
+  // Todo: remove this by adding airflow shroud as a separate mesh
+  useEffect(() => {
+    if (!hideMaterials) return
+    scene.traverse((child) => {
+      const mesh = child as Mesh
+      const mat = mesh.material as MeshStandardMaterial | undefined
+      if (mat) mesh.visible = !hideMaterials?.includes(mat.name)
+    })
+  }, [scene, hideMaterials])
 
   return (
     <ModifiedSelect enabled={enabled}>
