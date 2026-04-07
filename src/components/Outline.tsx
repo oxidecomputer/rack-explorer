@@ -10,10 +10,11 @@ import {
   Servers16Icon,
   Ssd16Icon,
 } from '@oxide/design-system/icons/react'
+import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
 import { type ReactNode } from 'react'
-import { useValue } from '@tldraw/state-react'
-import { selectedId, hoveredId } from '../atoms'
+
+import { hoveredId, selectedId } from '../atoms'
 
 type OutlineItemProps = {
   label: string
@@ -63,7 +64,7 @@ function OutlineItem({ level = 0, label, icon, children, id }: OutlineItemProps)
             'absolute inset-y-0 right-0 w-50 rounded opacity-0 transition-opacity',
             (hovered || selected) && 'opacity-11',
             selected && hovered && 'opacity-20',
-            selected ? 'bg-accent' : 'bg-neutral-700',
+            selected ? 'bg-accent-inverse' : 'bg-neutral-700',
           )}
         />
         <div className="relative flex w-full">
