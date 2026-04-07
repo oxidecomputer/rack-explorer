@@ -10,6 +10,7 @@ import { SidebarIcon } from './components/Icons'
 import { Outline, outlineItems } from './components/Outline'
 import { Specifications } from './components/Specifications'
 import { Scene } from './Scene'
+import { useKeyboardNavigation } from './useKeyboardNavigation'
 
 type OutlineItemProps = {
   label: string
@@ -34,8 +35,20 @@ function findPath(
   if (!targetId) return null
 
   const flattened = flattenWithPath(items)
-  const found = flattened.find(({ item }) => item.id === targetId)
-  return found?.path || null
+  const [base, indexStr] = targetId.split(':')
+  const found =
+    flattened.find(({ item }) => item.id === targetId) ||
+    flattened.find(({ item }) => item.id === base)
+  if (!found) return null
+
+  // Append instance index to the last breadcrumb label
+  if (indexStr != null) {
+    const path = [...found.path]
+    const last = path[path.length - 1]
+    path[path.length - 1] = { ...last, label: `${last.label} ${indexStr}` }
+    return path
+  }
+  return found.path
 }
 
 function App() {
@@ -46,6 +59,8 @@ function App() {
   const toggleSpecifications = () => {
     specificationsOpen.set(!specsOpen)
   }
+
+  useKeyboardNavigation()
 
   const allItems = [{ id: 'oxide-rack', label: 'Oxide Rack' }, ...outlineItems]
   const breadcrumbPath = findPath(allItems, currentSelectedId)

@@ -20,6 +20,8 @@ function flattenItems(items: OutlineItem[]): OutlineItem[] {
 
 function findAncestors(id: string | null, items: OutlineItem[]): string[] {
   if (!id) return []
+  // Strip instance index (e.g. 'compute-sled:0' -> 'compute-sled')
+  id = id.split(':')[0]
 
   const allItems = [{ id: 'oxide-rack', label: 'Oxide Rack', children: items }]
   const flat = flattenItems(allItems)

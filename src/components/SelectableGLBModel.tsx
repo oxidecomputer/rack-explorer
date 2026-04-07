@@ -14,12 +14,14 @@ interface SelectableGLBModelProps {
   id: string
   path: string
   position?: Vector3
+  clickable?: boolean
 }
 
 export const SelectableGLBModel = ({
   id,
   path,
   position = [0, 0, 0],
+  clickable = true,
 }: SelectableGLBModelProps) => {
   const gltf = useLoader(GLTFLoader, path, (loader) => {
     loader.setDRACOLoader(dracoLoader)
@@ -32,9 +34,9 @@ export const SelectableGLBModel = ({
 
   useEffect(() => {
     scene.traverse((child) => {
-      child.userData = { id }
+      child.userData = clickable ? { id } : {}
     })
-  }, [scene, id])
+  }, [scene, id, clickable])
 
   return (
     <ModifiedSelect enabled={enabled}>

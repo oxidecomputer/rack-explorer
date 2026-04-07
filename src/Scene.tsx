@@ -19,10 +19,13 @@ import {
 
 const { ACTION } = CameraControlsImpl
 
+const DRAG_THRESHOLD = 5
+
 function SceneContent({ enableAO }: { enableAO: boolean }) {
   const cameraControlsRef = useRef<CameraControls>(null)
   const currentSelectedId = useValue(selectedId)
   const { camera } = useThree()
+  const pointerDownPos = useRef<{ x: number; y: number } | null>(null)
 
   useEffect(() => {
     if (!cameraControlsRef.current || !currentSelectedId) return
@@ -59,10 +62,27 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
             blur
           />
         </EffectComposer>
-        <group>
+        <group
+          onPointerDown={(e) => {
+            pointerDownPos.current = { x: e.clientX, y: e.clientY }
+          }}
+          onClick={(e) => {
+            e.stopPropagation()
+            if (pointerDownPos.current) {
+              const dx = e.clientX - pointerDownPos.current.x
+              const dy = e.clientY - pointerDownPos.current.y
+              if (dx * dx + dy * dy > DRAG_THRESHOLD * DRAG_THRESHOLD) return
+            }
+            const intersectedObject = e.intersections[0]?.object
+            if (intersectedObject?.userData?.id) {
+              selectedId.set(intersectedObject.userData.id)
+            }
+          }}
+        >
           <SelectableGLBModel
             id="oxide-rack"
             path="./models/rack-frame/rack-frame-lod1.glb"
+            clickable={false}
           />
           <InstancedGLBModel
             path="./models/cosmo/cosmo-lod1.glb"
