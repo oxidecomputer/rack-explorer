@@ -7,10 +7,15 @@ import CameraControlsImpl from 'camera-controls'
 import { BlendFunction } from 'postprocessing'
 import { useEffect, useRef, useState } from 'react'
 
-import { hoveredId, selectedId } from './atoms'
+import { selectedId } from './atoms'
+import { InstancedGLBModel } from './components/InstancedGLBModel'
 import { SelectableGLBModel } from './components/SelectableGLBModel'
 import { ModifiedSelection } from './components/Selection'
-import { cameraWaypoints } from './data/cameraWaypoints'
+import {
+  cameraWaypoints,
+  getWaypointEntries,
+  getWaypointEntry,
+} from './data/cameraWaypoints'
 
 const { ACTION } = CameraControlsImpl
 
@@ -22,9 +27,11 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
   useEffect(() => {
     if (!cameraControlsRef.current || !currentSelectedId) return
 
-    const waypoint = cameraWaypoints[currentSelectedId]
+    const [id, indexStr] = currentSelectedId.split(':')
+    const waypoint = cameraWaypoints[id]
     if (waypoint) {
-      cameraControlsRef.current.setLookAt(...waypoint.position, ...waypoint.target, true)
+      const entry = getWaypointEntry(waypoint, Number(indexStr ?? 0))
+      cameraControlsRef.current.setLookAt(...entry.position, ...entry.target, true)
     }
   }, [currentSelectedId, camera])
 
@@ -52,26 +59,34 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
             blur
           />
         </EffectComposer>
-        <group
-          onClick={(e) => {
-            e.stopPropagation()
-            const intersectedObject = e.intersections[0]?.object
-            if (intersectedObject?.userData?.id) {
-              selectedId.set(intersectedObject.userData.id)
-            }
-          }}
-          onPointerMove={(e) => {
-            const intersectedObject = e.intersections[0]?.object
-            if (intersectedObject?.userData?.id) {
-              hoveredId.set(intersectedObject.userData.id)
-            } else {
-              hoveredId.set(null)
-            }
-          }}
-          onPointerLeave={() => hoveredId.set(null)}
-        >
-          <SelectableGLBModel id="oxide-rack" path="./models/rack-frame.glb" />
-          <SelectableGLBModel id="power-shelf" path="./models/power-shelf.glb" />
+        <group>
+          <SelectableGLBModel
+            id="oxide-rack"
+            path="./models/rack-frame/rack-frame-lod1.glb"
+          />
+          <InstancedGLBModel
+            path="./models/cosmo/cosmo-lod1.glb"
+            instances={getWaypointEntries(cameraWaypoints['compute-sled']).map(
+              (entry, i) => ({
+                id: `compute-sled:${i}`,
+                position: entry.target,
+              }),
+            )}
+          />
+          <InstancedGLBModel
+            path="./models/power-shelf/power-shelf.glb"
+            instances={getWaypointEntries(cameraWaypoints['power-shelf']).map(
+              (entry, i) => ({
+                id: `power-shelf:${i}`,
+                position: entry.target,
+              }),
+            )}
+          />
+          <SelectableGLBModel
+            id="patch-panel"
+            path="./models/patch-panel/patch-panel.glb"
+            position={getWaypointEntry(cameraWaypoints['patch-panel'], 0).target}
+          />
         </group>
       </ModifiedSelection>
       <CameraControls
@@ -120,7 +135,7 @@ export const Scene = () => {
   return (
     <Canvas
       camera={{
-        position: cameraWaypoints['oxide-rack'].position,
+        position: getWaypointEntry(cameraWaypoints['oxide-rack'], 0).position,
         fov: 15,
         near: 1,
         far: 100,
