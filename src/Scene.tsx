@@ -75,6 +75,15 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
     }))
   }, [])
 
+  const networkSwitchInstances = useMemo(() => {
+    const node = componentTree.children?.find((c) => c.id === 'network-switch')
+    if (!node?.instances) return []
+    return node.instances.map((pos, i) => ({
+      id: `network-switch:${i}`,
+      position: pos as [number, number, number],
+    }))
+  }, [])
+
   const patchPanelWaypoint = resolveWaypoint('patch-panel')
 
   return (
@@ -142,6 +151,10 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
                   position={patchPanelWaypoint.target}
                 />
               )}
+              <InstancedGLBModel
+                path="./models/sidecar/sidecar-lod1.glb"
+                instances={networkSwitchInstances}
+              />
             </>
           )}
 

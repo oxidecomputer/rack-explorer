@@ -51,7 +51,7 @@ export const componentTree: ComponentNode = {
     {
       id: 'compute-sled',
       label: 'Compute Sled',
-      waypoint: { position: [1, 2, 4], target: [0, 0, 0] },
+      waypoint: { position: [1, 2, 4], target: [0, 0, 0.325] },
       instances: generateSledPositions(),
       children: [
         {
@@ -96,15 +96,19 @@ export const componentTree: ComponentNode = {
     {
       id: 'network-switch',
       label: 'Network Switch',
-      waypoint: { position: [2, 2, 2], target: [0, 1, 0] },
+      waypoint: { position: [2, 1.5, 4], target: [0, 0, 0.325] },
+      instances: [
+        [0, 1.26, 0.015],
+        [0, 0.985, 0.015],
+      ],
     },
     {
       id: 'power-shelf',
       label: 'Power Shelf',
-      waypoint: { position: [1, 1.5, 4], target: [0, 0, 0] },
+      waypoint: { position: [1, 1.5, 4], target: [0, 0, 0.325] },
       instances: [
-        [0, 1.2, 0.035],
-        [0, 1.1, 0.035],
+        [0, 1.15, 0.095],
+        [0, 1.1, 0.095],
       ],
     },
     {
@@ -199,7 +203,7 @@ export function resolveWaypoint(selectedId: string): ComponentWaypoint | null {
     const biasedPos: Vec3 = [instancePos[0], instancePos[1] * 0.25, instancePos[2]]
     return {
       position: addVec3(waypoint.position, biasedPos),
-      target: instancePos,
+      target: addVec3(instancePos, node.node.waypoint.target),
     }
   }
 
