@@ -112,7 +112,7 @@ export const componentTree: ComponentNode = {
     {
       id: 'network-switch',
       label: 'Network Switch',
-      waypoint: { position: [2, 1.5, 4], target: [0, 0, 0.325] },
+      waypoint: { position: [2, 1.5, 4], target: [0, 0, 0.5] },
       instances: [
         [0, 1.26, 0.015],
         [0, 0.985, 0.015],
@@ -123,7 +123,7 @@ export const componentTree: ComponentNode = {
         {
           id: 'switch-inner',
           label: 'Inner',
-          waypoint: { position: [0.75, 0.5, 1.5], target: [0, 0, 0.325] },
+          waypoint: { position: [1.5, 1.5, 3], target: [0, 0, 0.325] },
           model: { path: './models/sidecar/sidecar-lod1.glb', clickable: false },
         },
       ],

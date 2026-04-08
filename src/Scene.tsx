@@ -84,6 +84,8 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
     }
   }, [currentSelectedId, camera])
 
+  const isGuidedMode = navigationMode.get() === 'guided'
+
   return (
     <>
       <Environment files="./common/hdri.jpg" environmentIntensity={2} />
@@ -105,7 +107,7 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
           }}
           onClick={(e) => {
             e.stopPropagation()
-            if (navigationMode.get() === 'guided') return
+            if (isGuidedMode) return
 
             if (pointerDownPos.current) {
               const dx = e.clientX - pointerDownPos.current.x
@@ -119,7 +121,7 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
           }}
           onDoubleClick={(e) => {
             e.stopPropagation()
-            if (navigationMode.get() === 'guided') return
+            if (isGuidedMode) return
             const current = selectedId.get()
             if (!current) return
             const base = current.split(':')[0]
@@ -237,6 +239,7 @@ export const Scene = () => {
   }, [])
 
   const initialWaypoint = resolveWaypoint('oxide-rack')
+  const isGuidedMode = navigationMode.get() === 'guided'
 
   return (
     <Canvas
@@ -256,7 +259,7 @@ export const Scene = () => {
       linear
       frameloop="demand"
       onPointerMissed={() => {
-        if (navigationMode.get() === 'guided') return
+        if (isGuidedMode) return
         const now = performance.now()
         if (now - lastMissTime.current < 400) {
           const current = selectedId.get()

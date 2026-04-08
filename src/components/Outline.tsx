@@ -14,7 +14,7 @@ import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
 import { type ReactNode } from 'react'
 
-import { hoveredId, selectedId } from '../atoms'
+import { hoveredId, navigationMode, selectedId } from '../atoms'
 import {
   componentTree,
   inheritInstanceIndex,
@@ -72,7 +72,9 @@ function OutlineItem({
   return (
     <>
       <button
-        onClick={() => selectedId.set(inheritInstanceIndex(selectedId.get(), node.id))}
+        onClick={() => {
+          selectedId.set(inheritInstanceIndex(selectedId.get(), node.id))
+        }}
         onMouseEnter={() => hoveredId.set(node.id)}
         onMouseLeave={() => hoveredId.set(null)}
         className={clsx(
