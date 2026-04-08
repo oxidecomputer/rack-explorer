@@ -4,6 +4,7 @@ import clsx from 'clsx'
 import { AnimatePresence, motion } from 'motion/react'
 
 import {
+  activeTour,
   landingOpen,
   navigationMode,
   sceneReady,
@@ -11,11 +12,14 @@ import {
   specificationsOpen,
 } from './atoms'
 import { Card } from './components/Card'
+import { GuidedTourOutline } from './components/GuidedTourOutline'
+import { GuidedTourPanel } from './components/GuidedTourPanel'
 import { SidebarIcon } from './components/Icons'
 import { LandingModal } from './components/LandingModal'
 import { Outline } from './components/Outline'
 import { OutlineSkeleton, SpecificationsSkeleton } from './components/Skeletons'
 import { Specifications } from './components/Specifications'
+import { StepPips } from './components/StepPips'
 import { getNode } from './data/componentTree'
 import { Scene } from './Scene'
 import { useKeyboardNavigation } from './useKeyboardNavigation'
@@ -53,6 +57,8 @@ function App() {
   const currentSelectedId = useValue(selectedId)
   const isLandingOpen = useValue(landingOpen)
   const isSceneReady = useValue(sceneReady)
+  const currentTour = useValue(activeTour)
+  const isGuided = currentNavigationMode === 'guided'
 
   const toggleSpecifications = () => {
     specificationsOpen.set(!specsOpen)
@@ -134,11 +140,11 @@ function App() {
               {isLandingOpen ? <OutlineSkeleton /> : <Outline />}
             </Card>
             <Card
-              title="Guided tour"
-              open={currentNavigationMode === 'guided'}
+              title="Guided tour & help"
+              open={isGuided}
               onClick={isLandingOpen ? undefined : () => navigationMode.set('guided')}
             >
-              Guided Tour
+              {isLandingOpen ? <OutlineSkeleton /> : <GuidedTourOutline />}
             </Card>
           </nav>
 
@@ -165,8 +171,14 @@ function App() {
             style={{ minWidth: 0 }}
             className="pointer-events-auto flex w-64 flex-col gap-2 overflow-hidden p-4"
           >
-            <Card title="Specifications" open>
-              {isLandingOpen ? <SpecificationsSkeleton /> : <Specifications />}
+            <Card title={isGuided ? 'Guide' : 'Specifications'} open>
+              {isLandingOpen ? (
+                <SpecificationsSkeleton />
+              ) : isGuided ? (
+                <GuidedTourPanel />
+              ) : (
+                <Specifications />
+              )}
             </Card>
             <a
               href="https://oxide.computer/contact"
@@ -182,6 +194,15 @@ function App() {
             </a>
           </motion.div>
         </div>
+
+        {/* Bottom center step pips for guided tours */}
+        <AnimatePresence>
+          {isGuided && currentTour && !isLandingOpen && (
+            <div className="pointer-events-auto absolute bottom-4 left-1/2 z-20 -translate-x-1/2">
+              <StepPips />
+            </div>
+          )}
+        </AnimatePresence>
 
         <AnimatePresence>
           {isLandingOpen && (
