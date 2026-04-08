@@ -123,7 +123,7 @@ export const componentTree: ComponentNode = {
         {
           id: 'switch-inner',
           label: 'Inner',
-          waypoint: { position: [1.5, 1.5, 3], target: [0, 0, 0.325] },
+          waypoint: { position: [1.5, 1.5, 1.5], target: [0, 0, 0.325] },
           model: { path: './models/sidecar/sidecar-lod1.glb', clickable: false },
         },
       ],

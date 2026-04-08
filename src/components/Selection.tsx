@@ -17,18 +17,19 @@ export function ModifiedSelect({ enabled = false, children, ...props }: SelectAp
   useEffect(() => {
     if (api && enabled) {
       const current: THREE.Object3D[] = []
-      let changed = false
       group.current.traverse((o) => {
         if (o.type === 'Mesh') {
           current.push(o)
         }
-        if (api.selected.indexOf(o) === -1) changed = true
       })
-      if (changed) {
-        api.select((state) => [...state, ...current])
-      }
+      api.select((state) => {
+        const existing = new Set(state)
+        const toAdd = current.filter((o) => !existing.has(o))
+        return toAdd.length > 0 ? [...state, ...toAdd] : state
+      })
       return () => {
-        api.select((state) => state.filter((selected) => !current.includes(selected)))
+        const toRemove = new Set(current)
+        api.select((state) => state.filter((selected) => !toRemove.has(selected)))
       }
     }
   }, [enabled, children, api])

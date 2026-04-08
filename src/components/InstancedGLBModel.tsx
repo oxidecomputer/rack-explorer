@@ -56,29 +56,68 @@ export const InstancedGLBModel = ({
 
   const indexToId = useMemo(() => instances.map((inst) => inst.id), [instances])
 
-  // Clone the scene for the selected instance's outline
-  const selectedScene = useMemo(() => gltf.scene.clone(true), [gltf.scene])
-
-  useEffect(() => {
-    const s = selectedScene
-    return () => {
-      s.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          child.geometry?.dispose()
-          const materials = Array.isArray(child.material) ? child.material : [child.material]
-          materials.forEach((mat) => mat?.dispose())
-        }
-      })
+  // Find the selected instance and its index in a single pass
+  const { selectedInstance, selectedIndex } = useMemo(() => {
+    for (let i = 0; i < instances.length; i++) {
+      const inst = instances[i]
+      if (inst.id === currentSelectedId) return { selectedInstance: inst, selectedIndex: i }
+      const [baseId] = inst.id.split(':')
+      if (baseId === currentSelectedId) return { selectedInstance: inst, selectedIndex: i }
     }
-  }, [selectedScene])
+    return { selectedInstance: undefined, selectedIndex: -1 }
+  }, [instances, currentSelectedId])
 
-  const selectedInstance = instances.find((inst) => {
-    if (inst.id === currentSelectedId) return true
-    // Sidebar sets e.g. 'compute-sled', instance IDs are 'compute-sled:0'
-    const [baseId] = inst.id.split(':')
-    return baseId === currentSelectedId
-  })
-  const selectedIndex = selectedInstance ? instances.indexOf(selectedInstance) : -1
+  // Lazily clone the scene for the selected instance's outline — only allocate when needed
+  const selectedSceneRef = useRef<THREE.Group | null>(null)
+  const selectedSceneSourceRef = useRef<THREE.Group | null>(null)
+
+  const selectedScene = useMemo(() => {
+    if (!selectedInstance) {
+      // Dispose previous clone when deselecting
+      if (selectedSceneRef.current) {
+        selectedSceneRef.current.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            child.geometry?.dispose()
+            const materials = Array.isArray(child.material) ? child.material : [child.material]
+            materials.forEach((mat) => mat?.dispose())
+          }
+        })
+        selectedSceneRef.current = null
+        selectedSceneSourceRef.current = null
+      }
+      return null
+    }
+    // Re-clone only when the gltf source changes
+    if (selectedSceneSourceRef.current !== gltf.scene) {
+      if (selectedSceneRef.current) {
+        selectedSceneRef.current.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            child.geometry?.dispose()
+            const materials = Array.isArray(child.material) ? child.material : [child.material]
+            materials.forEach((mat) => mat?.dispose())
+          }
+        })
+      }
+      selectedSceneRef.current = gltf.scene.clone(true)
+      selectedSceneSourceRef.current = gltf.scene
+    }
+    return selectedSceneRef.current
+  }, [gltf.scene, selectedInstance])
+
+  // Dispose on unmount
+  useEffect(() => {
+    return () => {
+      if (selectedSceneRef.current) {
+        selectedSceneRef.current.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            child.geometry?.dispose()
+            const materials = Array.isArray(child.material) ? child.material : [child.material]
+            materials.forEach((mat) => mat?.dispose())
+          }
+        })
+      }
+    }
+  }, [])
 
   // Create refs for all instanced meshes to update their matrices
   const instancedMeshRefs = useRef<(THREE.InstancedMesh | null)[]>([])
@@ -126,20 +165,24 @@ export const InstancedGLBModel = ({
     if (!selectedGroupRef.current || !selectionOffset) return
     const target = selectedIndex >= 0 ? selectionOffset : [0, 0, 0]
     const pos = animOffset.current
+    // Early-out: skip math if already at target
+    if (
+      Math.abs(pos.x - target[0]) < 0.0001 &&
+      Math.abs(pos.y - target[1]) < 0.0001 &&
+      Math.abs(pos.z - target[2]) < 0.0001
+    )
+      return
     const rate = 1 - Math.pow(0.001, delta)
     const nx = THREE.MathUtils.lerp(pos.x, target[0], rate)
     const ny = THREE.MathUtils.lerp(pos.y, target[1], rate)
     const nz = THREE.MathUtils.lerp(pos.z, target[2], rate)
-    const dx = Math.abs(nx - pos.x) + Math.abs(ny - pos.y) + Math.abs(nz - pos.z)
-    if (dx > 0.0001) {
-      pos.set(nx, ny, nz)
-      selectedGroupRef.current.position.copy(pos)
-      state.invalidate()
-    }
+    pos.set(nx, ny, nz)
+    selectedGroupRef.current.position.copy(pos)
+    state.invalidate()
   })
 
   useEffect(() => {
-    if (!selectedInstance) return
+    if (!selectedInstance || !selectedScene) return
     selectedScene.traverse((child) => {
       child.userData = { id: selectedInstance.id }
     })
@@ -189,7 +232,7 @@ export const InstancedGLBModel = ({
       ))}
 
       {/* Render a single clone at the selected position for the outline effect */}
-      {selectedInstance && (
+      {selectedInstance && selectedScene && (
         <ModifiedSelect enabled>
           <group position={selectedInstance.position}>
             <group ref={selectedGroupRef}>

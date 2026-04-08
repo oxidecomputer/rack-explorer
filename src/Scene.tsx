@@ -1,6 +1,6 @@
 import { getGPUTier, type TierResult } from '@pmndrs/detect-gpu'
 import { CameraControls, Environment, Grid } from '@react-three/drei'
-import { Canvas, useThree } from '@react-three/fiber'
+import { Canvas } from '@react-three/fiber'
 import { useValue } from '@tldraw/state-react'
 import CameraControlsImpl from 'camera-controls'
 import { lazy, useEffect, useMemo, useRef, useState } from 'react'
@@ -36,7 +36,6 @@ function RackWireframe() {
 function SceneContent({ enableAO }: { enableAO: boolean }) {
   const cameraControlsRef = useRef<CameraControls>(null)
   const currentSelectedId = useValue(selectedId)
-  const { camera } = useThree()
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null)
 
   const baseId = currentSelectedId.split(':')[0]
@@ -82,9 +81,10 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
       if (animate) cameraControlsRef.current.normalizeRotations()
       cameraControlsRef.current.setLookAt(...waypoint.position, ...waypoint.target, animate)
     }
-  }, [currentSelectedId, camera])
+  }, [currentSelectedId])
 
-  const isGuidedMode = navigationMode.get() === 'guided'
+  const currentNavigationMode = useValue(navigationMode)
+  const isGuidedMode = currentNavigationMode === 'guided'
 
   return (
     <>
@@ -239,7 +239,8 @@ export const Scene = () => {
   }, [])
 
   const initialWaypoint = resolveWaypoint('oxide-rack')
-  const isGuidedMode = navigationMode.get() === 'guided'
+  const currentNavigationMode = useValue(navigationMode)
+  const isGuidedMode = currentNavigationMode === 'guided'
 
   return (
     <Canvas
