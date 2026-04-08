@@ -231,6 +231,7 @@ const getGPUConfig = (tier: TierResult | null): GPUConfig => {
 
 export const Scene = () => {
   const [gpuConfig, setGpuConfig] = useState<GPUConfig>({ dpr: 1, enableAO: false })
+  const lastMissTime = useRef(0)
 
   useEffect(() => {
     getGPUTier().then((tier) => {
@@ -257,6 +258,20 @@ export const Scene = () => {
       dpr={gpuConfig.dpr}
       linear
       frameloop="demand"
+      onPointerMissed={() => {
+        if (navigationMode.get() === 'guided') return
+        const now = performance.now()
+        if (now - lastMissTime.current < 400) {
+          const current = selectedId.get()
+          if (!current) return
+          const base = current.split(':')[0]
+          const entry = getNode(base)
+          if (entry?.parent) {
+            selectedId.set(inheritInstanceIndex(current, entry.parent.id))
+          }
+        }
+        lastMissTime.current = now
+      }}
       onCreated={() => sceneReady.set(true)}
     >
       <SceneContent enableAO={gpuConfig.enableAO} />
