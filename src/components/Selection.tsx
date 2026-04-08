@@ -16,8 +16,8 @@ export function ModifiedSelect({ enabled = false, children, ...props }: SelectAp
   const api = useContext(selectContext)
   useEffect(() => {
     if (api && enabled) {
-      let changed = false
       const current: THREE.Object3D[] = []
+      let changed = false
       group.current.traverse((o) => {
         if (o.type === 'Mesh') {
           current.push(o)
@@ -26,9 +26,9 @@ export function ModifiedSelect({ enabled = false, children, ...props }: SelectAp
       })
       if (changed) {
         api.select((state) => [...state, ...current])
-        return () => {
-          api.select((state) => state.filter((selected) => !current.includes(selected)))
-        }
+      }
+      return () => {
+        api.select((state) => state.filter((selected) => !current.includes(selected)))
       }
     }
   }, [enabled, children, api])
