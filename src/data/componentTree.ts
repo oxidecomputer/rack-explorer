@@ -57,7 +57,7 @@ export const componentTree: ComponentNode = {
         {
           id: 'disks',
           label: 'Disks',
-          waypoint: { position: [1.25, 0.5, 1.25], target: [0, 0, 0.25] },
+          waypoint: { position: [1.25, 0.5, 1.25], target: [0, 0, 0.325] },
         },
         {
           id: 'pcba',

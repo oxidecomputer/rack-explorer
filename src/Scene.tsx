@@ -5,7 +5,7 @@ import { useValue } from '@tldraw/state-react'
 import CameraControlsImpl from 'camera-controls'
 import { lazy, useEffect, useMemo, useRef, useState } from 'react'
 
-import { sceneReady, selectedId } from './atoms'
+import { navigationMode, sceneReady, selectedId } from './atoms'
 import { InstancedGLBModel } from './components/InstancedGLBModel'
 import { SelectableGLBModel } from './components/SelectableGLBModel'
 import { ModifiedSelection } from './components/Selection'
@@ -98,6 +98,7 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
           }}
           onClick={(e) => {
             e.stopPropagation()
+            if (navigationMode.get() === 'guided') return
 
             if (pointerDownPos.current) {
               const dx = e.clientX - pointerDownPos.current.x
@@ -111,6 +112,7 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
           }}
           onDoubleClick={(e) => {
             e.stopPropagation()
+            if (navigationMode.get() === 'guided') return
             const current = selectedId.get()
             if (!current) return
             const base = current.split(':')[0]
