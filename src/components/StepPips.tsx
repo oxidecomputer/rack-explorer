@@ -2,21 +2,13 @@ import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
 import { LayoutGroup, motion } from 'motion/react'
 
-import { activeTour, activeTourStepIndex, selectedId } from '../atoms'
+import { activeTour, activeTourStepIndex, goToTourStep } from '../atoms'
 
 export function StepPips() {
   const tour = useValue(activeTour)
   const stepIndex = useValue(activeTourStepIndex)
 
   if (!tour) return null
-
-  const goTo = (index: number) => {
-    activeTourStepIndex.set(index)
-    const step = tour.steps[index]
-    if (step?.selectedId) {
-      selectedId.set(step.selectedId)
-    }
-  }
 
   return (
     <motion.div
@@ -33,7 +25,7 @@ export function StepPips() {
             <motion.button
               key={i}
               layout
-              onClick={() => goTo(i)}
+              onClick={() => goToTourStep(i)}
               className={clsx(
                 'h-8 overflow-hidden rounded-md bg-neutral-800/20 text-center backdrop-blur-sm hover:bg-neutral-800/30',
                 isActive ? 'bg-neutral-800/30' : '',

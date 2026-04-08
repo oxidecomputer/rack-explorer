@@ -12,7 +12,9 @@ import { ModifiedSelection } from './components/Selection'
 import { WireframeCube } from './components/WireframeCube'
 import {
   componentTree,
+  getDescendantModels,
   getInstanceContext,
+  getInstances,
   getNode,
   inheritInstanceIndex,
   isDescendantOf,
@@ -37,10 +39,36 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
   const { camera } = useThree()
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null)
 
-  // Determine if we're viewing a child of an instanced component (e.g. compute sled internals)
   const baseId = currentSelectedId.split(':')[0]
-  const isViewingChild = isDescendantOf(baseId, 'compute-sled')
-  const instanceCtx = isViewingChild ? getInstanceContext(currentSelectedId) : null
+
+  // Find which top-level component we're viewing children of (if any)
+  const viewingChildOfId = useMemo(() => {
+    for (const child of componentTree.children ?? []) {
+      if (child.children && isDescendantOf(baseId, child.id)) {
+        return child.id
+      }
+    }
+    return null
+  }, [baseId])
+
+  const instanceCtx = viewingChildOfId ? getInstanceContext(currentSelectedId) : null
+
+  // Collect descendant models for the active parent (e.g. cosmo-lod0 when inside compute-sled)
+  const descendantModels = useMemo(
+    () => (viewingChildOfId ? getDescendantModels(viewingChildOfId) : []),
+    [viewingChildOfId],
+  )
+
+  // Stable instance arrays for instanced components (avoids re-render cycles in ModifiedSelect)
+  const instancesById = useMemo(() => {
+    const map: Record<string, ReturnType<typeof getInstances>> = {}
+    for (const child of componentTree.children ?? []) {
+      if (child.instances && child.model) {
+        map[child.id] = getInstances(child.id)
+      }
+    }
+    return map
+  }, [])
 
   const isFirstRender = useRef(true)
 
@@ -55,36 +83,6 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
       cameraControlsRef.current.setLookAt(...waypoint.position, ...waypoint.target, animate)
     }
   }, [currentSelectedId, camera])
-
-  // Compute sled instances for the 3D models
-  const sledInstances = useMemo(() => {
-    const sledNode = componentTree.children?.find((c) => c.id === 'compute-sled')
-    if (!sledNode?.instances) return []
-    return sledNode.instances.map((pos, i) => ({
-      id: `compute-sled:${i}`,
-      position: pos as [number, number, number],
-    }))
-  }, [])
-
-  const powerShelfInstances = useMemo(() => {
-    const node = componentTree.children?.find((c) => c.id === 'power-shelf')
-    if (!node?.instances) return []
-    return node.instances.map((pos, i) => ({
-      id: `power-shelf:${i}`,
-      position: pos as [number, number, number],
-    }))
-  }, [])
-
-  const networkSwitchInstances = useMemo(() => {
-    const node = componentTree.children?.find((c) => c.id === 'network-switch')
-    if (!node?.instances) return []
-    return node.instances.map((pos, i) => ({
-      id: `network-switch:${i}`,
-      position: pos as [number, number, number],
-    }))
-  }, [])
-
-  const patchPanelWaypoint = resolveWaypoint('patch-panel')
 
   return (
     <>
@@ -132,67 +130,62 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
             }
           }}
         >
-          {/* Hide everything except the selected sled when viewing child components */}
-          {!isViewingChild && (
-            <>
-              <SelectableGLBModel
-                id="oxide-rack"
-                path="./models/rack-frame/rack-frame-lod1.glb"
-                clickable={false}
-              />
-              <InstancedGLBModel
-                path="./models/power-shelf/power-shelf.glb"
-                instances={powerShelfInstances}
-              />
-              {patchPanelWaypoint && (
-                <SelectableGLBModel
-                  id="patch-panel"
-                  path="./models/patch-panel/patch-panel.glb"
-                  position={patchPanelWaypoint.target}
-                />
-              )}
-              <InstancedGLBModel
-                path="./models/sidecar/sidecar-lod1.glb"
-                instances={networkSwitchInstances}
-              />
-            </>
-          )}
-
-          {/* Wireframe rack outline when the full rack is hidden */}
-          {isViewingChild && <RackWireframe />}
-
-          {/* Compute sleds — always visible (instanced when viewing rack, single when viewing child) */}
-          {/* Hack because we dont have seprate cosmo internal meshes yet, remove `isViewingChild` when we do */}
-          {!isViewingChild && (
-            <InstancedGLBModel
-              path="./models/cosmo/cosmo-lod1.glb"
-              instances={
-                isViewingChild && instanceCtx
-                  ? [
-                      {
-                        id: `compute-sled:${instanceCtx.instanceIndex}`,
-                        position: instanceCtx.instancePosition,
-                      },
-                    ]
-                  : sledInstances
-              }
+          {/* Rack model — only at rack level */}
+          {!viewingChildOfId && componentTree.model && (
+            <SelectableGLBModel
+              id={componentTree.id}
+              path={componentTree.model.path}
+              clickable={componentTree.model.clickable ?? true}
             />
           )}
 
-          {/* Only visible when viewing compute sled child components */}
-          {isViewingChild && instanceCtx && (
-            <group position={instanceCtx.instancePosition}>
+          {/* Wireframe rack outline when drilled in */}
+          {viewingChildOfId && <RackWireframe />}
+
+          {/* Top-level components from tree */}
+          {componentTree.children?.map((node) => {
+            if (!node.model) return null
+
+            // Hide non-active siblings when drilled in
+            if (viewingChildOfId && viewingChildOfId !== node.id) return null
+
+            // When drilled into this component, render its descendant models
+            if (viewingChildOfId === node.id && instanceCtx) {
+              return (
+                <group key={node.id} position={instanceCtx.instancePosition}>
+                  {descendantModels.map((descendant) => (
+                    <SelectableGLBModel
+                      key={descendant.id}
+                      id={descendant.id}
+                      path={descendant.model!.path}
+                      clickable={descendant.model!.clickable ?? true}
+                    />
+                  ))}
+                </group>
+              )
+            }
+
+            // Instanced rendering
+            if (node.instances) {
+              return (
+                <InstancedGLBModel
+                  key={node.id}
+                  path={node.model.path}
+                  instances={instancesById[node.id]}
+                />
+              )
+            }
+
+            // Single positioned model
+            return (
               <SelectableGLBModel
-                id="oxide-rack"
-                path="./models/cosmo/cosmo-lod0.glb"
-                clickable={false}
-                // Todo: remove this by adding airflow shroud as a separate mesh
-                hideMaterials={
-                  baseId === 'ram' || baseId == 'cpu' ? ['Plastic_Transparent'] : []
-                }
+                key={node.id}
+                id={node.id}
+                path={node.model.path}
+                position={node.model.position}
               />
-            </group>
-          )}
+            )
+          })}
         </group>
       </ModifiedSelection>
       <CameraControls
@@ -210,7 +203,6 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
           three: ACTION.NONE,
         }}
       />
-      {/*<Stats />*/}
     </>
   )
 }

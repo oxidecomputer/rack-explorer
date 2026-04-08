@@ -5,6 +5,12 @@ export type ComponentWaypoint = {
   target: Vec3
 }
 
+export type ModelConfig = {
+  path: string
+  clickable?: boolean
+  position?: Vec3
+}
+
 export type ComponentNode = {
   id: string
   label: string
@@ -14,6 +20,8 @@ export type ComponentNode = {
   instances?: Vec3[]
   /** Child waypoints are relative offsets from the parent instance position. */
   children?: ComponentNode[]
+  /** GLB model to render for this component */
+  model?: ModelConfig
 }
 
 // ——— Compute sled instance positions ———
@@ -47,23 +55,26 @@ export const componentTree: ComponentNode = {
   id: 'oxide-rack',
   label: 'Oxide Rack',
   waypoint: { position: [5, 5, 10], target: [0, 1.2, 0] },
+  model: { path: './models/rack-frame/rack-frame-lod1.glb', clickable: false },
   children: [
     {
       id: 'compute-sled',
       label: 'Compute Sled',
       waypoint: { position: [1, 2, 4], target: [0, 0, 0.325] },
       instances: generateSledPositions(),
+      model: { path: './models/cosmo/cosmo-lod1.glb' },
       children: [
         {
-          id: 'disks',
-          label: 'Disks',
-          waypoint: { position: [1.25, 0.5, 1.25], target: [0, 0, 0.325] },
-        },
-        {
-          id: 'pcba',
-          label: 'PCBA',
+          id: 'compute-inner',
+          label: 'Inner',
           waypoint: { position: [1.5, 1, 1.5], target: [0, 0, 0] },
+          model: { path: './models/cosmo/cosmo-lod0.glb', clickable: false },
           children: [
+            {
+              id: 'disks',
+              label: 'Disks',
+              waypoint: { position: [1.25, 0.5, 1.25], target: [0, 0, 0.325] },
+            },
             {
               id: 'cpu',
               label: 'CPU',
@@ -79,17 +90,17 @@ export const componentTree: ComponentNode = {
               label: 'Connectors',
               waypoint: { position: [1, 0.75, -1], target: [0, 0, -0.35] },
             },
+            {
+              id: 'fans',
+              label: 'Fans',
+              waypoint: { position: [1.25, 1, -1.25], target: [0, 0.05, -0.25] },
+            },
+            {
+              id: 'airflow-shroud',
+              label: 'Airflow Shroud',
+              waypoint: { position: [1.25, 1.5, 1.25], target: [0, 0, 0] },
+            },
           ],
-        },
-        {
-          id: 'fans',
-          label: 'Fans',
-          waypoint: { position: [1.25, 1, -1.25], target: [0, 0.05, -0.25] },
-        },
-        {
-          id: 'airflow-shroud',
-          label: 'Airflow Shroud',
-          waypoint: { position: [1.25, 1.5, 1.25], target: [0, 0, 0] },
         },
       ],
     },
@@ -101,6 +112,15 @@ export const componentTree: ComponentNode = {
         [0, 1.26, 0.015],
         [0, 0.985, 0.015],
       ],
+      model: { path: './models/sidecar/sidecar-lod1.glb' },
+      children: [
+        {
+          id: 'switch-inner',
+          label: 'Inner',
+          waypoint: { position: [0.75, 0.5, 1.5], target: [0, 0, 0.325] },
+          model: { path: './models/sidecar/sidecar-lod1.glb', clickable: false },
+        },
+      ],
     },
     {
       id: 'power-shelf',
@@ -110,13 +130,27 @@ export const componentTree: ComponentNode = {
         [0, 1.15, 0.095],
         [0, 1.1, 0.095],
       ],
+      model: { path: './models/power-shelf/power-shelf.glb' },
     },
     {
       id: 'patch-panel',
       label: 'Patch Panel',
       waypoint: { position: [1, 2.15, 4], target: [0, 2.2, 0] },
+      model: { path: './models/patch-panel/patch-panel.glb', position: [0, 2.2, 0] },
     },
   ],
+}
+
+/** Build the instance list for a top-level component by id */
+export function getInstances(
+  id: string,
+): { id: string; position: [number, number, number] }[] {
+  const node = componentTree.children?.find((c) => c.id === id)
+  if (!node?.instances) return []
+  return node.instances.map((pos, i) => ({
+    id: `${id}:${i}`,
+    position: pos as [number, number, number],
+  }))
 }
 
 // ——— Lookup helpers ———
@@ -222,6 +256,19 @@ export function resolveWaypoint(selectedId: string): ComponentWaypoint | null {
 
 function addVec3(a: Vec3, b: Vec3): Vec3 {
   return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
+}
+
+/** Collect all descendant nodes that have a model defined */
+export function getDescendantModels(nodeId: string): ComponentNode[] {
+  const entry = flatMap.get(nodeId)
+  if (!entry) return []
+  const result: ComponentNode[] = []
+  function walk(node: ComponentNode) {
+    if (node.model) result.push(node)
+    for (const child of node.children ?? []) walk(child)
+  }
+  for (const child of entry.node.children ?? []) walk(child)
+  return result
 }
 
 /** Check if a given baseId is a descendant of a specific ancestor id */

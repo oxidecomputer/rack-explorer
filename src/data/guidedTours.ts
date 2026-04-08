@@ -38,8 +38,8 @@ export const guidedTours: GuidedTour[] = [
       {
         title: 'Inside a Sled',
         description:
-          'Each compute sled is a self-contained server with its own CPU, memory, storage, and cooling. Let\'s take a closer look at the key components.',
-        selectedId: 'pcba:0',
+          "Each compute sled is a self-contained server with its own CPU, memory, storage, and cooling. Let's take a closer look at the key components.",
+        selectedId: 'compute-inner:0',
       },
       {
         title: 'CPU',

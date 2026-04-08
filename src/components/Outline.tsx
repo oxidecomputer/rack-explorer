@@ -25,7 +25,8 @@ import {
 const iconMap: Record<string, ReactNode> = {
   'oxide-rack': <Servers16Icon />,
   'compute-sled': <Servers16Icon />,
-  pcba: <Ssd16Icon />,
+  'compute-inner': <Ssd16Icon />,
+  'switch-inner': <Ssd16Icon />,
   disks: <Action16Icon />,
   cpu: <Cpu16Icon />,
   ram: <Ram16Icon />,

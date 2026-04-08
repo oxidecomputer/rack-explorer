@@ -61,6 +61,7 @@ export const InstancedGLBModel = ({ path, instances }: InstancedGLBModelProps) =
   // This preserves the mesh's original rotation/scale from the GLB hierarchy
   useEffect(() => {
     const translation = new THREE.Matrix4()
+    const composed = new THREE.Matrix4()
     for (let meshIdx = 0; meshIdx < meshes.length; meshIdx++) {
       const instancedMesh = instancedMeshRefs.current[meshIdx]
       if (!instancedMesh) continue
@@ -68,10 +69,8 @@ export const InstancedGLBModel = ({ path, instances }: InstancedGLBModelProps) =
         const pos = instances[i].position
         const p = Array.isArray(pos) ? pos : [pos, 0, 0]
         translation.makeTranslation(p[0] as number, p[1] as number, p[2] as number)
-        instancedMesh.setMatrixAt(
-          i,
-          translation.clone().multiply(meshes[meshIdx].matrix),
-        )
+        composed.copy(translation).multiply(meshes[meshIdx].matrix)
+        instancedMesh.setMatrixAt(i, composed)
       }
       instancedMesh.instanceMatrix.needsUpdate = true
     }

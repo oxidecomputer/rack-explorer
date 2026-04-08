@@ -28,3 +28,13 @@ export const activeTourStep = computed('activeTourStep', () => {
   const index = activeTourStepIndex.get()
   return tour.steps[index] ?? null
 })
+
+/** Navigate to a specific step in the active tour */
+export function goToTourStep(index: number) {
+  activeTourStepIndex.set(index)
+  const tour = activeTour.get()
+  const step = tour?.steps[index]
+  if (step?.selectedId) {
+    selectedId.set(step.selectedId)
+  }
+}
