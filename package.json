@@ -22,7 +22,6 @@
     "@tldraw/state-react": "^4.1.2",
     "@types/three": "^0.181.0",
     "clsx": "^2.1.1",
-    "meshline": "^3.3.1",
     "motion": "^12.23.24",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

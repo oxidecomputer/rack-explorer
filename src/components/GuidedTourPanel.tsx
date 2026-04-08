@@ -2,7 +2,7 @@ import { NextArrow12Icon, PrevArrow12Icon } from '@oxide/design-system/icons/rea
 import { useValue } from '@tldraw/state-react'
 import { AnimatePresence, motion } from 'motion/react'
 
-import { activeTour, activeTourStep, activeTourStepIndex, selectedId } from '../atoms'
+import { activeTour, activeTourStep, activeTourStepIndex, goToTourStep } from '../atoms'
 
 export function GuidedTourPanel() {
   const tour = useValue(activeTour)
@@ -20,14 +20,6 @@ export function GuidedTourPanel() {
   const totalSteps = tour.steps.length
   const isFirst = stepIndex === 0
   const isLast = stepIndex === totalSteps - 1
-
-  const goTo = (index: number) => {
-    activeTourStepIndex.set(index)
-    const target = tour.steps[index]
-    if (target?.selectedId) {
-      selectedId.set(target.selectedId)
-    }
-  }
 
   return (
     <div className="flex h-full grow flex-col gap-4">
@@ -54,14 +46,14 @@ export function GuidedTourPanel() {
           </div>
           <div className="-m-1 flex gap-1">
             <button
-              onClick={() => goTo(stepIndex - 1)}
+              onClick={() => goToTourStep(stepIndex - 1)}
               disabled={isFirst}
               className="hover:bg-hover disabled:text-quaternary text-secondary flex h-6 w-6 items-center justify-center rounded transition-colors disabled:pointer-events-none"
             >
               <PrevArrow12Icon />
             </button>
             <button
-              onClick={() => goTo(stepIndex + 1)}
+              onClick={() => goToTourStep(stepIndex + 1)}
               disabled={isLast}
               className="hover:bg-hover disabled:text-quaternary text-secondary flex h-6 w-6 items-center justify-center rounded transition-colors disabled:pointer-events-none"
             >

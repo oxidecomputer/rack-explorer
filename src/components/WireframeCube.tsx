@@ -48,7 +48,7 @@ export function WireframeCube({
   color = 'hotpink',
   lineWidth = 1,
 }: WireframeCubeProps) {
-  const edges = useMemo(() => getBoxEdges(...size), [size[0], size[1], size[2]])
+  const edges = useMemo(() => getBoxEdges(...size), size)
 
   return (
     <group position={position}>
