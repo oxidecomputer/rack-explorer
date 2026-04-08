@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 
-import { selectedId } from '../atoms'
+import { navigationMode, selectedId } from '../atoms'
 import { isDescendantOf } from '../data/componentTree'
 import { dracoLoader } from '../loaders'
 import { ModifiedSelect } from './Selection'
@@ -152,6 +152,7 @@ export const InstancedGLBModel = ({
       }}
       onClick={(e) => {
         e.stopPropagation()
+        if (navigationMode.get() === 'guided') return
         if (pointerDownPos.current) {
           const dx = e.clientX - pointerDownPos.current.x
           const dy = e.clientY - pointerDownPos.current.y

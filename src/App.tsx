@@ -68,6 +68,8 @@ function App() {
 
   const breadcrumbPath = findPath(currentSelectedId)
 
+  const isGuidedMode = navigationMode.get() !== 'guided'
+
   return (
     <>
       <motion.div
@@ -100,8 +102,14 @@ function App() {
           </div>
           <div className="text-secondary flex flex-1 items-center justify-center gap-2">
             <button
-              onClick={() => selectedId.set('oxide-rack')}
-              className="hover:text-default text-mono-xs transition-colors"
+              disabled={isGuidedMode}
+              onClick={() => {
+                selectedId.set('oxide-rack')
+              }}
+              className={clsx(
+                'text-mono-xs transition-colors',
+                isGuidedMode && 'hover:text-default',
+              )}
             >
               Oxide Rack
             </button>
@@ -113,8 +121,14 @@ function App() {
                     <span key={item.id} className="flex items-center gap-2">
                       <span className="text-raise text-mono-xs opacity-20">/</span>
                       <button
-                        onClick={() => selectedId.set(item.id)}
-                        className="hover:text-default text-mono-xs transition-colors"
+                        disabled={isGuidedMode}
+                        onClick={() => {
+                          selectedId.set(item.id)
+                        }}
+                        className={clsx(
+                          'text-mono-xs transition-colors',
+                          isGuidedMode && 'hover:text-default',
+                        )}
                       >
                         {item.label}
                       </button>
@@ -142,7 +156,14 @@ function App() {
             <Card
               title="Guided tour & help"
               open={isGuided}
-              onClick={isLandingOpen ? undefined : () => navigationMode.set('guided')}
+              onClick={
+                isLandingOpen
+                  ? undefined
+                  : () => {
+                      navigationMode.set('guided')
+                      selectedId.set('oxide-rack')
+                    }
+              }
             >
               {isLandingOpen ? <OutlineSkeleton /> : <GuidedTourOutline />}
             </Card>
