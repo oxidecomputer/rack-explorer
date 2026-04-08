@@ -14,7 +14,7 @@ import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
 import { type ReactNode } from 'react'
 
-import { hoveredId, navigationMode, selectedId } from '../atoms'
+import { hoveredId, selectedId } from '../atoms'
 import {
   componentTree,
   inheritInstanceIndex,
