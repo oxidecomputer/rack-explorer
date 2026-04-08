@@ -1,14 +1,12 @@
 import { useLoader, type Vector3 } from '@react-three/fiber'
 import { useValue } from '@tldraw/state-react'
 import { useEffect, useMemo } from 'react'
-import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js'
+import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 
 import { selectedId } from '../atoms'
+import { dracoLoader } from '../loaders'
 import { ModifiedSelect } from './Selection'
-
-const dracoLoader = new DRACOLoader()
-dracoLoader.setDecoderPath('/draco/')
 
 interface SelectableGLBModelProps {
   id: string
@@ -28,6 +26,19 @@ export const SelectableGLBModel = ({
   })
 
   const scene = useMemo(() => gltf.scene.clone(true), [gltf.scene])
+
+  useEffect(() => {
+    const s = scene
+    return () => {
+      s.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          child.geometry?.dispose()
+          const materials = Array.isArray(child.material) ? child.material : [child.material]
+          materials.forEach((mat) => mat?.dispose())
+        }
+      })
+    }
+  }, [scene])
 
   const currentSelectedId = useValue(selectedId)
   const enabled = currentSelectedId === id

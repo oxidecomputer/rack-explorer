@@ -22,6 +22,8 @@ export type ComponentNode = {
   children?: ComponentNode[]
   /** GLB model to render for this component */
   model?: ModelConfig
+  /** Offset applied to the selected instance (e.g. slide out on Z). If omitted, no animation. */
+  selectionOffset?: Vec3
 }
 
 // ——— Compute sled instance positions ———
@@ -49,6 +51,8 @@ function generateSledPositions(): Vec3[] {
   return positions
 }
 
+const selectionOffset: [number, number, number] = [0, 0, 0.1]
+
 // ——— The tree ———
 
 export const componentTree: ComponentNode = {
@@ -62,6 +66,7 @@ export const componentTree: ComponentNode = {
       label: 'Compute Sled',
       waypoint: { position: [1, 2, 4], target: [0, 0, 0.325] },
       instances: generateSledPositions(),
+      selectionOffset: selectionOffset,
       model: { path: './models/cosmo/cosmo-lod1.glb' },
       children: [
         {
@@ -112,6 +117,7 @@ export const componentTree: ComponentNode = {
         [0, 1.26, 0.015],
         [0, 0.985, 0.015],
       ],
+      selectionOffset: selectionOffset,
       model: { path: './models/sidecar/sidecar-lod1.glb' },
       children: [
         {
@@ -130,6 +136,7 @@ export const componentTree: ComponentNode = {
         [0, 1.15, 0.095],
         [0, 1.1, 0.095],
       ],
+      selectionOffset: selectionOffset,
       model: { path: './models/power-shelf/power-shelf.glb' },
     },
     {

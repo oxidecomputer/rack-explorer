@@ -172,6 +172,7 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
                   key={node.id}
                   path={node.model.path}
                   instances={instancesById[node.id]}
+                  selectionOffset={node.selectionOffset}
                 />
               )
             }
@@ -226,9 +227,13 @@ export const Scene = () => {
   const lastMissTime = useRef(0)
 
   useEffect(() => {
+    let cancelled = false
     getGPUTier().then((tier) => {
-      setGpuConfig(getGPUConfig(tier))
+      if (!cancelled) setGpuConfig(getGPUConfig(tier))
     })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const initialWaypoint = resolveWaypoint('oxide-rack')
