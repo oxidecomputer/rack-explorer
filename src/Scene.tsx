@@ -161,6 +161,7 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
                       id={descendant.id}
                       path={descendant.model!.path}
                       clickable={descendant.model!.clickable ?? true}
+                      textures={descendant.model!.textures}
                     />
                   ))}
                 </group>

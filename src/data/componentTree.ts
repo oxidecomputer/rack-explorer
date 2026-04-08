@@ -9,6 +9,8 @@ export type ModelConfig = {
   path: string
   clickable?: boolean
   position?: Vec3
+  /** Map of material name → texture path to apply after loading */
+  textures?: Record<string, string>
 }
 
 export type ComponentNode = {
@@ -73,7 +75,11 @@ export const componentTree: ComponentNode = {
           id: 'compute-inner',
           label: 'Inner',
           waypoint: { position: [1.5, 1, 1.5], target: [0, 0, 0] },
-          model: { path: './models/cosmo/cosmo-lod0.glb', clickable: false },
+          model: {
+            path: './models/cosmo/cosmo-lod0.glb',
+            clickable: false,
+            textures: { PCB_Texture: './models/cosmo/pcb.png' },
+          },
           children: [
             {
               id: 'disks',
