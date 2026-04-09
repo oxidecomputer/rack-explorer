@@ -1,5 +1,12 @@
 type Vec3 = [number, number, number]
 
+export type TourAnnotation = {
+  label: string
+  description: string
+  /** 3D position where the annotation appears in the scene */
+  position: Vec3
+}
+
 export type TourStep = {
   title: string
   description: string
@@ -10,6 +17,8 @@ export type TourStep = {
     position: Vec3
     target: Vec3
   }
+  /** Annotations displayed in the 3D scene during this step */
+  annotations?: TourAnnotation[]
 }
 
 export type GuidedTour = {
@@ -40,6 +49,18 @@ export const guidedTours: GuidedTour[] = [
         description:
           "Each compute sled is a self-contained server with its own CPU, memory, storage, and cooling. Let's take a closer look at the key components.",
         selectedId: 'compute-inner:0',
+        annotations: [
+          {
+            label: 'CPU',
+            description: 'AMD EPYC processor with up to 192 cores.',
+            position: [0.08, 0, -0.05],
+          },
+          {
+            label: 'NVMe Bays',
+            description: '10 front-accessible U.2 SSD bays.',
+            position: [-0.08, 0.0, 0.35],
+          },
+        ],
       },
       {
         title: 'CPU',
