@@ -9,6 +9,7 @@ import { navigationMode, sceneReady, selectedId } from './atoms'
 import { InstancedGLBModel } from './components/InstancedGLBModel'
 import { SelectableGLBModel } from './components/SelectableGLBModel'
 import { ModifiedSelection } from './components/Selection'
+import { TourAnnotations } from './components/TourAnnotations'
 import { WireframeCube } from './components/WireframeCube'
 import {
   componentTree,
@@ -192,6 +193,7 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
           })}
         </group>
       </ModifiedSelection>
+      <TourAnnotations />
       <CameraControls
         ref={cameraControlsRef}
         maxPolarAngle={Math.PI / 2}
@@ -251,7 +253,7 @@ export const Scene = () => {
         near: 1,
         far: 100,
       }}
-      className="absolute inset-0"
+      className="absolute inset-0 z-0"
       gl={{
         outputColorSpace: 'srgb',
         toneMapping: 0,
