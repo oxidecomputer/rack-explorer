@@ -22,7 +22,7 @@ body {
 
 button,
 a {
-  @apply focus-visible:ring-accent-secondary focus-visible:ring-2 focus-visible:outline-0;
+  @apply focus-visible:ring-accent-secondary focus-visible:rounded-md focus-visible:ring-2 focus-visible:outline-0;
 }
 
 ::-moz-selection {

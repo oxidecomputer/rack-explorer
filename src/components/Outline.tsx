@@ -83,7 +83,7 @@ function OutlineItem({
       >
         <div
           className={clsx(
-            'absolute inset-y-0 right-0 w-50 rounded opacity-0 transition-opacity',
+            'absolute inset-y-0 right-0 w-58 rounded opacity-0 transition-opacity',
             (hovered || selected) && 'opacity-11',
             selected && hovered && 'opacity-20',
             selected ? 'bg-accent-inverse' : 'bg-neutral-700',

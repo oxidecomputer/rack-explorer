@@ -153,8 +153,8 @@ function App() {
           <OptionsDropdown />
         </header>
 
-        <div className="relative z-10 flex min-h-0 grow justify-between">
-          <nav className="pointer-events-auto flex h-full flex-col gap-2 p-4">
+        <div className="relative z-10 flex min-h-0 grow p-4">
+          <nav className="pointer-events-auto flex h-full flex-col gap-2">
             <Card
               title={
                 isLandingOpen ? (
@@ -207,28 +207,58 @@ function App() {
             )}
           </nav>
 
-          <motion.button
-            initial={false}
-            animate={{ right: specsOpen ? 22 : 16 }}
-            transition={{ type: 'spring', duration: 0.5, bounce: 0 }}
-            onClick={toggleSpecifications}
-            className={clsx(
-              'hover:bg-hover pointer-events-auto absolute top-5 z-10 rounded border p-0.5 transition-colors',
-              specsOpen ? 'border-transparent' : 'border-default',
+          {/* Center area between sidebars — tour controls live here */}
+          <div className="relative min-h-0 min-w-0 grow">
+            {isGuided && currentTour && !isLandingOpen && (
+              <>
+                <div className="pointer-events-auto absolute bottom-4 left-1/2 z-20 -translate-x-1/2">
+                  <StepPips />
+                </div>
+
+                {[
+                  {
+                    Icon: PrevArrow12Icon,
+                    pos: 'left-4',
+                    step: currentStepIndex - 1,
+                    disabled: currentStepIndex === 0,
+                  },
+                  {
+                    Icon: NextArrow12Icon,
+                    pos: specsOpen ? 'right-4' : 'right-0',
+                    step: currentStepIndex + 1,
+                    disabled: currentStepIndex === currentTour.steps.length - 1,
+                  },
+                ].map(({ Icon, pos, step, disabled }) => (
+                  <button
+                    key={pos}
+                    className={`target-16 pointer-events-auto absolute top-1/2 ${pos} z-30 -translate-y-1/2 rounded-md text-center hover:bg-neutral-800/30 hover:backdrop-blur-sm disabled:pointer-events-none disabled:opacity-30`}
+                    disabled={disabled}
+                    onClick={() => {
+                      goToTourStep(step)
+                      const pip = document.querySelector<HTMLElement>(
+                        `[data-step="${step}"]`,
+                      )
+                      pip?.focus()
+                    }}
+                  >
+                    <Icon className="m-1 size-6" />
+                  </button>
+                ))}
+              </>
             )}
-          >
-            <SidebarIcon className="text-tertiary h-4 w-4" />
-          </motion.button>
+          </div>
 
           <motion.div
             initial={false}
             animate={{
-              translateX: specsOpen ? 0 : 20,
+              width: specsOpen ? 256 : 0,
               opacity: specsOpen ? 1 : 0,
             }}
             transition={{ type: 'spring', duration: 0.325, bounce: 0 }}
-            style={{ minWidth: 0 }}
-            className="pointer-events-auto flex flex-col gap-2 overflow-hidden p-4"
+            className={clsx(
+              'flex flex-col gap-2 overflow-hidden',
+              specsOpen && 'pointer-events-auto',
+            )}
           >
             <Card
               title={
@@ -252,12 +282,12 @@ function App() {
             </Card>
             <a
               href="https://oxide.computer/contact"
-              className="hover:bg-hover/80 block overflow-clip rounded-md bg-transparent p-2.5 ring ring-neutral-900/10 backdrop-blur-lg transition-colors"
+              className="hover:bg-hover/80 block w-64 rounded-md border border-neutral-900/10 bg-transparent p-2.5 backdrop-blur-md transition-colors"
             >
               <div className="text-mono-xs text-tertiary flex items-center justify-between">
                 Contact Sales <OpenLink12Icon className="text-quaternary" />
               </div>
-              <p className="text-default text-sans-sm mt-1 w-50">
+              <p className="text-default text-sans-sm mt-1 pr-2">
                 Discuss your computing requirements and business goals with our team of
                 experts.
               </p>
@@ -265,43 +295,19 @@ function App() {
           </motion.div>
         </div>
 
-        {isGuided && currentTour && !isLandingOpen && (
-          <>
-            {/* Bottom center step pips for guided tours */}
-            <AnimatePresence>
-              <div className="pointer-events-auto absolute bottom-4 left-1/2 z-20 -translate-x-1/2">
-                <StepPips />
-              </div>
-            </AnimatePresence>
-
-            {[
-              {
-                Icon: PrevArrow12Icon,
-                pos: 'left-70',
-                step: currentStepIndex - 1,
-                disabled: currentStepIndex === 0,
-              },
-              {
-                Icon: NextArrow12Icon,
-                pos: 'right-70',
-                step: currentStepIndex + 1,
-                disabled: currentStepIndex === currentTour.steps.length - 1,
-              },
-            ].map(({ Icon, pos, step, disabled }) => (
-              <button
-                key={pos}
-                className={`target-16 pointer-events-auto absolute top-1/2 ${pos} z-30 -translate-y-1/2 rounded-md text-center hover:bg-neutral-800/30 hover:backdrop-blur-sm disabled:pointer-events-none disabled:opacity-30`}
-                disabled={disabled}
-                onClick={() => {
-                  goToTourStep(step)
-                  const pip = document.querySelector<HTMLElement>(`[data-step="${step}"]`)
-                  pip?.focus()
-                }}
-              >
-                <Icon className="m-1 size-6" />
-              </button>
-            ))}
-          </>
+        {!isLandingOpen && (
+          <motion.button
+            initial={false}
+            animate={{ right: specsOpen ? 22 : 16 }}
+            transition={{ type: 'spring', duration: 0.5, bounce: 0 }}
+            onClick={toggleSpecifications}
+            className={clsx(
+              'hover:bg-hover target-8 pointer-events-auto absolute top-17 z-10 rounded border p-0.5 transition-colors',
+              specsOpen ? 'border-transparent' : 'border-default',
+            )}
+          >
+            <SidebarIcon className="text-tertiary h-4 w-4" />
+          </motion.button>
         )}
 
         <AnimatePresence>

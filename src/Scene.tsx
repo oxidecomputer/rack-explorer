@@ -1,12 +1,19 @@
 import { getGPUTier, type TierResult } from '@pmndrs/detect-gpu'
 import { CameraControls, Environment, Grid } from '@react-three/drei'
-import { Canvas, useFrame } from '@react-three/fiber'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useValue } from '@tldraw/state-react'
 import CameraControlsImpl from 'camera-controls'
 import { lazy, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 
-import { lowQuality, navigationMode, sceneReady, selectedId, showcaseMode } from './atoms'
+import {
+  lowQuality,
+  navigationMode,
+  sceneReady,
+  selectedId,
+  showcaseMode,
+  specificationsOpen,
+} from './atoms'
 import { InstancedGLBModel } from './components/InstancedGLBModel'
 import { SelectableGLBModel } from './components/SelectableGLBModel'
 import { ModifiedSelection } from './components/Selection'
@@ -86,6 +93,45 @@ function ShowcaseRotation({
     if (!isShowcase || !cameraControlsRef.current) return
     cameraControlsRef.current.rotate(delta * 0.15, 0, false)
   })
+
+  return null
+}
+
+function CameraOffset() {
+  const specsOpen = useValue(specificationsOpen)
+  const currentOffset = useRef(0)
+  const invalidate = useThree((s) => s.invalidate)
+
+  useFrame(({ camera, size }) => {
+    const target = specsOpen ? 0 : 128
+    const diff = target - currentOffset.current
+
+    if (Math.abs(diff) < 0.5) {
+      currentOffset.current = target
+    } else {
+      currentOffset.current += diff * 0.12
+      invalidate()
+    }
+
+    const cam = camera as THREE.PerspectiveCamera
+    if (currentOffset.current < 0.5) {
+      if (cam.view) cam.clearViewOffset()
+    } else {
+      cam.setViewOffset(
+        size.width,
+        size.height,
+        -currentOffset.current,
+        0,
+        size.width,
+        size.height,
+      )
+    }
+    cam.updateProjectionMatrix()
+  })
+
+  useEffect(() => {
+    invalidate()
+  }, [specsOpen, invalidate])
 
   return null
 }
@@ -266,6 +312,7 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
         }}
       />
       <ShowcaseRotation cameraControlsRef={cameraControlsRef} />
+      <CameraOffset />
     </>
   )
 }
