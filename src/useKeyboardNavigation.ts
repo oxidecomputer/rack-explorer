@@ -1,8 +1,21 @@
 import { useEffect } from 'react'
+
 import { navigationMode, selectedId } from './atoms'
 import { getNode, getSiblings, inheritInstanceIndex } from './data/componentTree'
 
+function drillDown(currentId: string) {
+  const base = currentId.split(':')[0]
+  const entry = getNode(base)
+  const firstChild = entry?.node.children?.[0]
+  if (firstChild) {
+    selectedId.set(inheritInstanceIndex(currentId, firstChild.id))
+  }
+}
+
 const keyHandlers: Record<string, (currentId: string) => void> = {
+  Enter: drillDown,
+  ' ': drillDown,
+
   Escape(currentId) {
     const base = currentId.split(':')[0]
     const entry = getNode(base)
