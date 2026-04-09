@@ -1,4 +1,4 @@
-import { OpenLink12Icon, PrevArrow12Icon } from '@oxide/design-system/icons/react'
+import { OpenLink12Icon } from '@oxide/design-system/icons/react'
 import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
 import { AnimatePresence, motion } from 'motion/react'
@@ -18,6 +18,7 @@ import { GuidedTourOutline } from './components/GuidedTourOutline'
 import { GuidedTourPanel } from './components/GuidedTourPanel'
 import { SidebarIcon } from './components/Icons'
 import { LandingModal } from './components/LandingModal'
+import { OptionsDropdown } from './components/OptionsDropdown'
 import { Outline } from './components/Outline'
 import { OutlineSkeleton, SpecificationsSkeleton } from './components/Skeletons'
 import { Specifications } from './components/Specifications'
@@ -97,7 +98,7 @@ function App() {
           )}
         </AnimatePresence>
 
-        <header className="pointer-events-auto relative z-10 flex w-full items-center justify-between px-4 pt-4">
+        <header className="pointer-events-auto relative z-20 flex w-full items-center justify-between px-4 pt-4">
           <div className="flex flex-1 flex-col">
             <div className="text-raise text-mono-xs opacity-40">Oxide Computer Co.</div>
             <div className="text-sans-sm text-default">3D Rack Explorer</div>
@@ -139,11 +140,7 @@ function App() {
                 </>
               )}
           </div>
-          <button className="flex flex-1 justify-end">
-            <div className="text-mono-xs text-secondary bg-default hover:bg-hover flex h-8 w-40 items-center gap-1.5 rounded p-3">
-              <PrevArrow12Icon className="text-quaternary -rotate-90" /> Options
-            </div>
-          </button>
+          <OptionsDropdown />
         </header>
 
         <div className="relative z-10 flex min-h-0 grow justify-between">
@@ -203,7 +200,7 @@ function App() {
             }}
             transition={{ type: 'spring', duration: 0.325, bounce: 0 }}
             style={{ minWidth: 0 }}
-            className="pointer-events-auto flex w-64 flex-col gap-2 overflow-hidden p-4"
+            className="pointer-events-auto flex flex-col gap-2 overflow-hidden p-4"
           >
             <Card title={isGuided ? 'Guide' : 'Specifications'} open>
               {isLandingOpen ? (
