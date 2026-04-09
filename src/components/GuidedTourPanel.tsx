@@ -34,7 +34,7 @@ export function GuidedTourPanel() {
           transition={{ duration: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
         >
           <div className="text-sans-md text-default">{step.title}</div>
-          <p className="text-sans-sm text-secondary pr-4 text-wrap">{step.description}</p>
+          <p className="text-sans-sm text-secondary pr-4">{step.description}</p>
         </motion.div>
       </AnimatePresence>
 
