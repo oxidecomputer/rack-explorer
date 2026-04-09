@@ -1,6 +1,12 @@
 import { useEffect } from 'react'
 
-import { navigationMode, selectedId } from './atoms'
+import {
+  activeTour,
+  activeTourStepIndex,
+  goToTourStep,
+  navigationMode,
+  selectedId,
+} from './atoms'
 import { getNode, getSiblings, inheritInstanceIndex } from './data/componentTree'
 
 function drillDown(currentId: string) {
@@ -46,7 +52,24 @@ const keyHandlers: Record<string, (currentId: string) => void> = {
 export function useKeyboardNavigation() {
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (navigationMode.get() === 'guided') return
+      if (navigationMode.get() === 'guided') {
+        const tour = activeTour.get()
+        if (!tour) return
+        const stepIndex = activeTourStepIndex.get()
+        let nextStep: number | null = null
+        if (e.key === 'ArrowRight' && stepIndex < tour.steps.length - 1) {
+          nextStep = stepIndex + 1
+        } else if (e.key === 'ArrowLeft' && stepIndex > 0) {
+          nextStep = stepIndex - 1
+        }
+        if (nextStep !== null) {
+          e.preventDefault()
+          goToTourStep(nextStep)
+          const pip = document.querySelector<HTMLElement>(`[data-step="${nextStep}"]`)
+          pip?.focus()
+        }
+        return
+      }
       const handler = keyHandlers[e.key]
       if (!handler) return
 

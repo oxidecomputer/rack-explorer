@@ -1,4 +1,8 @@
-import { OpenLink12Icon } from '@oxide/design-system/icons/react'
+import {
+  NextArrow12Icon,
+  OpenLink12Icon,
+  PrevArrow12Icon,
+} from '@oxide/design-system/icons/react'
 import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
 import { AnimatePresence, motion } from 'motion/react'
@@ -7,10 +11,12 @@ import {
   activeTour,
   activeTourId,
   activeTourStepIndex,
+  goToTourStep,
   landingOpen,
   navigationMode,
   sceneReady,
   selectedId,
+  showcaseMode,
   specificationsOpen,
 } from './atoms'
 import { Card } from './components/Card'
@@ -61,6 +67,7 @@ function App() {
   const isLandingOpen = useValue(landingOpen)
   const isSceneReady = useValue(sceneReady)
   const currentTour = useValue(activeTour)
+  const currentStepIndex = useValue(activeTourStepIndex)
   const isGuided = currentNavigationMode === 'guided'
 
   const toggleSpecifications = () => {
@@ -103,7 +110,7 @@ function App() {
             <div className="text-raise text-mono-xs opacity-40">Oxide Computer Co.</div>
             <div className="text-sans-sm text-default">3D Rack Explorer</div>
           </div>
-          <div className="text-secondary flex flex-1 items-center justify-center gap-2">
+          <div className="text-secondary flex flex-1 items-center justify-center gap-2 select-none">
             <button
               disabled={isGuidedMode}
               onClick={() => {
@@ -169,6 +176,7 @@ function App() {
                   ? undefined
                   : () => {
                       navigationMode.set('guided')
+                      showcaseMode.set(false)
                       selectedId.set('oxide-rack')
                       activeTourId.set(null)
                       activeTourStepIndex.set(0)
@@ -202,7 +210,18 @@ function App() {
             style={{ minWidth: 0 }}
             className="pointer-events-auto flex flex-col gap-2 overflow-hidden p-4"
           >
-            <Card title={isLandingOpen ? <Bar className="h-3 w-20" /> : isGuided ? 'Guide' : 'Specifications'} open>
+            <Card
+              title={
+                isLandingOpen ? (
+                  <Bar className="h-3 w-20" />
+                ) : isGuided ? (
+                  'Guide'
+                ) : (
+                  'Specifications'
+                )
+              }
+              open
+            >
               {isLandingOpen ? (
                 <SpecificationsSkeleton />
               ) : isGuided ? (
@@ -226,14 +245,44 @@ function App() {
           </motion.div>
         </div>
 
-        {/* Bottom center step pips for guided tours */}
-        <AnimatePresence>
-          {isGuided && currentTour && !isLandingOpen && (
-            <div className="pointer-events-auto absolute bottom-4 left-1/2 z-20 -translate-x-1/2">
-              <StepPips />
-            </div>
-          )}
-        </AnimatePresence>
+        {isGuided && currentTour && !isLandingOpen && (
+          <>
+            {/* Bottom center step pips for guided tours */}
+            <AnimatePresence>
+              <div className="pointer-events-auto absolute bottom-4 left-1/2 z-20 -translate-x-1/2">
+                <StepPips />
+              </div>
+            </AnimatePresence>
+
+            {[
+              {
+                Icon: PrevArrow12Icon,
+                pos: 'left-64',
+                step: currentStepIndex - 1,
+                disabled: currentStepIndex === 0,
+              },
+              {
+                Icon: NextArrow12Icon,
+                pos: 'right-64',
+                step: currentStepIndex + 1,
+                disabled: currentStepIndex === currentTour.steps.length - 1,
+              },
+            ].map(({ Icon, pos, step, disabled }) => (
+              <button
+                key={pos}
+                className={`pointer-events-auto absolute top-1/2 ${pos} z-30 -translate-y-1/2 rounded-md text-center hover:bg-neutral-800/30 hover:backdrop-blur-sm disabled:pointer-events-none disabled:opacity-30`}
+                disabled={disabled}
+                onClick={() => {
+                  goToTourStep(step)
+                  const pip = document.querySelector<HTMLElement>(`[data-step="${step}"]`)
+                  pip?.focus()
+                }}
+              >
+                <Icon className="m-1 size-6" />
+              </button>
+            ))}
+          </>
+        )}
 
         <AnimatePresence>
           {isLandingOpen && (

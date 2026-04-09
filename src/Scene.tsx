@@ -86,6 +86,8 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
   }, [])
 
   const isFirstRender = useRef(true)
+  const currentNavigationMode = useValue(navigationMode)
+  const isGuidedMode = currentNavigationMode === 'guided'
 
   useEffect(() => {
     if (!cameraControlsRef.current || !currentSelectedId) return
@@ -97,10 +99,7 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
       if (animate) cameraControlsRef.current.normalizeRotations()
       cameraControlsRef.current.setLookAt(...waypoint.position, ...waypoint.target, animate)
     }
-  }, [currentSelectedId])
-
-  const currentNavigationMode = useValue(navigationMode)
-  const isGuidedMode = currentNavigationMode === 'guided'
+  }, [currentSelectedId, currentNavigationMode])
 
   return (
     <>

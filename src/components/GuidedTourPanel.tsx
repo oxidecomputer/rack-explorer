@@ -27,7 +27,7 @@ export function GuidedTourPanel() {
       <AnimatePresence mode="wait">
         <motion.div
           key={stepIndex}
-          className="flex h-full flex-col gap-1.5"
+          className="flex h-full flex-col gap-1.5 select-text"
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 4 }}
