@@ -8,7 +8,7 @@ export const Card = ({
   open,
   onClick,
 }: {
-  title: string
+  title: React.ReactNode
   children: React.ReactNode
   open?: boolean
   onClick?: () => void
