@@ -1,11 +1,11 @@
 import { getGPUTier, type TierResult } from '@pmndrs/detect-gpu'
 import { CameraControls, Environment, Grid } from '@react-three/drei'
-import { Canvas } from '@react-three/fiber'
+import { Canvas, useFrame } from '@react-three/fiber'
 import { useValue } from '@tldraw/state-react'
 import CameraControlsImpl from 'camera-controls'
 import { lazy, useEffect, useMemo, useRef, useState } from 'react'
 
-import { navigationMode, sceneReady, selectedId } from './atoms'
+import { lowQuality, navigationMode, sceneReady, selectedId, showcaseMode } from './atoms'
 import { InstancedGLBModel } from './components/InstancedGLBModel'
 import { SelectableGLBModel } from './components/SelectableGLBModel'
 import { ModifiedSelection } from './components/Selection'
@@ -32,6 +32,21 @@ function RackWireframe() {
   return (
     <WireframeCube size={[0.64, 2.28, 1.07]} position={[0, 1.205, 0]} color="#5D5E61" />
   )
+}
+
+function ShowcaseRotation({
+  cameraControlsRef,
+}: {
+  cameraControlsRef: React.RefObject<CameraControls | null>
+}) {
+  const isShowcase = useValue(showcaseMode)
+
+  useFrame((_state, delta) => {
+    if (!isShowcase || !cameraControlsRef.current) return
+    cameraControlsRef.current.rotate(delta * 0.15, 0, false)
+  })
+
+  return null
 }
 
 function SceneContent({ enableAO }: { enableAO: boolean }) {
@@ -209,6 +224,7 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
           three: ACTION.NONE,
         }}
       />
+      <ShowcaseRotation cameraControlsRef={cameraControlsRef} />
     </>
   )
 }
@@ -228,22 +244,28 @@ const getGPUConfig = (tier: TierResult | null): GPUConfig => {
 }
 
 export const Scene = () => {
-  const [gpuConfig, setGpuConfig] = useState<GPUConfig>({ dpr: 1, enableAO: false })
+  const [detectedConfig, setDetectedConfig] = useState<GPUConfig>({ dpr: 1, enableAO: false })
+  const isLowQuality = useValue(lowQuality)
   const lastMissTime = useRef(0)
 
   useEffect(() => {
     let cancelled = false
     getGPUTier().then((tier) => {
-      if (!cancelled) setGpuConfig(getGPUConfig(tier))
+      if (!cancelled) setDetectedConfig(getGPUConfig(tier))
     })
     return () => {
       cancelled = true
     }
   }, [])
 
+  const gpuConfig: GPUConfig = isLowQuality
+    ? { dpr: 1, enableAO: false }
+    : detectedConfig
+
   const initialWaypoint = resolveWaypoint('oxide-rack')
   const currentNavigationMode = useValue(navigationMode)
   const isGuidedMode = currentNavigationMode === 'guided'
+  const isShowcase = useValue(showcaseMode)
 
   return (
     <Canvas
@@ -261,7 +283,7 @@ export const Scene = () => {
       }}
       dpr={gpuConfig.dpr}
       linear
-      frameloop="demand"
+      frameloop={isShowcase ? 'always' : 'demand'}
       onPointerMissed={() => {
         if (isGuidedMode) return
         const now = performance.now()
