@@ -20,7 +20,7 @@ import { SidebarIcon } from './components/Icons'
 import { LandingModal } from './components/LandingModal'
 import { OptionsDropdown } from './components/OptionsDropdown'
 import { Outline } from './components/Outline'
-import { OutlineSkeleton, SpecificationsSkeleton } from './components/Skeletons'
+import { Bar, OutlineSkeleton, SpecificationsSkeleton } from './components/Skeletons'
 import { Specifications } from './components/Specifications'
 import { StepPips } from './components/StepPips'
 import { getNode } from './data/componentTree'
@@ -98,7 +98,7 @@ function App() {
           )}
         </AnimatePresence>
 
-        <header className="pointer-events-auto relative z-20 flex w-full items-center justify-between px-4 pt-4">
+        <header className="pointer-events-auto relative z-30 flex w-full items-center justify-between px-4 pt-4">
           <div className="flex flex-1 flex-col">
             <div className="text-raise text-mono-xs opacity-40">Oxide Computer Co.</div>
             <div className="text-sans-sm text-default">3D Rack Explorer</div>
@@ -146,7 +146,7 @@ function App() {
         <div className="relative z-10 flex min-h-0 grow justify-between">
           <nav className="pointer-events-auto flex h-full w-64 flex-col gap-2 p-4">
             <Card
-              title="Explore the hardware"
+              title={isLandingOpen ? <Bar className="h-3 w-28" /> : 'Explore the hardware'}
               open={currentNavigationMode === 'free'}
               onClick={
                 isLandingOpen
@@ -162,7 +162,7 @@ function App() {
               {isLandingOpen ? <OutlineSkeleton /> : <Outline />}
             </Card>
             <Card
-              title="Guided tour & help"
+              title={isLandingOpen ? <Bar className="h-3 w-24" /> : 'Guided tour & help'}
               open={isGuided}
               onClick={
                 isLandingOpen
@@ -202,7 +202,7 @@ function App() {
             style={{ minWidth: 0 }}
             className="pointer-events-auto flex flex-col gap-2 overflow-hidden p-4"
           >
-            <Card title={isGuided ? 'Guide' : 'Specifications'} open>
+            <Card title={isLandingOpen ? <Bar className="h-3 w-20" /> : isGuided ? 'Guide' : 'Specifications'} open>
               {isLandingOpen ? (
                 <SpecificationsSkeleton />
               ) : isGuided ? (

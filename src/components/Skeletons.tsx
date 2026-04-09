@@ -1,6 +1,6 @@
 import clsx from 'clsx'
 
-function Bar({ className, style }: { className?: string; style?: React.CSSProperties }) {
+export function Bar({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
     <div className={clsx('bg-tertiary animate-pulse rounded', className)} style={style} />
   )
