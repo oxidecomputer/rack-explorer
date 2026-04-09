@@ -26,7 +26,7 @@ export const Specifications = () => {
         transition={{ duration: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
         {specs.map((spec, i) => (
-          <div key={i} className="flex flex-col gap-0.5">
+          <div key={i} className="flex flex-col gap-0.5 select-text">
             <div className="text-mono-xs text-quaternary uppercase">{spec.label}</div>
             <div className="text-sans-sm text-secondary text-wrap">
               {Array.isArray(spec.value)

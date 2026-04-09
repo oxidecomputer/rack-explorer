@@ -19,3 +19,17 @@ body,
 body {
   @apply bg-secondary text-default;
 }
+
+button,
+a {
+  @apply focus-visible:ring-accent-secondary focus-visible:ring-2 focus-visible:outline-0;
+}
+
+::-moz-selection {
+  /* Code for Firefox */
+  @apply text-accent bg-accent;
+}
+
+::selection {
+  @apply text-accent bg-accent;
+}

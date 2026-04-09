@@ -20,7 +20,7 @@ export const Card = ({
         height: open ? '100%' : 32,
       }}
       transition={{ type: 'spring', duration: 0.2, bounce: 0 }}
-      className="bg-default/80 flex flex-col overflow-hidden rounded-md backdrop-blur-lg"
+      className="bg-default/80 flex flex-col overflow-hidden rounded-md backdrop-blur-lg select-none"
     >
       <button
         onClick={onClick}
