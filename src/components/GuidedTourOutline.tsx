@@ -48,8 +48,7 @@ function TourSection({ tour }: { tour: GuidedTour }) {
 
   const handleClick = () => {
     if (isExpanded) {
-      activeTourId.set(null)
-      activeTourStepIndex.set(0)
+      return
     } else {
       activeTourId.set(tour.id)
       activeTourStepIndex.set(0)

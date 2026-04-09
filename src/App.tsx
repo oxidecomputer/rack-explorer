@@ -30,6 +30,7 @@ import { Bar, OutlineSkeleton, SpecificationsSkeleton } from './components/Skele
 import { Specifications } from './components/Specifications'
 import { StepPips } from './components/StepPips'
 import { getNode } from './data/componentTree'
+import { guidedTours } from './data/guidedTours'
 import { Scene } from './Scene'
 import { useKeyboardNavigation } from './useKeyboardNavigation'
 
@@ -177,9 +178,12 @@ function App() {
                   : () => {
                       navigationMode.set('guided')
                       showcaseMode.set(false)
-                      selectedId.set('oxide-rack')
-                      activeTourId.set(null)
                       activeTourStepIndex.set(0)
+                      activeTourId.set(guidedTours[0].id)
+                      const firstStep = guidedTours[0].steps[0]
+                      if (firstStep?.selectedId) {
+                        selectedId.set(firstStep.selectedId)
+                      }
                     }
               }
             >
@@ -270,7 +274,7 @@ function App() {
             ].map(({ Icon, pos, step, disabled }) => (
               <button
                 key={pos}
-                className={`pointer-events-auto absolute top-1/2 ${pos} z-30 -translate-y-1/2 rounded-md text-center hover:bg-neutral-800/30 hover:backdrop-blur-sm disabled:pointer-events-none disabled:opacity-30`}
+                className={`target-16 pointer-events-auto absolute top-1/2 ${pos} z-30 -translate-y-1/2 rounded-md text-center hover:bg-neutral-800/30 hover:backdrop-blur-sm disabled:pointer-events-none disabled:opacity-30`}
                 disabled={disabled}
                 onClick={() => {
                   goToTourStep(step)

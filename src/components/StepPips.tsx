@@ -27,24 +27,28 @@ export function StepPips() {
               layout
               data-step={i}
               onClick={() => goToTourStep(i)}
-              className={clsx(
-                'h-8 overflow-hidden rounded-md bg-neutral-800/20 text-center backdrop-blur-sm hover:bg-neutral-800/30',
-                isActive ? 'bg-neutral-800/30' : '',
-              )}
+              className="target-2"
               transition={{ type: 'spring', duration: 0.3, bounce: 0 }}
             >
-              {isActive ? (
-                <motion.span
-                  className="text-sans-sm text-default block px-3 text-nowrap"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.15, delay: 0.1 }}
-                >
-                  {step.title}
-                </motion.span>
-              ) : (
-                <span className="block h-8 w-2" />
-              )}
+              <div
+                className={clsx(
+                  'flex h-8 items-center justify-center overflow-hidden rounded-md bg-neutral-800/20 text-center backdrop-blur-sm hover:bg-neutral-800/30',
+                  isActive ? 'bg-neutral-800/30' : '',
+                )}
+              >
+                {isActive ? (
+                  <motion.span
+                    className="text-sans-sm text-default block px-3 text-nowrap"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.15, delay: 0.1 }}
+                  >
+                    {step.title}
+                  </motion.span>
+                ) : (
+                  <span className="block h-8 w-2" />
+                )}
+              </div>
             </motion.button>
           )
         })}
