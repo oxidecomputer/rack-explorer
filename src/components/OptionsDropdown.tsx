@@ -41,7 +41,7 @@ export function OptionsDropdown() {
     <div className="relative z-40 flex flex-1 justify-end">
       <button
         onClick={() => setOpen(!open)}
-        className="text-mono-xs text-secondary bg-default hover:bg-hover border-neutral-0 flex h-8 w-56 items-center gap-1.5 rounded border p-2"
+        className="text-mono-xs text-secondary bg-default hover:bg-hover border-neutral-0 flex h-8 w-64 items-center gap-1.5 rounded border p-2"
       >
         <PrevArrow12Icon
           className={clsx(
@@ -57,7 +57,7 @@ export function OptionsDropdown() {
             initial={{ opacity: 0, x: -4 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ type: 'spring', duration: 0.3, bounce: 0 }}
-            className="bg-default text-sans-sm absolute top-0 right-58 z-30 w-52 rounded-md p-px"
+            className="bg-default text-sans-sm absolute top-0 right-66 z-30 w-52 rounded-md p-px"
           >
             <label className="hover:bg-hover flex cursor-pointer items-center justify-between rounded px-3 py-2">
               <span className="text-secondary">Showcase Mode</span>
