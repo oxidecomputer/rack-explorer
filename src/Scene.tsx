@@ -109,10 +109,10 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
         sectionSize={0.025}
         sectionColor="#373F41"
         cellColor="#373F41"
-        scale={10}
+        scale={15}
         position={[0, 0, 0]}
-        fadeDistance={200}
-        fadeStrength={1}
+        fadeDistance={25}
+        fadeStrength={0.5}
       />
       <ModifiedSelection>
         <PostProcessing enableAO={enableAO} />
