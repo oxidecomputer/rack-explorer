@@ -244,7 +244,10 @@ const getGPUConfig = (tier: TierResult | null): GPUConfig => {
 }
 
 export const Scene = () => {
-  const [detectedConfig, setDetectedConfig] = useState<GPUConfig>({ dpr: 1, enableAO: false })
+  const [detectedConfig, setDetectedConfig] = useState<GPUConfig>({
+    dpr: 1,
+    enableAO: false,
+  })
   const isLowQuality = useValue(lowQuality)
   const lastMissTime = useRef(0)
 
@@ -258,9 +261,7 @@ export const Scene = () => {
     }
   }, [])
 
-  const gpuConfig: GPUConfig = isLowQuality
-    ? { dpr: 1, enableAO: false }
-    : detectedConfig
+  const gpuConfig: GPUConfig = isLowQuality ? { dpr: 1, enableAO: false } : detectedConfig
 
   const initialWaypoint = resolveWaypoint('oxide-rack')
   const currentNavigationMode = useValue(navigationMode)
