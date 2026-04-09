@@ -193,7 +193,7 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
           })}
         </group>
       </ModifiedSelection>
-      <TourAnnotations />
+      {isGuidedMode && <TourAnnotations />}
       <CameraControls
         ref={cameraControlsRef}
         maxPolarAngle={Math.PI / 2}
