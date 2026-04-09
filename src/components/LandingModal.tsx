@@ -1,6 +1,7 @@
 import { motion } from 'motion/react'
 
-import { landingOpen, navigationMode } from '../atoms'
+import { activeTourId, activeTourStepIndex, landingOpen, navigationMode, selectedId } from '../atoms'
+import { guidedTours } from '../data/guidedTours'
 
 function GridIcon() {
   return (
@@ -66,6 +67,14 @@ function OptionCard({
 export function LandingModal() {
   const dismiss = (mode: 'free' | 'guided') => {
     navigationMode.set(mode)
+    if (mode === 'guided') {
+      activeTourId.set(guidedTours[0].id)
+      activeTourStepIndex.set(0)
+      const firstStep = guidedTours[0].steps[0]
+      if (firstStep?.selectedId) {
+        selectedId.set(firstStep.selectedId)
+      }
+    }
     landingOpen.set(false)
   }
 

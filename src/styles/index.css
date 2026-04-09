@@ -33,3 +33,13 @@ a {
 ::selection {
   @apply text-accent bg-accent;
 }
+
+@utility target-* {
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: calc(--value(integer) * -1px);
+  }
+}
