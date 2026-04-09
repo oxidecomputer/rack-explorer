@@ -5,6 +5,8 @@ import { AnimatePresence, motion } from 'motion/react'
 
 import {
   activeTour,
+  activeTourId,
+  activeTourStepIndex,
   landingOpen,
   navigationMode,
   sceneReady,
@@ -149,7 +151,16 @@ function App() {
             <Card
               title="Explore the hardware"
               open={currentNavigationMode === 'free'}
-              onClick={isLandingOpen ? undefined : () => navigationMode.set('free')}
+              onClick={
+                isLandingOpen
+                  ? undefined
+                  : () => {
+                      navigationMode.set('free')
+                      selectedId.set('oxide-rack')
+                      activeTourId.set(null)
+                      activeTourStepIndex.set(0)
+                    }
+              }
             >
               {isLandingOpen ? <OutlineSkeleton /> : <Outline />}
             </Card>
@@ -162,6 +173,8 @@ function App() {
                   : () => {
                       navigationMode.set('guided')
                       selectedId.set('oxide-rack')
+                      activeTourId.set(null)
+                      activeTourStepIndex.set(0)
                     }
               }
             >
