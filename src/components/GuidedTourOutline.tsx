@@ -73,12 +73,6 @@ function TourSection({ tour }: { tour: GuidedTour }) {
             isExpanded && 'bg-accent-inverse opacity-11',
           )}
         />
-        <Compass16Icon
-          className={clsx(
-            'relative shrink-0',
-            isExpanded ? 'text-accent' : 'text-tertiary',
-          )}
-        />
         <span className={clsx('relative', isExpanded ? 'text-accent' : 'text-secondary')}>
           {tour.title}
         </span>

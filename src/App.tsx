@@ -1,7 +1,9 @@
 import {
+  Compass16Icon,
   NextArrow12Icon,
   OpenLink12Icon,
   PrevArrow12Icon,
+  Show16Icon,
 } from '@oxide/design-system/icons/react'
 import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
@@ -154,41 +156,52 @@ function App() {
         <div className="relative z-10 flex min-h-0 grow justify-between">
           <nav className="pointer-events-auto flex h-full w-64 flex-col gap-2 p-4">
             <Card
-              title={isLandingOpen ? <Bar className="h-3 w-28" /> : 'Explore the hardware'}
-              open={currentNavigationMode === 'free'}
-              onClick={
-                isLandingOpen
-                  ? undefined
-                  : () => {
-                      navigationMode.set('free')
-                      selectedId.set('oxide-rack')
-                      activeTourId.set(null)
-                      activeTourStepIndex.set(0)
-                    }
+              title={
+                isLandingOpen ? (
+                  <Bar className="h-3 w-28" />
+                ) : isGuided ? (
+                  'Guided tour & help'
+                ) : (
+                  'Explore the hardware'
+                )
               }
+              contentKey={isLandingOpen ? 'skeleton' : isGuided ? 'guided' : 'free'}
             >
-              {isLandingOpen ? <OutlineSkeleton /> : <Outline />}
+              {isLandingOpen ? (
+                <OutlineSkeleton />
+              ) : isGuided ? (
+                <GuidedTourOutline />
+              ) : (
+                <Outline />
+              )}
             </Card>
-            <Card
-              title={isLandingOpen ? <Bar className="h-3 w-24" /> : 'Guided tour & help'}
-              open={isGuided}
-              onClick={
-                isLandingOpen
-                  ? undefined
-                  : () => {
-                      navigationMode.set('guided')
-                      showcaseMode.set(false)
-                      activeTourStepIndex.set(0)
-                      activeTourId.set(guidedTours[0].id)
-                      const firstStep = guidedTours[0].steps[0]
-                      if (firstStep?.selectedId) {
-                        selectedId.set(firstStep.selectedId)
-                      }
+            {!isLandingOpen && (
+              <button
+                onClick={() => {
+                  if (isGuided) {
+                    navigationMode.set('free')
+                    selectedId.set('oxide-rack')
+                    activeTourId.set(null)
+                    activeTourStepIndex.set(0)
+                  } else {
+                    navigationMode.set('guided')
+                    showcaseMode.set(false)
+                    activeTourStepIndex.set(0)
+                    activeTourId.set(guidedTours[0].id)
+                    const firstStep = guidedTours[0].steps[0]
+                    if (firstStep?.selectedId) {
+                      selectedId.set(firstStep.selectedId)
                     }
-              }
-            >
-              {isLandingOpen ? <OutlineSkeleton /> : <GuidedTourOutline />}
-            </Card>
+                  }
+                }}
+                className="group text-accent hover:bg-accent-hover text-mono-xs bg-accent hover:bg-accent-secondary-hover flex w-full items-center justify-between rounded-md border border-current/5 px-2.5 py-2 transition-colors"
+              >
+                {isGuided ? 'Explore the hardware' : 'Guided tour & help'}
+                <div className="translate-x-0 transition-transform group-hover:translate-x-0.5">
+                  <NextArrow12Icon />
+                </div>
+              </button>
+            )}
           </nav>
 
           <motion.button
@@ -224,7 +237,7 @@ function App() {
                   'Specifications'
                 )
               }
-              open
+              contentKey={isLandingOpen ? 'skeleton' : isGuided ? 'guide' : 'specs'}
             >
               {isLandingOpen ? (
                 <SpecificationsSkeleton />
