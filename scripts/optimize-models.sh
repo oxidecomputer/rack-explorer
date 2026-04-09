@@ -18,8 +18,8 @@ cd "$(dirname "$0")/.."
 
 TMP=/tmp/glb-optimize
 MODELS=(
-  public/models/patch-panel/patch-panel.glb
-  public/models/power-shelf/power-shelf.glb
+  public/models/patch-panel/patch-panel-lod1.glb
+  public/models/power-shelf/power-shelf-lod1.glb
   public/models/cosmo/cosmo-lod1.glb
   public/models/sidecar/sidecar-lod1.glb
   public/models/rack-frame/rack-frame-lod1.glb

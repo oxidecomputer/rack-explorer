@@ -143,13 +143,16 @@ export const componentTree: ComponentNode = {
         [0, 1.1, 0.095],
       ],
       selectionOffset: selectionOffset,
-      model: { path: './models/power-shelf/power-shelf.glb' },
+      model: { path: './models/power-shelf/power-shelf-lod1.glb' },
     },
     {
       id: 'patch-panel',
       label: 'Patch Panel',
       waypoint: { position: [1, 2.15, 4], target: [0, 2.2, 0.325] },
-      model: { path: './models/patch-panel/patch-panel.glb', position: [0, 2.2, 0.015] },
+      model: {
+        path: './models/patch-panel/patch-panel-lod1.glb',
+        position: [0, 2.2, 0.015],
+      },
     },
   ],
 }
