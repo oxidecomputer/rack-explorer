@@ -10,7 +10,7 @@ export const Card = ({
   children: React.ReactNode
 }) => {
   return (
-    <div className="bg-default/80 flex min-h-0 flex-1 flex-col overflow-hidden rounded-md backdrop-blur-lg select-none">
+    <div className="bg-default/80 flex min-h-0 w-64 flex-1 flex-col overflow-hidden rounded-md backdrop-blur-lg select-none">
       <div className="text-mono-xs text-secondary flex w-full items-center justify-between px-2.5 py-2">
         {title}
       </div>

@@ -1,7 +1,9 @@
 import {
+  Compass16Icon,
   NextArrow12Icon,
   OpenLink12Icon,
   PrevArrow12Icon,
+  Show16Icon,
 } from '@oxide/design-system/icons/react'
 import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
@@ -152,7 +154,7 @@ function App() {
         </header>
 
         <div className="relative z-10 flex min-h-0 grow justify-between">
-          <nav className="pointer-events-auto flex h-full w-64 flex-col gap-2 p-4">
+          <nav className="pointer-events-auto flex h-full flex-col gap-2 p-4">
             <Card
               title={
                 isLandingOpen ? (
@@ -194,7 +196,10 @@ function App() {
                 }}
                 className="group text-accent hover:bg-accent-hover text-mono-xs bg-accent hover:bg-accent-secondary-hover flex w-full items-center justify-between rounded-md border border-current/5 px-2.5 py-2 transition-colors"
               >
-                {isGuided ? 'Explore the hardware' : 'Guided tour & help'}
+                <div className="flex items-center gap-2">
+                  {isGuided ? <Show16Icon /> : <Compass16Icon />}
+                  {isGuided ? 'Free Explore' : 'Guided tour'}
+                </div>
                 <div className="translate-x-0 transition-transform group-hover:translate-x-0.5">
                   <NextArrow12Icon />
                 </div>
@@ -218,7 +223,7 @@ function App() {
           <motion.div
             initial={false}
             animate={{
-              width: specsOpen ? 256 : 200,
+              translateX: specsOpen ? 0 : 20,
               opacity: specsOpen ? 1 : 0,
             }}
             transition={{ type: 'spring', duration: 0.325, bounce: 0 }}
@@ -272,13 +277,13 @@ function App() {
             {[
               {
                 Icon: PrevArrow12Icon,
-                pos: 'left-64',
+                pos: 'left-70',
                 step: currentStepIndex - 1,
                 disabled: currentStepIndex === 0,
               },
               {
                 Icon: NextArrow12Icon,
-                pos: 'right-64',
+                pos: 'right-70',
                 step: currentStepIndex + 1,
                 disabled: currentStepIndex === currentTour.steps.length - 1,
               },
