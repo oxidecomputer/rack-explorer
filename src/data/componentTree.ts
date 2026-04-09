@@ -40,9 +40,9 @@ function generateSledPositions(): Vec3[] {
   const bottomStart = 0.86
   const z = 0.035
 
-  for (const startY of [topStart, bottomStart]) {
+  for (const startY of [bottomStart, topStart]) {
     for (let row = 0; row < rowsPerHalf; row++) {
-      const y = startY - row * rowHeight
+      const y = startY - (rowsPerHalf - 1 - row) * rowHeight
       for (let col = 0; col < cols; col++) {
         const x = col === 0 ? -xOffset : xOffset
         positions.push([x, y, z])
@@ -120,8 +120,8 @@ export const componentTree: ComponentNode = {
       label: 'Network Switch',
       waypoint: { position: [2, 1.5, 4], target: [0, 0, 0.5] },
       instances: [
-        [0, 1.26, 0.015],
         [0, 0.985, 0.015],
+        [0, 1.26, 0.015],
       ],
       selectionOffset: selectionOffset,
       model: { path: './models/sidecar/sidecar-lod1.glb' },
@@ -139,8 +139,8 @@ export const componentTree: ComponentNode = {
       label: 'Power Shelf',
       waypoint: { position: [1, 1.5, 4], target: [0, 0, 0.325] },
       instances: [
-        [0, 1.15, 0.095],
         [0, 1.1, 0.095],
+        [0, 1.15, 0.095],
       ],
       selectionOffset: selectionOffset,
       model: { path: './models/power-shelf/power-shelf-lod1.glb' },
