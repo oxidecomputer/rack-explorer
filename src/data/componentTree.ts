@@ -148,8 +148,8 @@ export const componentTree: ComponentNode = {
     {
       id: 'patch-panel',
       label: 'Patch Panel',
-      waypoint: { position: [1, 2.15, 4], target: [0, 2.2, 0] },
-      model: { path: './models/patch-panel/patch-panel.glb', position: [0, 2.2, 0] },
+      waypoint: { position: [1, 2.15, 4], target: [0, 2.2, 0.325] },
+      model: { path: './models/patch-panel/patch-panel.glb', position: [0, 2.2, 0.015] },
     },
   ],
 }
