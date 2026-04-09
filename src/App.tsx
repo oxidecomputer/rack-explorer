@@ -1,9 +1,7 @@
 import {
-  Compass16Icon,
   NextArrow12Icon,
   OpenLink12Icon,
   PrevArrow12Icon,
-  Show16Icon,
 } from '@oxide/design-system/icons/react'
 import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
