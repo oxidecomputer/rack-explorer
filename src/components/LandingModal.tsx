@@ -1,6 +1,13 @@
+import { Compass16Icon, Show16Icon } from '@oxide/design-system/icons/react'
 import { motion } from 'motion/react'
 
-import { activeTourId, activeTourStepIndex, landingOpen, navigationMode, selectedId } from '../atoms'
+import {
+  activeTourId,
+  activeTourStepIndex,
+  landingOpen,
+  navigationMode,
+  selectedId,
+} from '../atoms'
 import { guidedTours } from '../data/guidedTours'
 
 function GridIcon() {
@@ -51,7 +58,7 @@ function OptionCard({
   return (
     <button
       onClick={onClick}
-      className="hover:bg-secondary group border-secondary flex items-center gap-4 rounded-md border p-2 text-left"
+      className="hover:bg-secondary group border-secondary flex items-center gap-4 rounded-md border p-1.5 text-left"
     >
       <div className="bg-accent text-accent flex h-20 w-20 shrink-0 items-center justify-center rounded-sm">
         {icon}
@@ -100,13 +107,13 @@ export function LandingModal() {
 
         <div className="flex flex-col gap-2">
           <OptionCard
-            icon={<GridIcon />}
+            icon={<Show16Icon className="size-6" />}
             title="Explore the hardware"
             description="Take a closer look at Oxide's rack. Explore every sled, switch, and shelf at your own pace."
             onClick={() => dismiss('free')}
           />
           <OptionCard
-            icon={<ListIcon />}
+            icon={<Compass16Icon className="size-6" />}
             title="Guided Tour & Help"
             description="Follow a step-by-step walkthrough. Learn how the system works or get instructions for common tasks."
             onClick={() => dismiss('guided')}

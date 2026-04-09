@@ -1,46 +1,33 @@
-import { NextArrow12Icon } from '@oxide/design-system/icons/react'
-import clsx from 'clsx'
-import { motion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 
 export const Card = ({
   title,
+  contentKey,
   children,
-  open,
-  onClick,
 }: {
   title: React.ReactNode
+  contentKey?: string
   children: React.ReactNode
-  open?: boolean
-  onClick?: () => void
 }) => {
   return (
-    <motion.div
-      initial={false}
-      animate={{
-        height: open ? '100%' : 32,
-      }}
-      transition={{ type: 'spring', duration: 0.2, bounce: 0 }}
-      className="bg-default/80 flex flex-col overflow-hidden rounded-md backdrop-blur-lg select-none"
-    >
-      <button
-        onClick={onClick}
-        disabled={!onClick}
-        className={clsx(
-          'text-mono-xs text-secondary flex w-full items-center justify-between px-2.5 py-2',
-          onClick && 'hover:bg-hover cursor-pointer',
-          !onClick && 'cursor-default',
-        )}
-      >
+    <div className="bg-default/80 flex min-h-0 flex-1 flex-col overflow-hidden rounded-md backdrop-blur-lg select-none">
+      <div className="text-mono-xs text-secondary flex w-full items-center justify-between px-2.5 py-2">
         {title}
-        {onClick && (
-          <NextArrow12Icon
-            className={clsx('text-tertiary transition-transform', open ? 'rotate-90' : '')}
-          />
-        )}
-      </button>
-      <div className="border-secondary h-full overflow-x-hidden overflow-y-auto border-t p-3">
-        {children}
       </div>
-    </motion.div>
+      <div className="border-secondary h-full overflow-x-hidden overflow-y-auto border-t p-3">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={contentKey}
+            className="h-full"
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    </div>
   )
 }

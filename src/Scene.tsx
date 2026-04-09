@@ -4,6 +4,7 @@ import { Canvas, useFrame } from '@react-three/fiber'
 import { useValue } from '@tldraw/state-react'
 import CameraControlsImpl from 'camera-controls'
 import { lazy, useEffect, useMemo, useRef, useState } from 'react'
+import * as THREE from 'three'
 
 import { lowQuality, navigationMode, sceneReady, selectedId, showcaseMode } from './atoms'
 import { InstancedGLBModel } from './components/InstancedGLBModel'
@@ -27,6 +28,46 @@ const PostProcessing = lazy(() =>
 )
 
 const { ACTION } = CameraControlsImpl
+
+function RackShadow() {
+  const meshRef = useRef<THREE.Mesh>(null)
+  const material = useMemo(() => {
+    const canvas = document.createElement('canvas')
+    canvas.width = 256
+    canvas.height = 256
+    const ctx = canvas.getContext('2d')!
+    const gradient = ctx.createRadialGradient(128, 128, 0, 128, 128, 128)
+    gradient.addColorStop(0, 'rgba(0, 0, 0, 1)')
+    gradient.addColorStop(0.5, 'rgba(0, 0, 0, 0.5)')
+    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)')
+    ctx.fillStyle = gradient
+    ctx.fillRect(0, 0, 256, 256)
+    const texture = new THREE.CanvasTexture(canvas)
+    return new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      depthWrite: false,
+    })
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      material.map?.dispose()
+      material.dispose()
+    }
+  }, [material])
+
+  return (
+    <mesh
+      ref={meshRef}
+      rotation-x={-Math.PI / 2}
+      position={[0, 0.001, 0]}
+      material={material}
+    >
+      <planeGeometry args={[1, 1.75]} />
+    </mesh>
+  )
+}
 
 function RackWireframe() {
   return (
@@ -114,6 +155,7 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
         fadeDistance={25}
         fadeStrength={0.5}
       />
+      <RackShadow />
       <ModifiedSelection>
         <PostProcessing enableAO={enableAO} />
         <group
