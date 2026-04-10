@@ -13,3 +13,40 @@ export const SidebarIcon = ({ className }: { className?: string }) => (
     />
   </svg>
 )
+
+export const Pause12Icon = ({ className }: { className?: string }) => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 12 12"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M3.67 2C3.29997 2 3 2.29997 3 2.67V9.33C3 9.70003 3.29997 10 3.67 10H4.33C4.70003 10 5 9.70003 5 9.33V2.67C5 2.29997 4.70003 2 4.33 2H3.67ZM7.67 2C7.29997 2 7 2.29997 7 2.67V9.33C7 9.70003 7.29997 10 7.67 10H8.33C8.70003 10 9 9.70003 9 9.33V2.67C9 2.29997 8.70003 2 8.33 2H7.67Z"
+      fill="currentColor"
+    />
+  </svg>
+)
+
+export const Video16Icon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 16 16"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M9.25 3C9.66421 3 10 3.33579 10 3.75V12.25C10 12.6642 9.66421 13 9.25 13H1.75C1.33579 13 1 12.6642 1 12.25V3.75C1 3.33579 1.33579 3 1.75 3H9.25Z"
+      fill="currentColor"
+    />
+    <path
+      d="M14.4717 4.39618C14.6892 4.23304 14.9999 4.388 15 4.65985V11.3395C15 11.6115 14.6892 11.7673 14.4717 11.6042L11.2998 9.22528C11.111 9.08364 11 8.86076 11 8.62469V7.37469C11.0001 7.13882 11.1111 6.91667 11.2998 6.77509L14.4717 4.39618Z"
+      fill="currentColor"
+    />
+  </svg>
+)

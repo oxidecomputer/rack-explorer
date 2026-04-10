@@ -7,12 +7,14 @@ import { lazy, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 
 import {
+  isVideoTour,
   lowQuality,
   navigationMode,
   sceneReady,
   selectedId,
   showcaseMode,
   specificationsOpen,
+  tourStartScreen,
 } from './atoms'
 import { InstancedGLBModel } from './components/InstancedGLBModel'
 import { SelectableGLBModel } from './components/SelectableGLBModel'
@@ -99,11 +101,15 @@ function ShowcaseRotation({
 
 function CameraOffset() {
   const specsOpen = useValue(specificationsOpen)
+  const isVideo = useValue(isVideoTour)
+  const isStartScreen = useValue(tourStartScreen)
+  const isGuided = useValue(navigationMode) === 'guided'
   const currentOffset = useRef(0)
   const invalidate = useThree((s) => s.invalidate)
 
   useFrame(({ camera, size }) => {
-    const target = specsOpen ? 0 : 128
+    const sidebarVisible = specsOpen && !isVideo && !(isGuided && isStartScreen)
+    const target = sidebarVisible ? 0 : 128
     const diff = target - currentOffset.current
 
     if (Math.abs(diff) < 0.5) {
@@ -131,7 +137,7 @@ function CameraOffset() {
 
   useEffect(() => {
     invalidate()
-  }, [specsOpen, invalidate])
+  }, [specsOpen, isVideo, isGuided, isStartScreen, invalidate])
 
   return null
 }

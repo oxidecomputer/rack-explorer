@@ -3,13 +3,16 @@ import { useValue } from '@tldraw/state-react'
 import { AnimatePresence, motion } from 'motion/react'
 
 import { activeTour, activeTourStep, activeTourStepIndex, goToTourStep } from '../atoms'
+import type { TourStep } from '../data/guidedTours'
 
 export function GuidedTourPanel() {
   const tour = useValue(activeTour)
   const step = useValue(activeTourStep)
   const stepIndex = useValue(activeTourStepIndex)
 
-  if (!tour || !step) {
+  const standardStep = step && 'description' in step ? (step as TourStep) : null
+
+  if (!tour || !standardStep) {
     return (
       <div className="text-sans-sm text-tertiary px-1 py-2">
         Select a tour from the sidebar to get started.
@@ -33,8 +36,8 @@ export function GuidedTourPanel() {
           exit={{ opacity: 0, y: 4 }}
           transition={{ duration: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
         >
-          <div className="text-sans-md text-default">{step.title}</div>
-          <p className="text-sans-sm text-secondary pr-4">{step.description}</p>
+          <div className="text-sans-md text-default">{standardStep.title}</div>
+          <p className="text-sans-sm text-secondary pr-4">{standardStep.description}</p>
         </motion.div>
       </AnimatePresence>
 

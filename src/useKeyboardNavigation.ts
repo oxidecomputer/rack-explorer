@@ -3,9 +3,15 @@ import { useEffect } from 'react'
 import {
   activeTour,
   activeTourStepIndex,
+  activeVideoTour,
+  activeVideoTourStepIndex,
   goToTourStep,
+  landingOpen,
   navigationMode,
+  seekVideo,
   selectedId,
+  videoTourPlaying,
+  tourStartScreen,
 } from './atoms'
 import { getNode, getSiblings, inheritInstanceIndex } from './data/componentTree'
 
@@ -52,29 +58,66 @@ const keyHandlers: Record<string, (currentId: string) => void> = {
 export function useKeyboardNavigation() {
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (navigationMode.get() === 'guided') {
-        const tour = activeTour.get()
-        if (!tour) return
-        const stepIndex = activeTourStepIndex.get()
-        let nextStep: number | null = null
-        if (e.key === 'ArrowRight' && stepIndex < tour.steps.length - 1) {
-          nextStep = stepIndex + 1
-        } else if (e.key === 'ArrowLeft' && stepIndex > 0) {
-          nextStep = stepIndex - 1
-        }
-        if (nextStep !== null) {
+      if (landingOpen.get()) return
+
+      if (navigationMode.get() !== 'guided') {
+        // Free mode
+        const handler = keyHandlers[e.key]
+        if (!handler) return
+        e.preventDefault()
+        handler(selectedId.get())
+        return
+      }
+
+      // Dismiss start screen with Enter or Space
+      if (tourStartScreen.get()) {
+        if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
-          goToTourStep(nextStep)
-          const pip = document.querySelector<HTMLElement>(`[data-step="${nextStep}"]`)
-          pip?.focus()
+          tourStartScreen.set(false)
+          if (activeVideoTour.get()) videoTourPlaying.set(true)
         }
         return
       }
-      const handler = keyHandlers[e.key]
-      if (!handler) return
 
-      e.preventDefault()
-      handler(selectedId.get())
+      // Guided mode — check if it's a video tour
+      const videoTour = activeVideoTour.get()
+      if (videoTour) {
+        // Space to toggle play/pause
+        if (e.key === ' ') {
+          e.preventDefault()
+          videoTourPlaying.set(!videoTourPlaying.get())
+          return
+        }
+
+        const stepIndex = activeVideoTourStepIndex.get()
+
+        // Arrow keys to skip between steps
+        if (e.key === 'ArrowRight' && stepIndex < videoTour.steps.length - 1) {
+          e.preventDefault()
+          seekVideo(videoTour.steps[stepIndex + 1].timestamp)
+        } else if (e.key === 'ArrowLeft' && stepIndex > 0) {
+          e.preventDefault()
+          seekVideo(videoTour.steps[stepIndex - 1].timestamp)
+        }
+        return
+      }
+
+      // Standard guided tour
+      const tour = activeTour.get()
+      if (!tour) return
+      const stepIndex = activeTourStepIndex.get()
+      let nextStep: number | null = null
+      if (e.key === 'ArrowRight' && stepIndex < tour.steps.length - 1) {
+        nextStep = stepIndex + 1
+      } else if (e.key === 'ArrowLeft' && stepIndex > 0) {
+        nextStep = stepIndex - 1
+      }
+      if (nextStep !== null) {
+        e.preventDefault()
+        goToTourStep(nextStep)
+        const pip = document.querySelector<HTMLElement>(`[data-step="${nextStep}"]`)
+        pip?.focus()
+      }
     }
 
     window.addEventListener('keydown', handleKeyDown)
