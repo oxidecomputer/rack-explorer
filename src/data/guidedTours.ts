@@ -237,7 +237,7 @@ export const guidedTours: GuidedTour[] = [
     description:
       'A guided video walkthrough of the Oxide rack architecture, covering compute sleds, networking, power delivery, and storage.',
     videoUrl: '/tours/oxide-rack-overview.mp4',
-    duration: 30,
+    duration: 29,
     steps: [
       {
         title: 'Introduction',
