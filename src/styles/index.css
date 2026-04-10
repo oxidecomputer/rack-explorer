@@ -4,6 +4,8 @@
 @import '@oxide/design-system/styles/main.css';
 @import '@oxide/design-system/styles/dark.css';
 
+@import '@oxide/design-system/components/button.css' layer(components);
+
 @import 'tailwindcss';
 
 :root {

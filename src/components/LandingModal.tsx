@@ -1,48 +1,8 @@
 import { Compass16Icon, Show16Icon } from '@oxide/design-system/icons/react'
 import { motion } from 'motion/react'
 
-import {
-  activeTourId,
-  activeTourStepIndex,
-  landingOpen,
-  navigationMode,
-  selectedId,
-} from '../atoms'
-import { guidedTours } from '../data/guidedTours'
-
-function GridIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <rect x="2" y="2" width="4" height="4" rx="1" fill="currentColor" />
-      <rect x="8" y="2" width="4" height="4" rx="1" fill="currentColor" />
-      <rect x="14" y="2" width="4" height="4" rx="1" fill="currentColor" />
-      <rect x="20" y="2" width="4" height="4" rx="1" fill="currentColor" />
-      <rect x="2" y="8" width="4" height="4" rx="1" fill="currentColor" />
-      <rect x="8" y="8" width="4" height="4" rx="1" fill="currentColor" />
-      <rect x="14" y="8" width="4" height="4" rx="1" fill="currentColor" />
-      <rect x="20" y="8" width="4" height="4" rx="1" fill="currentColor" />
-      <rect x="2" y="14" width="4" height="4" rx="1" fill="currentColor" />
-      <rect x="8" y="14" width="4" height="4" rx="1" fill="currentColor" />
-      <rect x="14" y="14" width="4" height="4" rx="1" fill="currentColor" />
-      <rect x="20" y="14" width="4" height="4" rx="1" fill="currentColor" />
-      <rect x="2" y="20" width="4" height="4" rx="1" fill="currentColor" />
-      <rect x="8" y="20" width="4" height="4" rx="1" fill="currentColor" />
-      <rect x="14" y="20" width="4" height="4" rx="1" fill="currentColor" />
-      <rect x="20" y="20" width="4" height="4" rx="1" fill="currentColor" />
-    </svg>
-  )
-}
-
-function ListIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <rect x="2" y="3" width="20" height="3" rx="1" fill="currentColor" />
-      <rect x="2" y="9" width="16" height="3" rx="1" fill="currentColor" />
-      <rect x="2" y="15" width="20" height="3" rx="1" fill="currentColor" />
-      <rect x="2" y="21" width="12" height="3" rx="1" fill="currentColor" />
-    </svg>
-  )
-}
+import { landingOpen, startTour } from '../atoms'
+import { getFirstStandardTour } from '../data/guidedTours'
 
 function OptionCard({
   icon,
@@ -73,14 +33,9 @@ function OptionCard({
 
 export function LandingModal() {
   const dismiss = (mode: 'free' | 'guided') => {
-    navigationMode.set(mode)
     if (mode === 'guided') {
-      activeTourId.set(guidedTours[0].id)
-      activeTourStepIndex.set(0)
-      const firstStep = guidedTours[0].steps[0]
-      if (firstStep?.selectedId) {
-        selectedId.set(firstStep.selectedId)
-      }
+      const first = getFirstStandardTour()
+      startTour(first.id)
     }
     landingOpen.set(false)
   }

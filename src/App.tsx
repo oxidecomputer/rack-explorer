@@ -8,18 +8,24 @@ import {
 import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
 import { AnimatePresence, motion } from 'motion/react'
+import { useCallback } from 'react'
 
 import {
   activeTour,
-  activeTourId,
   activeTourStepIndex,
+  activeVideoTour,
+  activeVideoTourStepIndex,
+  exitGuidedMode,
   goToTourStep,
+  isVideoTour,
   landingOpen,
   navigationMode,
   sceneReady,
+  seekVideo,
   selectedId,
-  showcaseMode,
   specificationsOpen,
+  startTour,
+  tourStartScreen,
 } from './atoms'
 import { Card } from './components/Card'
 import { GuidedTourOutline } from './components/GuidedTourOutline'
@@ -31,8 +37,11 @@ import { Outline } from './components/Outline'
 import { Bar, OutlineSkeleton, SpecificationsSkeleton } from './components/Skeletons'
 import { Specifications } from './components/Specifications'
 import { StepPips } from './components/StepPips'
+import { VideoTourPlayer } from './components/VideoTourPlayer'
+import { TourStartScreen } from './components/TourStartScreen'
+import { VideoTourTimeline } from './components/VideoTourTimeline'
 import { getNode } from './data/componentTree'
-import { guidedTours } from './data/guidedTours'
+import { getFirstStandardTour } from './data/guidedTours'
 import { Scene } from './Scene'
 import { useKeyboardNavigation } from './useKeyboardNavigation'
 
@@ -71,7 +80,24 @@ function App() {
   const isSceneReady = useValue(sceneReady)
   const currentTour = useValue(activeTour)
   const currentStepIndex = useValue(activeTourStepIndex)
+  const currentVideoTour = useValue(activeVideoTour)
+  const currentVideoStepIndex = useValue(activeVideoTourStepIndex)
   const isGuided = currentNavigationMode === 'guided'
+  const isVideo = useValue(isVideoTour)
+  const isStartScreen = useValue(tourStartScreen)
+  const isStandardTour = isGuided && !isVideo
+
+  const handleVideoSkipPrev = useCallback(() => {
+    if (!currentVideoTour) return
+    const prevIndex = Math.max(0, currentVideoStepIndex - 1)
+    seekVideo(currentVideoTour.steps[prevIndex].timestamp)
+  }, [currentVideoTour, currentVideoStepIndex])
+
+  const handleVideoSkipNext = useCallback(() => {
+    if (!currentVideoTour) return
+    const nextIndex = Math.min(currentVideoTour.steps.length - 1, currentVideoStepIndex + 1)
+    seekVideo(currentVideoTour.steps[nextIndex].timestamp)
+  }, [currentVideoTour, currentVideoStepIndex])
 
   const toggleSpecifications = () => {
     specificationsOpen.set(!specsOpen)
@@ -81,7 +107,7 @@ function App() {
 
   const breadcrumbPath = findPath(currentSelectedId)
 
-  const isGuidedMode = navigationMode.get() !== 'guided'
+  const breadcrumbsEnabled = !isGuided
 
   return (
     <>
@@ -95,7 +121,7 @@ function App() {
       </motion.div>
 
       <div className="pointer-events-none absolute inset-0 flex h-screen flex-col">
-        {/* Blur overlay for landing state — behind sidebars */}
+        {/* Blur overlay — behind sidebars */}
         <AnimatePresence>
           {isLandingOpen && (
             <motion.div
@@ -115,13 +141,13 @@ function App() {
           </div>
           <div className="text-secondary flex flex-1 items-center justify-center gap-2 select-none">
             <button
-              disabled={isGuidedMode}
+              disabled={!breadcrumbsEnabled}
               onClick={() => {
                 selectedId.set('oxide-rack')
               }}
               className={clsx(
                 'text-mono-xs transition-colors',
-                isGuidedMode && 'hover:text-default',
+                breadcrumbsEnabled && 'hover:text-default',
               )}
             >
               Oxide Rack
@@ -134,13 +160,13 @@ function App() {
                     <span key={item.id} className="flex items-center gap-2">
                       <span className="text-raise text-mono-xs opacity-20">/</span>
                       <button
-                        disabled={isGuidedMode}
+                        disabled={!breadcrumbsEnabled}
                         onClick={() => {
                           selectedId.set(item.id)
                         }}
                         className={clsx(
                           'text-mono-xs transition-colors',
-                          isGuidedMode && 'hover:text-default',
+                          breadcrumbsEnabled && 'hover:text-default',
                         )}
                       >
                         {item.label}
@@ -179,19 +205,10 @@ function App() {
               <button
                 onClick={() => {
                   if (isGuided) {
-                    navigationMode.set('free')
-                    selectedId.set('oxide-rack')
-                    activeTourId.set(null)
-                    activeTourStepIndex.set(0)
+                    exitGuidedMode()
                   } else {
-                    navigationMode.set('guided')
-                    showcaseMode.set(false)
-                    activeTourStepIndex.set(0)
-                    activeTourId.set(guidedTours[0].id)
-                    const firstStep = guidedTours[0].steps[0]
-                    if (firstStep?.selectedId) {
-                      selectedId.set(firstStep.selectedId)
-                    }
+                    const first = getFirstStandardTour()
+                    startTour(first.id)
                   }
                 }}
                 className="group text-accent hover:bg-accent-hover text-mono-xs bg-accent hover:bg-accent-secondary-hover flex w-full items-center justify-between rounded-md border border-current/5 px-2.5 py-2 transition-colors"
@@ -209,7 +226,8 @@ function App() {
 
           {/* Center area between sidebars — tour controls live here */}
           <div className="relative min-h-0 min-w-0 grow">
-            {isGuided && currentTour && !isLandingOpen && (
+            {/* Standard tour: pips + prev/next arrows */}
+            {isStandardTour && currentTour && !isLandingOpen && !isStartScreen && (
               <>
                 <div className="pointer-events-auto absolute bottom-4 left-1/2 z-20 -translate-x-1/2">
                   <StepPips />
@@ -226,7 +244,9 @@ function App() {
                     Icon: NextArrow12Icon,
                     pos: specsOpen ? 'right-4' : 'right-0',
                     step: currentStepIndex + 1,
-                    disabled: currentStepIndex === currentTour.steps.length - 1,
+                    disabled:
+                      currentTour.type !== 'video' &&
+                      currentStepIndex === currentTour.steps.length - 1,
                   },
                 ].map(({ Icon, pos, step, disabled }) => (
                   <button
@@ -246,13 +266,35 @@ function App() {
                 ))}
               </>
             )}
+
+            <AnimatePresence>{isGuided && <TourStartScreen />}</AnimatePresence>
+
+            {/* Video tour: timeline + player */}
+            {isVideo && currentVideoTour && !isLandingOpen && !isStartScreen && (
+              <>
+                <div className="pointer-events-auto absolute top-0 right-0 z-20">
+                  <AnimatePresence>
+                    <VideoTourPlayer />
+                  </AnimatePresence>
+                </div>
+                <div className="pointer-events-auto absolute right-0 bottom-0 left-0 z-20 pl-4">
+                  <div className="bg-default/80 rounded-lg px-4 py-3 backdrop-blur-md">
+                    <VideoTourTimeline
+                      onSeek={seekVideo}
+                      onSkipPrev={handleVideoSkipPrev}
+                      onSkipNext={handleVideoSkipNext}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           <motion.div
             initial={false}
             animate={{
-              width: specsOpen ? 256 : 0,
-              opacity: specsOpen ? 1 : 0,
+              width: specsOpen && !isVideo && !(isGuided && isStartScreen) ? 256 : 0,
+              opacity: specsOpen && !isVideo && !(isGuided && isStartScreen) ? 1 : 0,
             }}
             transition={{ type: 'spring', duration: 0.325, bounce: 0 }}
             className={clsx(
@@ -264,17 +306,17 @@ function App() {
               title={
                 isLandingOpen ? (
                   <Bar className="h-3 w-20" />
-                ) : isGuided ? (
+                ) : isStandardTour ? (
                   'Guide'
                 ) : (
                   'Specifications'
                 )
               }
-              contentKey={isLandingOpen ? 'skeleton' : isGuided ? 'guide' : 'specs'}
+              contentKey={isLandingOpen ? 'skeleton' : isStandardTour ? 'guide' : 'specs'}
             >
               {isLandingOpen ? (
                 <SpecificationsSkeleton />
-              ) : isGuided ? (
+              ) : isStandardTour ? (
                 <GuidedTourPanel />
               ) : (
                 <Specifications />
@@ -295,7 +337,7 @@ function App() {
           </motion.div>
         </div>
 
-        {!isLandingOpen && (
+        {!isLandingOpen && !isVideo && (
           <motion.button
             initial={false}
             animate={{ right: specsOpen ? 22 : 16 }}

@@ -21,16 +21,50 @@ export type TourStep = {
   annotations?: TourAnnotation[]
 }
 
-export type GuidedTour = {
+/** A step in a video-driven tour, triggered by timestamp */
+export type VideoTourStep = {
+  title: string
+  /** Timestamp in seconds when this step activates */
+  timestamp: number
+  /** If set, selects this element in the scene */
+  selectedId?: string
+  /** If set, moves the camera to this position/target */
+  waypoint?: {
+    position: Vec3
+    target: Vec3
+  }
+  /** Annotations displayed in the 3D scene during this step */
+  annotations?: TourAnnotation[]
+}
+
+export type StandardTour = {
   id: string
   title: string
+  description: string
+  type: 'standard'
   steps: TourStep[]
 }
+
+export type VideoTour = {
+  id: string
+  title: string
+  type: 'video'
+  description: string
+  videoUrl: string
+  /** Total duration in seconds */
+  duration: number
+  steps: VideoTourStep[]
+}
+
+export type GuidedTour = StandardTour | VideoTour
 
 export const guidedTours: GuidedTour[] = [
   {
     id: 'overview',
     title: 'Overview Walkthrough',
+    description:
+      'A top-to-bottom tour of the Oxide rack covering compute sleds, networking, power delivery, and storage.',
+    type: 'standard',
     steps: [
       {
         title: 'The Oxide Rack',
@@ -97,6 +131,9 @@ export const guidedTours: GuidedTour[] = [
   {
     id: 'upgrading-ssd',
     title: 'Upgrading SSD',
+    description:
+      'Step-by-step instructions for hot-swapping an NVMe drive in a compute sled without powering down the rack.',
+    type: 'standard',
     steps: [
       {
         title: 'Introduction',
@@ -157,6 +194,9 @@ export const guidedTours: GuidedTour[] = [
   {
     id: 'power-efficiency',
     title: 'Power Efficiency',
+    description:
+      'Explore how the Oxide rack eliminates unnecessary power conversion stages for better efficiency and less waste heat.',
+    type: 'standard',
     steps: [
       {
         title: 'Power Architecture',
@@ -190,9 +230,75 @@ export const guidedTours: GuidedTour[] = [
       },
     ],
   },
+  {
+    id: 'oxide-rack-overview-video',
+    title: 'Oxide Rack Deep Dive',
+    type: 'video',
+    description:
+      'A guided video walkthrough of the Oxide rack architecture, covering compute sleds, networking, power delivery, and storage.',
+    videoUrl: '/tours/oxide-rack-overview.mp4',
+    duration: 30,
+    steps: [
+      {
+        title: 'Introduction',
+        timestamp: 0,
+        selectedId: 'oxide-rack',
+      },
+      {
+        title: 'Compute Sleds',
+        timestamp: 5,
+        selectedId: 'compute-sled:18',
+      },
+      {
+        title: 'Inside a Sled',
+        timestamp: 10,
+        selectedId: 'compute-inner:18',
+        annotations: [
+          {
+            label: 'CPU',
+            description: 'AMD EPYC processor with up to 192 cores.',
+            position: [0.08, 0, -0.05],
+          },
+          {
+            label: 'NVMe Bays',
+            description: '10 front-accessible U.2 SSD bays.',
+            position: [-0.08, 0.0, 0.35],
+          },
+        ],
+      },
+      {
+        title: 'CPU & Memory',
+        timestamp: 15,
+        selectedId: 'cpu:18',
+      },
+      {
+        title: 'Network Switches',
+        timestamp: 20,
+        selectedId: 'network-switch',
+      },
+      {
+        title: 'Summary',
+        timestamp: 25,
+        selectedId: 'oxide-rack',
+      },
+    ],
+  },
 ]
 
 /** Get a tour by its ID */
 export function getTour(tourId: string): GuidedTour | undefined {
   return guidedTours.find((t) => t.id === tourId)
+}
+
+/** Get the first standard tour */
+export function getFirstStandardTour(): StandardTour {
+  return guidedTours.find((t) => t.type === 'standard') as StandardTour
+}
+
+/** Get the active step index for a video tour given the current time */
+export function getVideoTourStepAtTime(tour: VideoTour, time: number): number {
+  for (let i = tour.steps.length - 1; i >= 0; i--) {
+    if (time >= tour.steps[i].timestamp) return i
+  }
+  return 0
 }

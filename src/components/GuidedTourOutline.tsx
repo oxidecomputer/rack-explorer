@@ -2,36 +2,30 @@ import { Compass16Icon } from '@oxide/design-system/icons/react'
 import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
 
-import { activeTourId, activeTourStepIndex, selectedId } from '../atoms'
-import { guidedTours, type GuidedTour } from '../data/guidedTours'
+import {
+  activeTourId,
+  activeTourStepIndex,
+  activeVideoTourStepIndex,
+  seekVideo,
+  selectedId,
+  startTour,
+  tourStartScreen,
+} from '../atoms'
+import { guidedTours, type GuidedTour, type VideoTour } from '../data/guidedTours'
+import { Video16Icon } from './Icons'
 
-function TourStepItem({
+function StepItem({
   title,
-  stepIndex,
-  tourId,
+  isActive,
+  onClick,
 }: {
   title: string
-  stepIndex: number
-  tourId: string
+  isActive: boolean
+  onClick: () => void
 }) {
-  const currentTourId = useValue(activeTourId)
-  const currentStepIndex = useValue(activeTourStepIndex)
-  const isActive = currentTourId === tourId && currentStepIndex === stepIndex
-
-  const handleClick = () => {
-    const tour = guidedTours.find((t) => t.id === tourId)
-    if (!tour) return
-    activeTourId.set(tourId)
-    activeTourStepIndex.set(stepIndex)
-    const step = tour.steps[stepIndex]
-    if (step?.selectedId) {
-      selectedId.set(step.selectedId)
-    }
-  }
-
   return (
     <button
-      onClick={handleClick}
+      onClick={onClick}
       className={clsx(
         'text-sans-sm flex w-full items-center border-l py-1.25 pl-4 text-left transition-colors',
         isActive ? 'border-accent text-accent' : 'border-default text-secondary',
@@ -42,21 +36,51 @@ function TourStepItem({
   )
 }
 
+function StandardTourStepItems({ tourId }: { tourId: string }) {
+  const currentTourId = useValue(activeTourId)
+  const currentStepIndex = useValue(activeTourStepIndex)
+  const tour = guidedTours.find((t) => t.id === tourId)
+  if (!tour || tour.type === 'video') return null
+
+  return tour.steps.map((step, i) => (
+    <StepItem
+      key={i}
+      title={step.title}
+      isActive={currentTourId === tourId && currentStepIndex === i}
+      onClick={() => {
+        activeTourId.set(tourId)
+        activeTourStepIndex.set(i)
+        if (step.selectedId) selectedId.set(step.selectedId)
+      }}
+    />
+  ))
+}
+
+function VideoTourStepItems({ tour }: { tour: VideoTour }) {
+  const currentTourId = useValue(activeTourId)
+  const currentStepIndex = useValue(activeVideoTourStepIndex)
+
+  return tour.steps.map((step, i) => (
+    <StepItem
+      key={i}
+      title={step.title}
+      isActive={currentTourId === tour.id && currentStepIndex === i}
+      onClick={() => {
+        seekVideo(step.timestamp)
+        if (step.selectedId) selectedId.set(step.selectedId)
+      }}
+    />
+  ))
+}
+
 function TourSection({ tour }: { tour: GuidedTour }) {
   const currentTourId = useValue(activeTourId)
+  const isStartScreen = useValue(tourStartScreen)
   const isExpanded = currentTourId === tour.id
 
   const handleClick = () => {
-    if (isExpanded) {
-      return
-    } else {
-      activeTourId.set(tour.id)
-      activeTourStepIndex.set(0)
-      const firstStep = tour.steps[0]
-      if (firstStep?.selectedId) {
-        selectedId.set(firstStep.selectedId)
-      }
-    }
+    if (isExpanded) return
+    startTour(tour.id)
   }
 
   return (
@@ -71,17 +95,27 @@ function TourSection({ tour }: { tour: GuidedTour }) {
           className={clsx(
             'absolute inset-0 rounded opacity-0 transition-opacity',
             isExpanded && 'bg-accent-inverse opacity-11',
+            isExpanded
+              ? 'bg-accent-inverse group-hover:opacity-20'
+              : 'bg-neutral-700 group-hover:opacity-11',
           )}
         />
         <span className={clsx('relative', isExpanded ? 'text-accent' : 'text-secondary')}>
-          {tour.title}
+          <span className="flex items-center gap-1.5">
+            <span className={isExpanded ? 'text-accent-secondary' : 'text-tertiary'}>
+              {tour.type === 'video' ? <Video16Icon /> : <Compass16Icon />}
+            </span>
+            {tour.title}
+          </span>
         </span>
       </button>
-      {isExpanded && (
+      {isExpanded && !isStartScreen && (
         <div className="ml-4 flex flex-col py-2">
-          {tour.steps.map((step, i) => (
-            <TourStepItem key={i} title={step.title} stepIndex={i} tourId={tour.id} />
-          ))}
+          {tour.type === 'video' ? (
+            <VideoTourStepItems tour={tour} />
+          ) : (
+            <StandardTourStepItems tourId={tour.id} />
+          )}
         </div>
       )}
     </div>
