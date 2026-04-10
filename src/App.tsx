@@ -34,11 +34,11 @@ import { SidebarIcon } from './components/Icons'
 import { LandingModal } from './components/LandingModal'
 import { OptionsDropdown } from './components/OptionsDropdown'
 import { Outline } from './components/Outline'
-import { Bar, OutlineSkeleton, SpecificationsSkeleton } from './components/Skeletons'
+import { Bar, CTASkeleton, OutlineSkeleton, SpecificationsSkeleton } from './components/Skeletons'
 import { Specifications } from './components/Specifications'
 import { StepPips } from './components/StepPips'
-import { VideoTourPlayer } from './components/VideoTourPlayer'
 import { TourStartScreen } from './components/TourStartScreen'
+import { VideoTourPlayer } from './components/VideoTourPlayer'
 import { VideoTourTimeline } from './components/VideoTourTimeline'
 import { getNode } from './data/componentTree'
 import { getFirstStandardTour } from './data/guidedTours'
@@ -326,13 +326,19 @@ function App() {
               href="https://oxide.computer/contact"
               className="hover:bg-hover/80 block w-64 rounded-md border border-neutral-900/10 bg-transparent p-2.5 backdrop-blur-md transition-colors"
             >
-              <div className="text-mono-xs text-tertiary flex items-center justify-between">
-                Contact Sales <OpenLink12Icon className="text-quaternary" />
-              </div>
-              <p className="text-default text-sans-sm mt-1 pr-2">
-                Discuss your computing requirements and business goals with our team of
-                experts.
-              </p>
+              {isLandingOpen ? (
+                <CTASkeleton />
+              ) : (
+                <div>
+                  <div className="text-mono-xs text-tertiary flex items-center justify-between">
+                    Contact Sales <OpenLink12Icon className="text-quaternary" />
+                  </div>
+                  <p className="text-default text-sans-sm mt-1 pr-2">
+                    Discuss your computing requirements and business goals with our team of
+                    experts.
+                  </p>
+                </div>
+              )}
             </a>
           </motion.div>
         </div>

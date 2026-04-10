@@ -1,6 +1,12 @@
 import clsx from 'clsx'
 
-export function Bar({ className, style }: { className?: string; style?: React.CSSProperties }) {
+export function Bar({
+  className,
+  style,
+}: {
+  className?: string
+  style?: React.CSSProperties
+}) {
   return (
     <div className={clsx('bg-tertiary animate-pulse rounded', className)} style={style} />
   )
@@ -18,6 +24,19 @@ export function OutlineSkeleton() {
             <Bar className="h-3.5" style={{ width: w * 4 }} />
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+export function CTASkeleton() {
+  return (
+    <div className="h-17">
+      <Bar className="h-2.5 w-20" />
+      <div className="mt-2 flex flex-col gap-1">
+        <Bar className="h-3 w-full" />
+        <Bar className="h-3 w-48" />
+        <Bar className="h-3 w-52" />
       </div>
     </div>
   )
