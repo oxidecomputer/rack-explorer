@@ -17,7 +17,7 @@ export const PostProcessing = ({ enableAO }: { enableAO: boolean }) => {
       }
       patched.current = true
     }
-  })
+  }, [])
 
   return (
     <EffectComposer enableNormalPass={enableAO} autoClear={false}>

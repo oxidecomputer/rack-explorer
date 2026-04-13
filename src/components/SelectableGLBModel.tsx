@@ -1,4 +1,5 @@
 import { useLoader, type Vector3 } from '@react-three/fiber'
+import { computed } from '@tldraw/state'
 import { useValue } from '@tldraw/state-react'
 import { useEffect, useMemo } from 'react'
 import * as THREE from 'three'
@@ -6,6 +7,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 
 import { selectedId } from '../atoms'
 import { dracoLoader } from '../loaders'
+
+const textureLoader = new THREE.TextureLoader()
 import { useSelectionOffset } from '../useSelectionOffset'
 import { ModifiedSelect } from './Selection'
 
@@ -37,11 +40,10 @@ export const SelectableGLBModel = ({
   // Apply external textures to matching materials
   useEffect(() => {
     if (!textures) return
-    const loader = new THREE.TextureLoader()
     const loaded: THREE.Texture[] = []
 
     for (const [materialName, texturePath] of Object.entries(textures)) {
-      loader.load(texturePath, (tex) => {
+      textureLoader.load(texturePath, (tex) => {
         tex.flipY = false
         tex.colorSpace = THREE.SRGBColorSpace
         loaded.push(tex)
@@ -78,8 +80,15 @@ export const SelectableGLBModel = ({
     }
   }, [scene])
 
-  const currentSelectedId = useValue(selectedId)
-  const enabled = currentSelectedId === id || currentSelectedId.split(':')[0] === id
+  const isSelected = useMemo(
+    () =>
+      computed('select-' + id, () => {
+        const sel = selectedId.get()
+        return sel === id || sel.split(':')[0] === id
+      }),
+    [id],
+  )
+  const enabled = useValue(isSelected)
 
   useEffect(() => {
     scene.traverse((child) => {

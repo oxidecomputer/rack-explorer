@@ -1,4 +1,5 @@
 import { useLoader, type Vector3 } from '@react-three/fiber'
+import { computed } from '@tldraw/state'
 import { useValue } from '@tldraw/state-react'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
@@ -23,6 +24,11 @@ interface InstancedGLBModelProps {
 
 const DRAG_THRESHOLD = 5
 
+// Pre-allocated matrices to avoid GC pressure in instance update loop
+const _translation = new THREE.Matrix4()
+const _composed = new THREE.Matrix4()
+const _hidden = new THREE.Matrix4().makeScale(0, 0, 0)
+
 export const InstancedGLBModel = ({
   path,
   instances,
@@ -32,8 +38,6 @@ export const InstancedGLBModel = ({
   const gltf = useLoader(GLTFLoader, path, (loader) => {
     loader.setDRACOLoader(dracoLoader)
   })
-
-  const currentSelectedId = useValue(selectedId)
 
   // Extract all meshes from the GLB
   const meshes = useMemo(() => {
@@ -57,16 +61,22 @@ export const InstancedGLBModel = ({
 
   const indexToId = useMemo(() => instances.map((inst) => inst.id), [instances])
 
-  // Find the selected instance and its index in a single pass
-  const { selectedInstance, selectedIndex } = useMemo(() => {
-    for (let i = 0; i < instances.length; i++) {
-      const inst = instances[i]
-      if (inst.id === currentSelectedId) return { selectedInstance: inst, selectedIndex: i }
-      const [baseId] = inst.id.split(':')
-      if (baseId === currentSelectedId) return { selectedInstance: inst, selectedIndex: i }
-    }
-    return { selectedInstance: undefined, selectedIndex: -1 }
-  }, [instances, currentSelectedId])
+  // Derived atom: only triggers re-render when the matched index actually changes
+  const selectedIndexAtom = useMemo(
+    () =>
+      computed('instsel-' + path, () => {
+        const sel = selectedId.get()
+        for (let i = 0; i < instances.length; i++) {
+          const inst = instances[i]
+          if (inst.id === sel) return i
+          if (inst.id.split(':')[0] === sel) return i
+        }
+        return -1
+      }),
+    [instances, path],
+  )
+  const selectedIndex = useValue(selectedIndexAtom)
+  const selectedInstance = selectedIndex >= 0 ? instances[selectedIndex] : undefined
 
   // Lazily clone the scene for the selected instance's outline — only allocate when needed
   const selectedSceneRef = useRef<THREE.Group | null>(null)
@@ -129,21 +139,18 @@ export const InstancedGLBModel = ({
   const hideSelected = selectionOffset && selectedIndex >= 0
 
   useEffect(() => {
-    const translation = new THREE.Matrix4()
-    const composed = new THREE.Matrix4()
-    const hidden = new THREE.Matrix4().makeScale(0, 0, 0)
     for (let meshIdx = 0; meshIdx < meshes.length; meshIdx++) {
       const instancedMesh = instancedMeshRefs.current[meshIdx]
       if (!instancedMesh) continue
       for (let i = 0; i < instances.length; i++) {
         if (hideSelected && i === selectedIndex) {
-          instancedMesh.setMatrixAt(i, hidden)
+          instancedMesh.setMatrixAt(i, _hidden)
         } else {
           const pos = instances[i].position
           const p = Array.isArray(pos) ? pos : [pos, 0, 0]
-          translation.makeTranslation(p[0] as number, p[1] as number, p[2] as number)
-          composed.copy(translation).multiply(meshes[meshIdx].matrix)
-          instancedMesh.setMatrixAt(i, composed)
+          _translation.makeTranslation(p[0] as number, p[1] as number, p[2] as number)
+          _composed.copy(_translation).multiply(meshes[meshIdx].matrix)
+          instancedMesh.setMatrixAt(i, _composed)
         }
       }
       instancedMesh.instanceMatrix.needsUpdate = true

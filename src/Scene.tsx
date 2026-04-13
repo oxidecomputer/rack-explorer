@@ -107,6 +107,8 @@ function CameraOffset() {
   const currentOffset = useRef(0)
   const invalidate = useThree((s) => s.invalidate)
 
+  const prevAppliedOffset = useRef(0)
+
   useFrame(({ camera, size }) => {
     const sidebarVisible = specsOpen && !isVideo && !(isGuided && isStartScreen)
     const target = sidebarVisible ? 0 : 128
@@ -118,6 +120,10 @@ function CameraOffset() {
       currentOffset.current += diff * 0.12
       invalidate()
     }
+
+    // Only update projection matrix when offset actually changed
+    if (Math.abs(currentOffset.current - prevAppliedOffset.current) < 0.01) return
+    prevAppliedOffset.current = currentOffset.current
 
     const cam = camera as THREE.PerspectiveCamera
     if (currentOffset.current < 0.5) {
