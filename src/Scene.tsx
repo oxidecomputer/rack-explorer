@@ -229,11 +229,22 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
               const dy = e.clientY - pointerDownPos.current.y
               if (dx * dx + dy * dy > 5 * 5) return
             }
-            const intersectedObject = e.intersections[0]?.object
-            if (intersectedObject?.userData?.id) {
-              selectedId.set(
-                inheritInstanceIndex(currentSelectedId, intersectedObject.userData.id),
-              )
+            // Pick the deepest (most specific) component among all intersections
+            // so child meshes win over overlapping parent meshes
+            let bestId: string | null = null
+            let bestDepth = -1
+            for (const intersection of e.intersections) {
+              const id = intersection.object?.userData?.id
+              if (id) {
+                const entry = getNode(id)
+                if (entry && entry.depth > bestDepth) {
+                  bestDepth = entry.depth
+                  bestId = id
+                }
+              }
+            }
+            if (bestId) {
+              selectedId.set(inheritInstanceIndex(currentSelectedId, bestId))
             }
           }}
           onDoubleClick={(e) => {
