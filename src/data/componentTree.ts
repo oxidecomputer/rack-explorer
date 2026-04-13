@@ -26,6 +26,10 @@ export type ComponentNode = {
   model?: ModelConfig
   /** Offset applied to the selected instance (e.g. slide out on Z). If omitted, no animation. */
   selectionOffset?: Vec3
+  /** When true, this node's model remains visible when viewing its children */
+  showModelInChildView?: boolean
+  /** Hide this node's model when any of these IDs are selected */
+  hiddenWhenSelected?: string[]
 }
 
 // ——— Compute sled instance positions ———
@@ -61,7 +65,7 @@ export const componentTree: ComponentNode = {
   id: 'oxide-rack',
   label: 'Oxide Rack',
   waypoint: { position: [5, 5, 10], target: [0, 1.2, 0] },
-  model: { path: './models/rack-frame/rack-frame-lod1.glb', clickable: false },
+  model: { path: './models/rack-frame/rack-frame-1.glb', clickable: false },
   children: [
     {
       id: 'compute-sled',
@@ -69,15 +73,15 @@ export const componentTree: ComponentNode = {
       waypoint: { position: [1, 2, 4], target: [0, 0, 0.325] },
       instances: generateSledPositions(),
       selectionOffset: selectionOffset,
-      model: { path: './models/cosmo/cosmo-lod1.glb' },
+      showModelInChildView: true,
+      model: { path: './models/cosmo/lod1/cosmo-ext-1.glb' },
       children: [
         {
           id: 'compute-inner',
           label: 'Inner',
           waypoint: { position: [1.5, 1, 1.5], target: [0, 0, 0] },
           model: {
-            path: './models/cosmo/cosmo-lod0.glb',
-            clickable: false,
+            path: './models/cosmo/lod1/cosmo-int-1.glb',
             textures: { PCB_Texture: './models/cosmo/pcb.png' },
           },
           children: [
@@ -90,11 +94,15 @@ export const componentTree: ComponentNode = {
               id: 'cpu',
               label: 'CPU',
               waypoint: { position: [0.75, 1.25, 0.75], target: [0, 0, 0] },
+              selectionOffset: [0, 0.025, 0.0],
+              model: { path: './models/cosmo/lod1/cosmo-heatsink-1.glb' },
             },
             {
               id: 'ram',
               label: 'RAM',
+              selectionOffset: [0, 0.025, 0.0],
               waypoint: { position: [0.6, 1.5, 0.6], target: [0, 0, 0] },
+              model: { path: './models/cosmo/lod1/cosmo-memory-1.glb' },
             },
             {
               id: 'connectors',
@@ -104,12 +112,17 @@ export const componentTree: ComponentNode = {
             {
               id: 'fans',
               label: 'Fans',
+              selectionOffset: [0, 0.025, 0.0],
               waypoint: { position: [1.25, 1, -1.25], target: [0, 0.05, -0.25] },
+              model: { path: './models/cosmo/lod1/cosmo-fans-1.glb' },
             },
             {
               id: 'airflow-shroud',
               label: 'Airflow Shroud',
+              hiddenWhenSelected: ['cpu', 'ram'],
+              selectionOffset: [0, 0.05, 0.0],
               waypoint: { position: [1.25, 1.5, 1.25], target: [0, 0, 0] },
+              model: { path: './models/cosmo/lod1/cosmo-shroud-1.glb', clickable: false },
             },
           ],
         },
@@ -124,13 +137,13 @@ export const componentTree: ComponentNode = {
         [0, 1.26, 0.015],
       ],
       selectionOffset: selectionOffset,
-      model: { path: './models/sidecar/sidecar-lod1.glb' },
+      model: { path: './models/sidecar/sidecar-1.glb' },
       children: [
         {
           id: 'switch-inner',
           label: 'Inner',
           waypoint: { position: [1.5, 1.5, 1.5], target: [0, 0, 0.325] },
-          model: { path: './models/sidecar/sidecar-lod1.glb', clickable: false },
+          model: { path: './models/sidecar/sidecar-1.glb', clickable: false },
         },
       ],
     },
@@ -143,14 +156,14 @@ export const componentTree: ComponentNode = {
         [0, 1.15, 0.095],
       ],
       selectionOffset: selectionOffset,
-      model: { path: './models/power-shelf/power-shelf-lod1.glb' },
+      model: { path: './models/power-shelf/power-shelf-1.glb' },
     },
     {
       id: 'patch-panel',
       label: 'Patch Panel',
       waypoint: { position: [1, 2.15, 4], target: [0, 2.2, 0.325] },
       model: {
-        path: './models/patch-panel/patch-panel-lod1.glb',
+        path: './models/patch-panel/patch-panel-1.glb',
         position: [0, 2.2, 0.015],
       },
     },

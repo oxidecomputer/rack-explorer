@@ -1,4 +1,4 @@
-import { useFrame, useLoader, type Vector3 } from '@react-three/fiber'
+import { useLoader, type Vector3 } from '@react-three/fiber'
 import { useValue } from '@tldraw/state-react'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
@@ -7,6 +7,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { navigationMode, selectedId } from '../atoms'
 import { isDescendantOf } from '../data/componentTree'
 import { dracoLoader } from '../loaders'
+import { useSelectionOffset } from '../useSelectionOffset'
 import { ModifiedSelect } from './Selection'
 
 export interface GLBInstance {
@@ -149,37 +150,11 @@ export const InstancedGLBModel = ({
     }
   }, [instances, meshes, selectedIndex, hideSelected])
 
-  // Animation state for selection offset
-  const selectedGroupRef = useRef<THREE.Group>(null)
-  const animOffset = useRef(new THREE.Vector3())
-  const prevSelectedIndex = useRef(-1)
-
-  // Reset animation when selection changes to a different instance
-  if (prevSelectedIndex.current !== selectedIndex) {
-    animOffset.current.set(0, 0, 0)
-    prevSelectedIndex.current = selectedIndex
-  }
-
-  // Animate selected instance toward selectionOffset
-  useFrame((state, delta) => {
-    if (!selectedGroupRef.current || !selectionOffset) return
-    const target = selectedIndex >= 0 ? selectionOffset : [0, 0, 0]
-    const pos = animOffset.current
-    // Early-out: skip math if already at target
-    if (
-      Math.abs(pos.x - target[0]) < 0.0001 &&
-      Math.abs(pos.y - target[1]) < 0.0001 &&
-      Math.abs(pos.z - target[2]) < 0.0001
-    )
-      return
-    const rate = 1 - Math.pow(0.001, delta)
-    const nx = THREE.MathUtils.lerp(pos.x, target[0], rate)
-    const ny = THREE.MathUtils.lerp(pos.y, target[1], rate)
-    const nz = THREE.MathUtils.lerp(pos.z, target[2], rate)
-    pos.set(nx, ny, nz)
-    selectedGroupRef.current.position.copy(pos)
-    state.invalidate()
-  })
+  const selectedGroupRef = useSelectionOffset(
+    selectedIndex >= 0,
+    selectionOffset,
+    selectedIndex,
+  )
 
   useEffect(() => {
     if (!selectedInstance || !selectedScene) return
