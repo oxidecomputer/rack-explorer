@@ -225,7 +225,9 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
             }
             const intersectedObject = e.intersections[0]?.object
             if (intersectedObject?.userData?.id) {
-              selectedId.set(intersectedObject.userData.id)
+              selectedId.set(
+                inheritInstanceIndex(currentSelectedId, intersectedObject.userData.id),
+              )
             }
           }}
           onDoubleClick={(e) => {
@@ -264,15 +266,26 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
             if (viewingChildOfId === node.id && instanceCtx) {
               return (
                 <group key={node.id} position={instanceCtx.instancePosition}>
-                  {descendantModels.map((descendant) => (
+                  {node.showModelInChildView && node.model && (
                     <SelectableGLBModel
-                      key={descendant.id}
-                      id={descendant.id}
-                      path={descendant.model!.path}
-                      clickable={descendant.model!.clickable ?? true}
-                      textures={descendant.model!.textures}
+                      id={node.id}
+                      path={node.model.path}
+                      clickable={false}
+                      textures={node.model.textures}
                     />
-                  ))}
+                  )}
+                  {descendantModels
+                    .filter((d) => !d.hiddenWhenSelected?.includes(baseId))
+                    .map((descendant) => (
+                      <SelectableGLBModel
+                        key={descendant.id}
+                        id={descendant.id}
+                        path={descendant.model!.path}
+                        clickable={descendant.model!.clickable ?? true}
+                        textures={descendant.model!.textures}
+                        selectionOffset={descendant.selectionOffset}
+                      />
+                    ))}
                 </group>
               )
             }

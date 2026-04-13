@@ -76,7 +76,7 @@ export const guidedTours: GuidedTour[] = [
         title: 'Compute Sleds',
         description:
           'Each rack contains 32 sleds, organized in two columns. Sleds slide in and out like drawers, making service simple without disturbing neighboring hardware.',
-        selectedId: 'compute-sled:0',
+        selectedId: 'compute-sled:31',
       },
       {
         title: 'Inside a Sled',
@@ -145,7 +145,7 @@ export const guidedTours: GuidedTour[] = [
         title: 'Locate the sled',
         description:
           "From the rack's front, locate the correct compute sled. Each rack contains 32 sleds, and each sled holds 10 front-accessible NVMe U.2 SSD bays.",
-        selectedId: 'compute-sled:0',
+        selectedId: 'compute-sled:31',
       },
       {
         title: 'Pull out the sled',
@@ -175,7 +175,7 @@ export const guidedTours: GuidedTour[] = [
         title: 'Reseat the sled',
         description:
           'Push the sled back into the rack until it locks into position. Ensure the sled is fully seated for proper connectivity.',
-        selectedId: 'compute-sled:0',
+        selectedId: 'compute-sled:31',
       },
       {
         title: 'Verify adoption',

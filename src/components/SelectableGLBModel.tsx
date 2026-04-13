@@ -6,6 +6,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 
 import { selectedId } from '../atoms'
 import { dracoLoader } from '../loaders'
+import { useSelectionOffset } from '../useSelectionOffset'
 import { ModifiedSelect } from './Selection'
 
 interface SelectableGLBModelProps {
@@ -15,6 +16,8 @@ interface SelectableGLBModelProps {
   clickable?: boolean
   /** Map of material name → texture path to apply */
   textures?: Record<string, string>
+  /** Offset applied when selected (animated) */
+  selectionOffset?: [number, number, number]
 }
 
 export const SelectableGLBModel = ({
@@ -23,6 +26,7 @@ export const SelectableGLBModel = ({
   position = [0, 0, 0],
   clickable = true,
   textures,
+  selectionOffset,
 }: SelectableGLBModelProps) => {
   const gltf = useLoader(GLTFLoader, path, (loader) => {
     loader.setDRACOLoader(dracoLoader)
@@ -75,18 +79,25 @@ export const SelectableGLBModel = ({
   }, [scene])
 
   const currentSelectedId = useValue(selectedId)
-  const enabled = currentSelectedId === id
+  const enabled = currentSelectedId === id || currentSelectedId.split(':')[0] === id
 
   useEffect(() => {
     scene.traverse((child) => {
       child.userData = clickable ? { id } : {}
+      if (!clickable && child instanceof THREE.Mesh) {
+        child.raycast = () => {}
+      }
     })
   }, [scene, id, clickable])
+
+  const offsetGroupRef = useSelectionOffset(enabled, selectionOffset)
 
   return (
     <ModifiedSelect enabled={enabled}>
       <group position={position}>
-        <primitive object={scene} />
+        <group ref={offsetGroupRef}>
+          <primitive object={scene} />
+        </group>
       </group>
     </ModifiedSelect>
   )
