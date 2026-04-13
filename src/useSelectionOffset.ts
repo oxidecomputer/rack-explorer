@@ -6,6 +6,8 @@ import * as THREE from 'three'
  * Animates a group's position toward `offset` when active, back to origin when not.
  * Pass a `resetKey` to force-reset the animation (e.g. when switching instances).
  */
+const ZERO: [number, number, number] = [0, 0, 0]
+
 export function useSelectionOffset(
   active: boolean,
   offset: [number, number, number] | undefined,
@@ -22,7 +24,7 @@ export function useSelectionOffset(
 
   useFrame((state, delta) => {
     if (!groupRef.current || !offset) return
-    const target = active ? offset : [0, 0, 0]
+    const target = active ? offset : ZERO
     const pos = animPos.current
     if (
       Math.abs(pos.x - target[0]) < 0.0001 &&

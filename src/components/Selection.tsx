@@ -32,7 +32,7 @@ export function ModifiedSelect({ enabled = false, children, ...props }: SelectAp
         api.select((state) => state.filter((selected) => !toRemove.has(selected)))
       }
     }
-  }, [enabled, children, api])
+  }, [enabled, api]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <group ref={group} {...props}>
       {children}
