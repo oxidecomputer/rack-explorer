@@ -4,7 +4,7 @@ import clsx from 'clsx'
 import { motion } from 'motion/react'
 import { useState } from 'react'
 
-import { lowQuality, showcaseMode } from '../atoms'
+import { debugMode, lowQuality, showcaseMode } from '../atoms'
 
 function Toggle({
   checked,
@@ -36,6 +36,7 @@ export function OptionsDropdown() {
   const [open, setOpen] = useState(false)
   const isLowQuality = useValue(lowQuality)
   const isShowcaseMode = useValue(showcaseMode)
+  const isDebugMode = useValue(debugMode)
 
   return (
     <div className="relative z-40 flex flex-1 justify-end">
@@ -66,6 +67,10 @@ export function OptionsDropdown() {
             <label className="hover:bg-hover flex cursor-pointer items-center justify-between rounded px-3 py-2">
               <span className="text-secondary">Low Quality</span>
               <Toggle checked={isLowQuality} onChange={(v) => lowQuality.set(v)} />
+            </label>
+            <label className="hover:bg-hover flex cursor-pointer items-center justify-between rounded px-3 py-2">
+              <span className="text-secondary">Debug Stats</span>
+              <Toggle checked={isDebugMode} onChange={(v) => debugMode.set(v)} />
             </label>
           </motion.div>
         </>

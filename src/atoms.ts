@@ -15,6 +15,7 @@ export const sceneReady = atom('sceneReady', false)
 // Options
 export const lowQuality = atom('lowQuality', false)
 export const showcaseMode = atom('showcaseMode', false)
+export const debugMode = atom('debugMode', false)
 
 // Guided tour state
 export const activeTourId = atom<string | null>('activeTourId', null)

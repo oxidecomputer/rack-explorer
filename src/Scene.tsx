@@ -1,5 +1,5 @@
 import { getGPUTier, type TierResult } from '@pmndrs/detect-gpu'
-import { CameraControls, Environment, Grid } from '@react-three/drei'
+import { CameraControls, Environment, Grid, Stats } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useValue } from '@tldraw/state-react'
 import CameraControlsImpl from 'camera-controls'
@@ -7,6 +7,7 @@ import { lazy, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 
 import {
+  debugMode,
   isVideoTour,
   lowQuality,
   navigationMode,
@@ -146,6 +147,47 @@ function CameraOffset() {
   }, [specsOpen, isVideo, isGuided, isStartScreen, invalidate])
 
   return null
+}
+
+function DebugStats() {
+  const gl = useThree((s) => s.gl)
+
+  useEffect(() => {
+    gl.info.autoReset = false
+    return () => {
+      gl.info.autoReset = true
+    }
+  }, [gl])
+
+  // Negative priority runs before the render/post-processing passes,
+  // so we read the accumulated stats from the previous frame then reset.
+  useFrame(() => {
+    const el = document.getElementById('debug-stats')
+    if (el) {
+      const { triangles, calls } = gl.info.render
+      el.textContent = `${(triangles / 1000).toFixed(1)}k tris · ${calls} draw calls`
+    }
+    gl.info.reset()
+  }, -Infinity)
+
+  return null
+}
+
+function DebugOverlay() {
+  const isDebug = useValue(debugMode)
+  if (!isDebug) return null
+
+  return (
+    <>
+      <div
+        id="debug-stats"
+        className="pointer-events-none absolute bottom-3 left-3 z-50 rounded bg-black/70 px-2 py-1 font-mono text-xs text-white"
+      />
+      <Stats showPanel={0} className="" />
+      <Stats showPanel={1} className="ml-20" />
+      <Stats showPanel={2} className="ml-40" />
+    </>
+  )
 }
 
 function SceneContent({ enableAO }: { enableAO: boolean }) {
@@ -349,6 +391,7 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
       />
       <ShowcaseRotation cameraControlsRef={cameraControlsRef} />
       <CameraOffset />
+      <DebugStats />
     </>
   )
 }
@@ -393,39 +436,42 @@ export const Scene = () => {
   const isShowcase = useValue(showcaseMode)
 
   return (
-    <Canvas
-      camera={{
-        position: initialWaypoint?.position ?? [5, 5, 10],
-        fov: 15,
-        near: 1,
-        far: 100,
-      }}
-      className="absolute inset-0 z-0"
-      gl={{
-        outputColorSpace: 'srgb',
-        toneMapping: 0,
-        premultipliedAlpha: false,
-      }}
-      dpr={gpuConfig.dpr}
-      linear
-      frameloop={isShowcase ? 'always' : 'demand'}
-      onPointerMissed={() => {
-        if (isGuidedMode) return
-        const now = performance.now()
-        if (now - lastMissTime.current < 400) {
-          const current = selectedId.get()
-          if (!current) return
-          const base = current.split(':')[0]
-          const entry = getNode(base)
-          if (entry?.parent) {
-            selectedId.set(inheritInstanceIndex(current, entry.parent.id))
+    <>
+      <Canvas
+        camera={{
+          position: initialWaypoint?.position ?? [5, 5, 10],
+          fov: 15,
+          near: 1,
+          far: 100,
+        }}
+        className="absolute inset-0 z-0"
+        gl={{
+          outputColorSpace: 'srgb',
+          toneMapping: 0,
+          premultipliedAlpha: false,
+        }}
+        dpr={gpuConfig.dpr}
+        linear
+        frameloop={isShowcase ? 'always' : 'demand'}
+        onPointerMissed={() => {
+          if (isGuidedMode) return
+          const now = performance.now()
+          if (now - lastMissTime.current < 400) {
+            const current = selectedId.get()
+            if (!current) return
+            const base = current.split(':')[0]
+            const entry = getNode(base)
+            if (entry?.parent) {
+              selectedId.set(inheritInstanceIndex(current, entry.parent.id))
+            }
           }
-        }
-        lastMissTime.current = now
-      }}
-      onCreated={() => sceneReady.set(true)}
-    >
-      <SceneContent enableAO={gpuConfig.enableAO} />
-    </Canvas>
+          lastMissTime.current = now
+        }}
+        onCreated={() => sceneReady.set(true)}
+      >
+        <SceneContent enableAO={gpuConfig.enableAO} />
+      </Canvas>
+      <DebugOverlay />
+    </>
   )
 }

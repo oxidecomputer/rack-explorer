@@ -1,4 +1,5 @@
-import { useLoader, type Vector3 } from '@react-three/fiber'
+import { InstancedMesh2 } from '@three.ez/instanced-mesh'
+import { extend, useLoader, useThree, type Vector3 } from '@react-three/fiber'
 import { computed } from '@tldraw/state'
 import { useValue } from '@tldraw/state-react'
 import { useEffect, useMemo, useRef } from 'react'
@@ -10,6 +11,14 @@ import { isDescendantOf } from '../data/componentTree'
 import { dracoLoader } from '../loaders'
 import { useSelectionOffset } from '../useSelectionOffset'
 import { ModifiedSelect } from './Selection'
+
+extend({ InstancedMesh2 })
+
+declare module '@react-three/fiber' {
+  interface ThreeElements {
+    instancedMesh2: any
+  }
+}
 
 export interface GLBInstance {
   id: string
@@ -24,10 +33,12 @@ interface InstancedGLBModelProps {
 
 const DRAG_THRESHOLD = 5
 
-// Pre-allocated matrices to avoid GC pressure in instance update loop
+// Pre-allocated objects to avoid GC pressure in instance update loop
 const _translation = new THREE.Matrix4()
 const _composed = new THREE.Matrix4()
-const _hidden = new THREE.Matrix4().makeScale(0, 0, 0)
+const _pos = new THREE.Vector3()
+const _quat = new THREE.Quaternion()
+const _scale = new THREE.Vector3()
 
 export const InstancedGLBModel = ({
   path,
@@ -35,6 +46,7 @@ export const InstancedGLBModel = ({
   selectionOffset,
 }: InstancedGLBModelProps) => {
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null)
+  const gl = useThree((s) => s.gl)
   const gltf = useLoader(GLTFLoader, path, (loader) => {
     loader.setDRACOLoader(dracoLoader)
   })
@@ -130,32 +142,51 @@ export const InstancedGLBModel = ({
     }
   }, [])
 
-  // Create refs for all instanced meshes to update their matrices
-  const instancedMeshRefs = useRef<(THREE.InstancedMesh | null)[]>([])
+  // Create InstancedMesh2 instances imperatively since we need to compose matrices
+  const instancedMeshes = useMemo(() => {
+    return meshes.map((mesh) => {
+      const geom = mesh.geometry.clone()
+      geom.deleteAttribute('instanceIndex')
+      const im = new InstancedMesh2(geom, mesh.material as THREE.Material, {
+        capacity: instances.length,
+        createEntities: true,
+        renderer: gl,
+      })
+      im.addInstances(instances.length, (entity, i) => {
+        const pos = instances[i].position
+        const p = Array.isArray(pos) ? pos : [pos, 0, 0]
+        _translation.makeTranslation(p[0] as number, p[1] as number, p[2] as number)
+        _composed.copy(_translation).multiply(mesh.matrix)
+        _composed.decompose(_pos, _quat, _scale)
+        entity.position.copy(_pos)
+        entity.quaternion.copy(_quat)
+        entity.scale.copy(_scale)
+      })
+      im.computeBVH()
+      return im
+    })
+  }, [meshes, instances, gl])
 
-  // Set instance matrices whenever instances change
-  // Each instance matrix = instanceTranslation * meshWorldMatrix
-  // This preserves the mesh's original rotation/scale from the GLB hierarchy
+  // Hide/show selected instance for the offset effect
   const hideSelected = selectionOffset && selectedIndex >= 0
 
   useEffect(() => {
-    for (let meshIdx = 0; meshIdx < meshes.length; meshIdx++) {
-      const instancedMesh = instancedMeshRefs.current[meshIdx]
-      if (!instancedMesh) continue
+    for (const im of instancedMeshes) {
       for (let i = 0; i < instances.length; i++) {
-        if (hideSelected && i === selectedIndex) {
-          instancedMesh.setMatrixAt(i, _hidden)
-        } else {
-          const pos = instances[i].position
-          const p = Array.isArray(pos) ? pos : [pos, 0, 0]
-          _translation.makeTranslation(p[0] as number, p[1] as number, p[2] as number)
-          _composed.copy(_translation).multiply(meshes[meshIdx].matrix)
-          instancedMesh.setMatrixAt(i, _composed)
-        }
+        im.setVisibilityAt(i, !(hideSelected && i === selectedIndex))
       }
-      instancedMesh.instanceMatrix.needsUpdate = true
     }
-  }, [instances, meshes, selectedIndex, hideSelected])
+  }, [instancedMeshes, instances, selectedIndex, hideSelected])
+
+  // Dispose InstancedMesh2 instances and cloned geometries on unmount
+  useEffect(() => {
+    return () => {
+      for (const im of instancedMeshes) {
+        im.geometry.dispose()
+        im.dispose()
+      }
+    }
+  }, [instancedMeshes])
 
   const selectedGroupRef = useSelectionOffset(
     selectedIndex >= 0,
@@ -194,23 +225,8 @@ export const InstancedGLBModel = ({
         }
       }}
     >
-      {meshes.map((mesh, meshIdx) => (
-        <instancedMesh
-          key={meshIdx}
-          ref={(el) => {
-            instancedMeshRefs.current[meshIdx] = el
-          }}
-          args={[mesh.geometry, undefined, instances.length]}
-          frustumCulled={false}
-        >
-          {Array.isArray(mesh.material) ? (
-            mesh.material.map((mat, i) => (
-              <primitive key={i} object={mat} attach={`material-${i}`} />
-            ))
-          ) : (
-            <primitive object={mesh.material} attach="material" />
-          )}
-        </instancedMesh>
+      {instancedMeshes.map((im, meshIdx) => (
+        <primitive key={meshIdx} object={im} />
       ))}
 
       {/* Render a single clone at the selected position for the outline effect */}
