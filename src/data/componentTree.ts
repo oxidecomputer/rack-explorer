@@ -11,6 +11,8 @@ export type ModelConfig = {
   position?: Vec3
   /** Map of material name → texture path to apply after loading */
   textures?: Record<string, string>
+  /** When true, this model remains visible when viewing the node's children */
+  showModelInChildView?: boolean
 }
 
 export type ComponentNode = {
@@ -22,14 +24,18 @@ export type ComponentNode = {
   instances?: Vec3[]
   /** Child waypoints are relative offsets from the parent instance position. */
   children?: ComponentNode[]
-  /** GLB model to render for this component */
-  model?: ModelConfig
+  /** GLB model(s) to render for this component. Accepts a single config or an array. */
+  model?: ModelConfig | ModelConfig[]
   /** Offset applied to the selected instance (e.g. slide out on Z). If omitted, no animation. */
   selectionOffset?: Vec3
-  /** When true, this node's model remains visible when viewing its children */
-  showModelInChildView?: boolean
-  /** Hide this node's model when any of these IDs are selected */
+  /** Hide this node's models when any of these IDs are selected */
   hiddenWhenSelected?: string[]
+}
+
+/** Normalize `model` into an array (empty if not set). */
+export function getNodeModels(node: ComponentNode): ModelConfig[] {
+  if (!node.model) return []
+  return Array.isArray(node.model) ? node.model : [node.model]
 }
 
 // ——— Compute sled instance positions ———
@@ -73,8 +79,10 @@ export const componentTree: ComponentNode = {
       waypoint: { position: [1, 2, 4], target: [0, 0, 0.325] },
       instances: generateSledPositions(),
       selectionOffset: selectionOffset,
-      showModelInChildView: true,
-      model: { path: './models/cosmo/lod1/cosmo-ext-1.glb' },
+      model: {
+        path: './models/cosmo/lod1/cosmo-ext-1.glb',
+        showModelInChildView: true,
+      },
       children: [
         {
           id: 'compute-inner',
@@ -133,13 +141,21 @@ export const componentTree: ComponentNode = {
         [0, 1.26, 0.015],
       ],
       selectionOffset: selectionOffset,
-      model: { path: './models/sidecar/sidecar-1.glb' },
+      model: [
+        {
+          path: './models/sidecar/lod1/sidecar-ext-1.glb',
+          showModelInChildView: true,
+        },
+        {
+          path: './models/sidecar/lod1/sidecar-cover-1.glb',
+        },
+      ],
       children: [
         {
           id: 'switch-inner',
           label: 'Inner',
-          waypoint: { position: [1.5, 1.5, 1.5], target: [0, 0, 0.325] },
-          model: { path: './models/sidecar/sidecar-1.glb', clickable: false },
+          waypoint: { position: [2, 1.5, 3], target: [0, 0, 0.325] },
+          model: { path: './models/sidecar/lod1/sidecar-int-1.glb', clickable: false },
         },
       ],
     },
@@ -283,13 +299,15 @@ function addVec3(a: Vec3, b: Vec3): Vec3 {
   return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
 }
 
-/** Collect all descendant nodes that have a model defined */
-export function getDescendantModels(nodeId: string): ComponentNode[] {
+/** Collect all descendant (node, model) pairs below a given node. */
+export function getDescendantModels(
+  nodeId: string,
+): Array<{ node: ComponentNode; model: ModelConfig }> {
   const entry = flatMap.get(nodeId)
   if (!entry) return []
-  const result: ComponentNode[] = []
+  const result: Array<{ node: ComponentNode; model: ModelConfig }> = []
   function walk(node: ComponentNode) {
-    if (node.model) result.push(node)
+    for (const model of getNodeModels(node)) result.push({ node, model })
     for (const child of node.children ?? []) walk(child)
   }
   for (const child of entry.node.children ?? []) walk(child)

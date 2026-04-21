@@ -3,7 +3,7 @@ import { useValue } from '@tldraw/state-react'
 import { useMemo } from 'react'
 
 import { activeTourStep, selectedId } from '../atoms'
-import { getInstanceContext, getNode } from '../data/componentTree'
+import { getInstanceContext, getNode, getNodeModels } from '../data/componentTree'
 import type { TourAnnotation } from '../data/guidedTours'
 
 type Vec3 = [number, number, number]
@@ -14,7 +14,10 @@ function getElementPosition(id: string): Vec3 {
 
   const [baseId] = id.split(':')
   const node = getNode(baseId)
-  if (node?.node.model?.position) return node.node.model.position
+  if (node) {
+    const positioned = getNodeModels(node.node).find((m) => m.position)
+    if (positioned?.position) return positioned.position
+  }
 
   return [0, 0, 0]
 }
