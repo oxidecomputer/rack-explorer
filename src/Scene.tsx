@@ -28,6 +28,7 @@ import {
   getInstanceContext,
   getInstances,
   getNode,
+  getNodeModels,
   inheritInstanceIndex,
   isDescendantOf,
   resolveWaypoint,
@@ -219,7 +220,7 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
   const instancesById = useMemo(() => {
     const map: Record<string, ReturnType<typeof getInstances>> = {}
     for (const child of componentTree.children ?? []) {
-      if (child.instances && child.model) {
+      if (child.instances && getNodeModels(child).length > 0) {
         map[child.id] = getInstances(child.id)
       }
     }
@@ -303,20 +304,23 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
           }}
         >
           {/* Rack model — only at rack level */}
-          {!viewingChildOfId && componentTree.model && (
-            <SelectableGLBModel
-              id={componentTree.id}
-              path={componentTree.model.path}
-              clickable={componentTree.model.clickable ?? true}
-            />
-          )}
+          {!viewingChildOfId &&
+            getNodeModels(componentTree).map((model, i) => (
+              <SelectableGLBModel
+                key={`${componentTree.id}-${i}`}
+                id={componentTree.id}
+                path={model.path}
+                clickable={model.clickable ?? true}
+              />
+            ))}
 
           {/* Wireframe rack outline when drilled in */}
           {viewingChildOfId && <RackWireframe />}
 
           {/* Top-level components from tree */}
           {componentTree.children?.map((node) => {
-            if (!node.model) return null
+            const models = getNodeModels(node)
+            if (models.length === 0) return null
 
             // Hide non-active siblings when drilled in
             if (viewingChildOfId && viewingChildOfId !== node.id) return null
@@ -325,50 +329,61 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
             if (viewingChildOfId === node.id && instanceCtx) {
               return (
                 <group key={node.id} position={instanceCtx.instancePosition}>
-                  {node.showModelInChildView && node.model && (
-                    <SelectableGLBModel
-                      id={node.id}
-                      path={node.model.path}
-                      clickable={false}
-                      textures={node.model.textures}
-                    />
-                  )}
-                  {descendantModels
-                    .filter((d) => !d.hiddenWhenSelected?.includes(baseId))
-                    .map((descendant) => (
+                  {models
+                    .filter((m) => m.showModelInChildView)
+                    .map((model, i) => (
                       <SelectableGLBModel
-                        key={descendant.id}
-                        id={descendant.id}
-                        path={descendant.model!.path}
-                        clickable={descendant.model!.clickable ?? true}
-                        textures={descendant.model!.textures}
-                        selectionOffset={descendant.selectionOffset}
+                        key={`${node.id}-parent-${i}`}
+                        id={node.id}
+                        path={model.path}
+                        clickable={false}
+                        textures={model.textures}
+                      />
+                    ))}
+                  {descendantModels
+                    .filter(({ node: d }) => !d.hiddenWhenSelected?.includes(baseId))
+                    .map(({ node: d, model }, i) => (
+                      <SelectableGLBModel
+                        key={`${d.id}-${i}`}
+                        id={d.id}
+                        path={model.path}
+                        clickable={model.clickable ?? true}
+                        textures={model.textures}
+                        selectionOffset={d.selectionOffset}
                       />
                     ))}
                 </group>
               )
             }
 
-            // Instanced rendering
+            // Instanced rendering — one InstancedGLBModel per model
             if (node.instances) {
               return (
-                <InstancedGLBModel
-                  key={node.id}
-                  path={node.model.path}
-                  instances={instancesById[node.id]}
-                  selectionOffset={node.selectionOffset}
-                />
+                <group key={node.id}>
+                  {models.map((model, i) => (
+                    <InstancedGLBModel
+                      key={`${node.id}-${i}`}
+                      path={model.path}
+                      instances={instancesById[node.id]}
+                      selectionOffset={node.selectionOffset}
+                    />
+                  ))}
+                </group>
               )
             }
 
-            // Single positioned model
+            // Single positioned model(s)
             return (
-              <SelectableGLBModel
-                key={node.id}
-                id={node.id}
-                path={node.model.path}
-                position={node.model.position}
-              />
+              <group key={node.id}>
+                {models.map((model, i) => (
+                  <SelectableGLBModel
+                    key={`${node.id}-${i}`}
+                    id={node.id}
+                    path={model.path}
+                    position={model.position}
+                  />
+                ))}
+              </group>
             )
           })}
         </group>
