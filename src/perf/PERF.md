@@ -183,6 +183,17 @@ fragments. Visually nearly imperceptible, materially cheaper.
 outline pass. The harness exposes it via `post=ao`, completing the 2×2 matrix
 of post-processing ablations.
 
+## Rejected: adaptive AO during user interaction
+
+Prototype that toggled AO off during `controlstart` and back on 200ms after
+`controlend` was visually distracting — the AO popping in on release was too
+noticeable to justify the fillrate savings. Reverted.
+
+Lesson: for a static hardware visualizer, the eye tracks the shading
+continuity even during motion. Adaptive DPR is the same shape of idea and
+would likely have the same problem. If we revisit, cross-fade via tweened
+`N8AO.intensity` rather than a hard toggle.
+
 ---
 
 # Priority of follow-ups

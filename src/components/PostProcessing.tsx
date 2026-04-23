@@ -1,7 +1,6 @@
 import { EffectComposer, N8AO, Outline } from '@react-three/postprocessing'
+import { BlendFunction, type OutlineEffect } from 'postprocessing'
 import { useEffect, useRef, type ReactElement } from 'react'
-import { BlendFunction } from 'postprocessing'
-import type { OutlineEffect } from 'postprocessing'
 
 export const PostProcessing = ({
   enableAO,
@@ -28,7 +27,15 @@ export const PostProcessing = ({
   const effects: ReactElement[] = []
   if (enableAO) {
     effects.push(
-      <N8AO key="ao" color="black" aoRadius={0.1} intensity={5} halfRes />,
+      <N8AO
+        key="ao"
+        color="black"
+        denoiseSamples={4}
+        aoRadius={0.1}
+        intensity={5}
+        depthAwareUpsampling
+        halfRes
+      />,
     )
   }
   if (enableOutline) {
@@ -40,7 +47,6 @@ export const PostProcessing = ({
         blendFunction={BlendFunction.ALPHA}
         visibleEdgeColor={4773271}
         hiddenEdgeColor={4773271}
-        blur
       />,
     )
   }
