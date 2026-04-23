@@ -51,27 +51,34 @@ export const InstancedGLBModel = ({
     loader.setDRACOLoader(dracoLoader)
   })
 
-  // Extract all meshes from the GLB
+  // Extract all meshes from the GLB. For InstancedMesh (from EXT_mesh_gpu_instancing),
+  // expand per-instance matrices so each sub-instance gets rendered at its baked transform.
   const meshes = useMemo(() => {
     const result: {
       geometry: THREE.BufferGeometry
       material: THREE.Material | THREE.Material[]
-      matrix: THREE.Matrix4
+      matrices: THREE.Matrix4[]
     }[] = []
     gltf.scene.updateMatrixWorld(true)
+    const local = new THREE.Matrix4()
     gltf.scene.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
+      if (child instanceof THREE.InstancedMesh) {
+        const matrices: THREE.Matrix4[] = []
+        for (let i = 0; i < child.count; i++) {
+          child.getMatrixAt(i, local)
+          matrices.push(child.matrixWorld.clone().multiply(local))
+        }
+        result.push({ geometry: child.geometry, material: child.material, matrices })
+      } else if (child instanceof THREE.Mesh) {
         result.push({
           geometry: child.geometry,
           material: child.material,
-          matrix: child.matrixWorld.clone(),
+          matrices: [child.matrixWorld.clone()],
         })
       }
     })
     return result
   }, [gltf.scene])
-
-  const indexToId = useMemo(() => instances.map((inst) => inst.id), [instances])
 
   // Derived atom: only triggers re-render when the matched index actually changes
   const selectedIndexAtom = useMemo(
@@ -142,21 +149,26 @@ export const InstancedGLBModel = ({
     }
   }, [])
 
-  // Create InstancedMesh2 instances imperatively since we need to compose matrices
+  // Create InstancedMesh2 instances imperatively since we need to compose matrices.
+  // Each batch holds sledCount × subCount instances, laid out as [sled0_sub0, sled0_sub1, ..., sled1_sub0, ...].
   const instancedMeshes = useMemo(() => {
     return meshes.map((mesh) => {
+      const subCount = mesh.matrices.length
+      const totalCapacity = instances.length * subCount
       const geom = mesh.geometry.clone()
       geom.deleteAttribute('instanceIndex')
       const im = new InstancedMesh2(geom, mesh.material as THREE.Material, {
-        capacity: instances.length,
+        capacity: totalCapacity,
         createEntities: true,
         renderer: gl,
       })
-      im.addInstances(instances.length, (entity, i) => {
-        const pos = instances[i].position
+      im.addInstances(totalCapacity, (entity, flatIdx) => {
+        const sledIdx = Math.floor(flatIdx / subCount)
+        const subIdx = flatIdx % subCount
+        const pos = instances[sledIdx].position
         const p = Array.isArray(pos) ? pos : [pos, 0, 0]
         _translation.makeTranslation(p[0] as number, p[1] as number, p[2] as number)
-        _composed.copy(_translation).multiply(mesh.matrix)
+        _composed.copy(_translation).multiply(mesh.matrices[subIdx])
         _composed.decompose(_pos, _quat, _scale)
         entity.position.copy(_pos)
         entity.quaternion.copy(_quat)
@@ -171,12 +183,17 @@ export const InstancedGLBModel = ({
   const hideSelected = selectionOffset && selectedIndex >= 0
 
   useEffect(() => {
-    for (const im of instancedMeshes) {
-      for (let i = 0; i < instances.length; i++) {
-        im.setVisibilityAt(i, !(hideSelected && i === selectedIndex))
+    for (let mIdx = 0; mIdx < instancedMeshes.length; mIdx++) {
+      const im = instancedMeshes[mIdx]
+      const subCount = meshes[mIdx].matrices.length
+      for (let sledIdx = 0; sledIdx < instances.length; sledIdx++) {
+        const hide = !!(hideSelected && sledIdx === selectedIndex)
+        for (let subIdx = 0; subIdx < subCount; subIdx++) {
+          im.setVisibilityAt(sledIdx * subCount + subIdx, !hide)
+        }
       }
     }
-  }, [instancedMeshes, instances, selectedIndex, hideSelected])
+  }, [instancedMeshes, meshes, instances, selectedIndex, hideSelected])
 
   // Dispose InstancedMesh2 instances and cloned geometries on unmount
   useEffect(() => {
@@ -215,8 +232,12 @@ export const InstancedGLBModel = ({
           if (dx * dx + dy * dy > DRAG_THRESHOLD * DRAG_THRESHOLD) return
         }
         const intersection = e.intersections[0]
-        if (intersection?.instanceId != null) {
-          const targetId = indexToId[intersection.instanceId]
+        if (intersection?.instanceId != null && intersection.object) {
+          const meshIdx = instancedMeshes.findIndex((im) => im === intersection.object)
+          if (meshIdx < 0) return
+          const subCount = meshes[meshIdx].matrices.length
+          const sledIdx = Math.floor(intersection.instanceId / subCount)
+          const targetId = instances[sledIdx].id
           // Don't re-select the parent sled if we're already viewing one of its children
           const currentBase = selectedId.get().split(':')[0]
           const targetBase = targetId.split(':')[0]
