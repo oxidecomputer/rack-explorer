@@ -152,6 +152,7 @@ function CameraOffset() {
 
 function DebugStats() {
   const gl = useThree((s) => s.gl)
+  const scene = useThree((s) => s.scene)
 
   useEffect(() => {
     gl.info.autoReset = false
@@ -166,7 +167,19 @@ function DebugStats() {
     const el = document.getElementById('debug-stats')
     if (el) {
       const { triangles, calls } = gl.info.render
-      el.textContent = `${(triangles / 1000).toFixed(1)}k tris · ${calls} draw calls`
+      let batches = 0
+      let instances = 0
+      scene.traverse((obj) => {
+        const o = obj as { isInstancedMesh?: boolean; isInstancedMesh2?: boolean; count?: number; instancesCount?: number }
+        if (o.isInstancedMesh2) {
+          batches++
+          instances += o.instancesCount ?? 0
+        } else if (o.isInstancedMesh) {
+          batches++
+          instances += o.count ?? 0
+        }
+      })
+      el.textContent = `${(triangles / 1000).toFixed(1)}k tris · ${calls} calls · ${batches} batches / ${instances} instances`
     }
     gl.info.reset()
   }, -Infinity)
