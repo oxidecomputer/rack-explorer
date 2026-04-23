@@ -1,7 +1,7 @@
 import { useLoader, type Vector3 } from '@react-three/fiber'
 import { computed } from '@tldraw/state'
 import { useValue } from '@tldraw/state-react'
-import { useEffect, useMemo } from 'react'
+import { memo, useEffect, useMemo } from 'react'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 
@@ -23,14 +23,14 @@ interface SelectableGLBModelProps {
   selectionOffset?: [number, number, number]
 }
 
-export const SelectableGLBModel = ({
+export const SelectableGLBModel = memo(function SelectableGLBModel({
   id,
   path,
   position = [0, 0, 0],
   clickable = true,
   textures,
   selectionOffset,
-}: SelectableGLBModelProps) => {
+}: SelectableGLBModelProps) {
   const gltf = useLoader(GLTFLoader, path, (loader) => {
     loader.setDRACOLoader(dracoLoader)
   })
@@ -110,4 +110,4 @@ export const SelectableGLBModel = ({
       </group>
     </ModifiedSelect>
   )
-}
+})

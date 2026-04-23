@@ -2,7 +2,7 @@ import { InstancedMesh2 } from '@three.ez/instanced-mesh'
 import { extend, useLoader, useThree, type Vector3 } from '@react-three/fiber'
 import { computed } from '@tldraw/state'
 import { useValue } from '@tldraw/state-react'
-import { useEffect, useMemo, useRef } from 'react'
+import { memo, useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 
@@ -40,11 +40,11 @@ const _pos = new THREE.Vector3()
 const _quat = new THREE.Quaternion()
 const _scale = new THREE.Vector3()
 
-export const InstancedGLBModel = ({
+export const InstancedGLBModel = memo(function InstancedGLBModel({
   path,
   instances,
   selectionOffset,
-}: InstancedGLBModelProps) => {
+}: InstancedGLBModelProps) {
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null)
   const gl = useThree((s) => s.gl)
   const gltf = useLoader(GLTFLoader, path, (loader) => {
@@ -262,4 +262,4 @@ export const InstancedGLBModel = ({
       )}
     </group>
   )
-}
+})

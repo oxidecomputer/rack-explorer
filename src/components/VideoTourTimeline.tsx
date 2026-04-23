@@ -51,6 +51,42 @@ function ControlButton({
   )
 }
 
+function ProgressFill({ duration }: { duration: number }) {
+  const currentTime = useValue(videoTourCurrentTime)
+  const progress = duration > 0 ? currentTime / duration : 0
+  return (
+    <div
+      className="absolute top-0 left-0 h-full rounded-sm bg-green-600"
+      style={{ width: `${Math.min(progress * 100, 100)}%` }}
+    />
+  )
+}
+
+function TimeDisplay({ duration }: { duration: number }) {
+  const currentTime = useValue(videoTourCurrentTime)
+  return (
+    <div className="text-mono-xs text-secondary">
+      {formatTime(currentTime)}{' '}
+      <span className="text-quaternary">/ {formatTime(duration)}</span>
+    </div>
+  )
+}
+
+function PrevControlButton({
+  onSkipPrev,
+  isFirst,
+}: {
+  onSkipPrev: () => void
+  isFirst: boolean
+}) {
+  const currentTime = useValue(videoTourCurrentTime)
+  return (
+    <ControlButton onClick={onSkipPrev} disabled={isFirst && currentTime < 1}>
+      <PrevArrow12Icon />
+    </ControlButton>
+  )
+}
+
 export function VideoTourTimeline({
   onSeek,
   onSkipPrev,
@@ -61,7 +97,6 @@ export function VideoTourTimeline({
   onSkipNext: () => void
 }) {
   const tour = useValue(activeVideoTour)
-  const currentTime = useValue(videoTourCurrentTime)
   const isPlaying = useValue(videoTourPlaying)
   const currentStepIndex = useValue(activeVideoTourStepIndex)
   const [hoveredStep, setHoveredStep] = useState<number | null>(null)
@@ -100,7 +135,6 @@ export function VideoTourTimeline({
 
   if (!tour) return null
 
-  const progress = tour.duration > 0 ? currentTime / tour.duration : 0
   const isFirst = currentStepIndex === 0
   const isLast = currentStepIndex === tour.steps.length - 1
 
@@ -165,10 +199,7 @@ export function VideoTourTimeline({
           })}
 
           {/* Progress fill overlay */}
-          <div
-            className="absolute top-0 left-0 h-full rounded-sm bg-green-600"
-            style={{ width: `${Math.min(progress * 100, 100)}%` }}
-          />
+          <ProgressFill duration={tour.duration} />
 
           {/* Gap dividers on top of everything */}
           {tour.steps.slice(1).map((step, i) => (
@@ -188,9 +219,7 @@ export function VideoTourTimeline({
       {/* Controls row */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1">
-          <ControlButton onClick={onSkipPrev} disabled={isFirst && currentTime < 1}>
-            <PrevArrow12Icon />
-          </ControlButton>
+          <PrevControlButton onSkipPrev={onSkipPrev} isFirst={isFirst} />
           <ControlButton onClick={() => videoTourPlaying.set(!isPlaying)}>
             {isPlaying ? <Pause12Icon /> : <DirectionRightIcon />}
           </ControlButton>
@@ -200,10 +229,7 @@ export function VideoTourTimeline({
         </div>
 
         {/* Time display */}
-        <div className="text-mono-xs text-secondary">
-          {formatTime(currentTime)}{' '}
-          <span className="text-quaternary">/ {formatTime(tour.duration)}</span>
-        </div>
+        <TimeDisplay duration={tour.duration} />
 
         {/* Current step label */}
         <div className="text-sans-sm text-default ml-auto">
