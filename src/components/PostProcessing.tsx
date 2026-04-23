@@ -2,11 +2,13 @@ import { EffectComposer, N8AO, Outline } from '@react-three/postprocessing'
 import { BlendFunction, type OutlineEffect } from 'postprocessing'
 import { useEffect, useRef, type ReactElement } from 'react'
 
+export type AOQuality = 'full' | 'low' | 'off'
+
 export const PostProcessing = ({
-  enableAO,
+  aoQuality,
   enableOutline = true,
 }: {
-  enableAO: boolean
+  aoQuality: AOQuality
   enableOutline?: boolean
 }) => {
   const outlineRef = useRef<OutlineEffect>(null)
@@ -24,16 +26,20 @@ export const PostProcessing = ({
     }
   }, [])
 
+  const aoEnabled = aoQuality !== 'off'
+  const isLow = aoQuality === 'low'
+
   const effects: ReactElement[] = []
-  if (enableAO) {
+  if (aoEnabled) {
     effects.push(
       <N8AO
         key="ao"
         color="black"
-        denoiseSamples={4}
+        denoiseSamples={isLow ? 2 : 4}
+        denoiseRadius={isLow ? 6 : 12}
+        distanceFalloff={0.5}
         aoRadius={0.1}
         intensity={5}
-        depthAwareUpsampling
         halfRes
       />,
     )
@@ -52,7 +58,7 @@ export const PostProcessing = ({
   }
 
   return (
-    <EffectComposer enableNormalPass={enableAO} autoClear={false}>
+    <EffectComposer enableNormalPass={aoEnabled} autoClear={false}>
       {effects}
     </EffectComposer>
   )
