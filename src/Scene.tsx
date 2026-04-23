@@ -1,5 +1,11 @@
 import { getGPUTier, type TierResult } from '@pmndrs/detect-gpu'
-import { CameraControls, Environment, Grid, Stats } from '@react-three/drei'
+import {
+  CameraControls,
+  Environment,
+  Grid,
+  PerformanceMonitor,
+  Stats,
+} from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useValue } from '@tldraw/state-react'
 import CameraControlsImpl from 'camera-controls'
@@ -40,6 +46,8 @@ const perfFlags = parsePerfFlags()
 const PostProcessing = lazy(() =>
   import('./components/PostProcessing').then((m) => ({ default: m.PostProcessing })),
 )
+
+type AOQuality = 'full' | 'low' | 'off'
 
 // Harness is only referenced behind perfFlags.enabled; lazy-import keeps it out
 // of the production bundle when ?perf= is not set.
@@ -209,7 +217,13 @@ function ManualRenderer() {
   return null
 }
 
-function DebugStats() {
+function DebugStats({
+  aoQuality,
+  gpuTier,
+}: {
+  aoQuality: AOQuality
+  gpuTier: number | undefined
+}) {
   const gl = useThree((s) => s.gl)
   const scene = useThree((s) => s.scene)
 
@@ -243,7 +257,9 @@ function DebugStats() {
           instances += o.count ?? 0
         }
       })
-      el.textContent = `${(triangles / 1000).toFixed(1)}k tris · ${calls} calls · ${batches} batches / ${instances} instances`
+      const dpr = gl.getPixelRatio()
+      const tierLabel = gpuTier ?? '?'
+      el.textContent = `${(triangles / 1000).toFixed(1)}k tris · ${calls} calls · ${batches} batches / ${instances} instances · dpr ${dpr.toFixed(2)} · ao ${aoQuality} · tier ${tierLabel}`
     }
     gl.info.reset()
   }, -Infinity)
@@ -269,13 +285,15 @@ function DebugOverlay() {
 }
 
 function SceneContent({
-  enableAO,
+  aoQuality,
   postMode,
   instancing,
+  gpuTier,
 }: {
-  enableAO: boolean
+  aoQuality: AOQuality
   postMode: PerfFlags['postOverride']
   instancing: PerfFlags['instancing']
+  gpuTier: number | undefined
 }) {
   const cameraControlsRef = useRef<CameraControls>(null)
   const currentSelectedId = useValue(selectedId)
@@ -345,12 +363,12 @@ function SceneContent({
       <ModifiedSelection>
         {postMode !== 'none' && (
           <PostProcessing
-            enableAO={
+            aoQuality={
               postMode === 'outline+ao' || postMode === 'ao'
-                ? true
+                ? 'full'
                 : postMode === 'outline'
-                  ? false
-                  : enableAO
+                  ? 'off'
+                  : aoQuality
             }
             enableOutline={postMode !== 'ao'}
           />
@@ -524,7 +542,7 @@ function SceneContent({
       <ShowcaseRotation cameraControlsRef={cameraControlsRef} />
       <AspectRatioFov />
       <CameraOffset />
-      <DebugStats />
+      <DebugStats aoQuality={aoQuality} gpuTier={gpuTier} />
       {perfFlags.enabled && (
         <>
           <FirstRenderMarker />
@@ -538,6 +556,7 @@ function SceneContent({
 type GPUConfig = {
   dpr: number | [number, number]
   enableAO: boolean
+  tier?: number
 }
 
 const getGPUConfig = (tier: TierResult | null): GPUConfig => {
@@ -546,6 +565,7 @@ const getGPUConfig = (tier: TierResult | null): GPUConfig => {
   return {
     dpr: tierLevel >= 3 ? [1, 2] : tierLevel >= 2 ? [1, 1.75] : 1,
     enableAO: tierLevel >= 2,
+    tier: tierLevel,
   }
 }
 
@@ -582,6 +602,18 @@ export const Scene = () => {
           : baseGpuConfig.enableAO,
   }
 
+  // Max DPR the GPU tier / override allows. Adaptive DPR scales in [1, maxDpr].
+  const maxDpr = Array.isArray(gpuConfig.dpr) ? gpuConfig.dpr[1] : gpuConfig.dpr
+  const [dpr, setDpr] = useState(maxDpr)
+  useEffect(() => {
+    setDpr(maxDpr)
+  }, [maxDpr])
+
+  // Adaptive AO quality: 'full' → 'low' → 'off' as perf factor drops.
+  // Hysteresis prevents flicker around thresholds. Final value is gated by
+  // gpuConfig.enableAO — low-tier GPUs that start with AO off stay off.
+  const [adaptiveAO, setAdaptiveAO] = useState<'full' | 'low' | 'off'>('full')
+
   const initialWaypoint = resolveWaypoint('oxide-rack')
   const currentNavigationMode = useValue(navigationMode)
   const isGuidedMode = currentNavigationMode === 'guided'
@@ -605,6 +637,7 @@ export const Scene = () => {
           near: 1,
           far: 100,
         }}
+        performance={{ current: 1, min: 0.5, max: 1, debounce: 200 }}
         className="absolute inset-0 z-0"
         style={canvasStyle}
         gl={{
@@ -612,7 +645,7 @@ export const Scene = () => {
           toneMapping: 0,
           premultipliedAlpha: false,
         }}
-        dpr={gpuConfig.dpr}
+        dpr={dpr}
         linear
         frameloop={isShowcase || perfFlags.enabled ? 'always' : 'demand'}
         onPointerMissed={() => {
@@ -635,9 +668,35 @@ export const Scene = () => {
         }}
       >
         <SceneContent
-          enableAO={gpuConfig.enableAO}
+          aoQuality={gpuConfig.enableAO ? adaptiveAO : 'off'}
           postMode={perfFlags.postOverride}
           instancing={perfFlags.instancing}
+          gpuTier={detectedConfig.tier}
+        />
+        <PerformanceMonitor
+          ms={250}
+          iterations={5}
+          threshold={0.75}
+          factor={1}
+          bounds={(refreshrate) => (refreshrate > 90 ? [60, 100] : [40, 60])}
+          flipflops={3}
+          onChange={({ factor }) => {
+            // Map factor (0..1) into [1, maxDpr].
+            setDpr(Math.max(1, 1 + (maxDpr - 1) * factor))
+            // 3-state AO with hysteresis: full → low → off as factor drops.
+            // Down: ≤0.8 drops to low, ≤0.5 drops to off.
+            // Up:   ≥0.7 restores to low, ≥0.9 restores to full.
+            setAdaptiveAO((prev) => {
+              if (factor <= 0.5) return 'off'
+              if (factor <= 0.8 && prev === 'full') return 'low'
+              if (factor >= 0.9) return 'full'
+              if (factor >= 0.7 && prev === 'off') return 'low'
+              return prev
+            })
+          }}
+          onFallback={({ factor }) => {
+            if (import.meta.env.DEV) console.log('[perf] fallback, factor:', factor)
+          }}
         />
       </Canvas>
       <DebugOverlay />
