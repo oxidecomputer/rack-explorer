@@ -159,6 +159,35 @@ function CameraOffset() {
   return null
 }
 
+const BASE_FOV = 15
+const REFERENCE_ASPECT = 16 / 9
+// 0 = no zoom-out on narrow windows, 1 = constant horizontal FOV. Tweak here.
+const NARROW_ZOOM_STRENGTH = 0.5
+
+function AspectRatioFov() {
+  const camera = useThree((s) => s.camera)
+  const width = useThree((s) => s.size.width)
+  const height = useThree((s) => s.size.height)
+  const invalidate = useThree((s) => s.invalidate)
+
+  useEffect(() => {
+    const cam = camera as THREE.PerspectiveCamera
+    const aspect = width / height
+    if (aspect < REFERENCE_ASPECT) {
+      // Interpolate between BASE_FOV and constant-horizontal-FOV based on strength.
+      const hFov = 2 * Math.atan(Math.tan((BASE_FOV * Math.PI) / 360) * REFERENCE_ASPECT)
+      const fullVFov = (2 * Math.atan(Math.tan(hFov / 2) / aspect) * 180) / Math.PI
+      cam.fov = BASE_FOV + (fullVFov - BASE_FOV) * NARROW_ZOOM_STRENGTH
+    } else {
+      cam.fov = BASE_FOV
+    }
+    cam.updateProjectionMatrix()
+    invalidate()
+  }, [camera, width, height, invalidate])
+
+  return null
+}
+
 function FirstRenderMarker() {
   useFrame(() => {
     markInit('firstRenderMs', performance.now())
@@ -200,7 +229,12 @@ function DebugStats() {
       let batches = 0
       let instances = 0
       scene.traverse((obj) => {
-        const o = obj as { isInstancedMesh?: boolean; isInstancedMesh2?: boolean; count?: number; instancesCount?: number }
+        const o = obj as {
+          isInstancedMesh?: boolean
+          isInstancedMesh2?: boolean
+          count?: number
+          instancesCount?: number
+        }
         if (o.isInstancedMesh2) {
           batches++
           instances += o.instancesCount ?? 0
@@ -488,6 +522,7 @@ function SceneContent({
         }}
       />
       <ShowcaseRotation cameraControlsRef={cameraControlsRef} />
+      <AspectRatioFov />
       <CameraOffset />
       <DebugStats />
       {perfFlags.enabled && (
@@ -534,7 +569,9 @@ export const Scene = () => {
     }
   }, [])
 
-  const baseGpuConfig: GPUConfig = isLowQuality ? { dpr: 1, enableAO: false } : detectedConfig
+  const baseGpuConfig: GPUConfig = isLowQuality
+    ? { dpr: 1, enableAO: false }
+    : detectedConfig
   const gpuConfig: GPUConfig = {
     dpr: perfFlags.dprOverride ?? baseGpuConfig.dpr,
     enableAO:
