@@ -71,7 +71,22 @@ export const componentTree: ComponentNode = {
   id: 'oxide-rack',
   label: 'Oxide Rack',
   waypoint: { position: [5, 5, 10], target: [0, 1.2, 0] },
-  model: { path: './models/rack-frame/rack-frame-1.glb', clickable: false },
+  model: [
+    { path: './models/rack-frame/lod1/rack-body-1.glb', clickable: false },
+    { path: './models/rack-frame/lod1/rack-core-1.glb', clickable: false },
+    {
+      path: './models/rack-frame/lod1/rack-cosmo-housing-1.glb',
+      showModelInChildView: true,
+    },
+    {
+      path: './models/rack-frame/lod1/rack-patch-housing-1.glb',
+      showModelInChildView: true,
+    },
+    {
+      path: './models/rack-frame/lod1/rack-power-housing-1.glb',
+      showModelInChildView: true,
+    },
+  ],
   children: [
     {
       id: 'compute-sled',
@@ -83,6 +98,7 @@ export const componentTree: ComponentNode = {
         path: './models/cosmo/lod1/cosmo-ext-1.glb',
         showModelInChildView: true,
       },
+
       children: [
         {
           id: 'compute-inner',
@@ -176,7 +192,7 @@ export const componentTree: ComponentNode = {
       waypoint: { position: [1, 2.15, 4], target: [0, 2.2, 0.325] },
       model: {
         path: './models/patch-panel/patch-panel-1.glb',
-        position: [0, 2.2, 0.015],
+        position: [0, 2.2, 0.15],
       },
     },
   ],
