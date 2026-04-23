@@ -33,9 +33,18 @@ import {
   isDescendantOf,
   resolveWaypoint,
 } from './data/componentTree'
+import { markInit, parsePerfFlags, type PerfFlags } from './perf/harness'
+
+const perfFlags = parsePerfFlags()
 
 const PostProcessing = lazy(() =>
   import('./components/PostProcessing').then((m) => ({ default: m.PostProcessing })),
+)
+
+// Harness is only referenced behind perfFlags.enabled; lazy-import keeps it out
+// of the production bundle when ?perf= is not set.
+const PerfHarness = lazy(() =>
+  import('./perf/PerfHarness').then((m) => ({ default: m.PerfHarness })),
 )
 
 const { ACTION } = CameraControlsImpl
@@ -150,6 +159,27 @@ function CameraOffset() {
   return null
 }
 
+function FirstRenderMarker() {
+  useFrame(() => {
+    markInit('firstRenderMs', performance.now())
+  }, -Infinity)
+  return null
+}
+
+// R3F disables auto-render whenever any useFrame has non-zero priority. When
+// the perf harness is active (priority ±Infinity) AND post-processing is off
+// (no EffectComposer at priority 1), nothing ends up calling gl.render().
+// This fills that gap. Only mounted in perf+post=none mode.
+function ManualRenderer() {
+  const gl = useThree((s) => s.gl)
+  const scene = useThree((s) => s.scene)
+  const camera = useThree((s) => s.camera)
+  useFrame(() => {
+    gl.render(scene, camera)
+  }, 0)
+  return null
+}
+
 function DebugStats() {
   const gl = useThree((s) => s.gl)
   const scene = useThree((s) => s.scene)
@@ -204,7 +234,15 @@ function DebugOverlay() {
   )
 }
 
-function SceneContent({ enableAO }: { enableAO: boolean }) {
+function SceneContent({
+  enableAO,
+  postMode,
+  instancing,
+}: {
+  enableAO: boolean
+  postMode: PerfFlags['postOverride']
+  instancing: PerfFlags['instancing']
+}) {
   const cameraControlsRef = useRef<CameraControls>(null)
   const currentSelectedId = useValue(selectedId)
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null)
@@ -271,7 +309,19 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
       />
       <RackShadow />
       <ModifiedSelection>
-        <PostProcessing enableAO={enableAO} />
+        {postMode !== 'none' && (
+          <PostProcessing
+            enableAO={
+              postMode === 'outline+ao' || postMode === 'ao'
+                ? true
+                : postMode === 'outline'
+                  ? false
+                  : enableAO
+            }
+            enableOutline={postMode !== 'ao'}
+          />
+        )}
+        {postMode === 'none' && perfFlags.enabled && <ManualRenderer />}
         <group
           onPointerDown={(e) => {
             pointerDownPos.current = { x: e.clientX, y: e.clientY }
@@ -371,6 +421,26 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
 
             // Instanced rendering — one InstancedGLBModel per model
             if (node.instances) {
+              if (instancing === 'cloned') {
+                // Ablation: render each instance as its own SelectableGLBModel
+                // (cloned geometry + material per instance). Direct comparison
+                // against the InstancedMesh2 path.
+                return (
+                  <group key={node.id}>
+                    {instancesById[node.id].map((inst, instIdx) => (
+                      <group key={instIdx} position={inst.position}>
+                        {models.map((model, i) => (
+                          <SelectableGLBModel
+                            key={`${node.id}-${instIdx}-${i}`}
+                            id={inst.id}
+                            path={model.path}
+                          />
+                        ))}
+                      </group>
+                    ))}
+                  </group>
+                )
+              }
               return (
                 <group key={node.id}>
                   {models.map((model, i) => (
@@ -420,6 +490,12 @@ function SceneContent({ enableAO }: { enableAO: boolean }) {
       <ShowcaseRotation cameraControlsRef={cameraControlsRef} />
       <CameraOffset />
       <DebugStats />
+      {perfFlags.enabled && (
+        <>
+          <FirstRenderMarker />
+          <PerfHarness cameraControlsRef={cameraControlsRef} flags={perfFlags} />
+        </>
+      )}
     </>
   )
 }
@@ -433,7 +509,7 @@ const getGPUConfig = (tier: TierResult | null): GPUConfig => {
   // tier.tier: 0 (low) to 3 (high)
   const tierLevel = tier?.tier ?? 1
   return {
-    dpr: tierLevel >= 2 ? [1, 2] : 1,
+    dpr: tierLevel >= 3 ? [1, 2] : tierLevel >= 2 ? [1, 1.75] : 1,
     enableAO: tierLevel >= 2,
   }
 }
@@ -448,7 +524,9 @@ export const Scene = () => {
 
   useEffect(() => {
     let cancelled = false
+    markInit('gpuTierStartMs', performance.now())
     getGPUTier().then((tier) => {
+      markInit('gpuTierEndMs', performance.now())
       if (!cancelled) setDetectedConfig(getGPUConfig(tier))
     })
     return () => {
@@ -456,12 +534,30 @@ export const Scene = () => {
     }
   }, [])
 
-  const gpuConfig: GPUConfig = isLowQuality ? { dpr: 1, enableAO: false } : detectedConfig
+  const baseGpuConfig: GPUConfig = isLowQuality ? { dpr: 1, enableAO: false } : detectedConfig
+  const gpuConfig: GPUConfig = {
+    dpr: perfFlags.dprOverride ?? baseGpuConfig.dpr,
+    enableAO:
+      perfFlags.postOverride === 'outline+ao' || perfFlags.postOverride === 'ao'
+        ? true
+        : perfFlags.postOverride === 'outline' || perfFlags.postOverride === 'none'
+          ? false
+          : baseGpuConfig.enableAO,
+  }
 
   const initialWaypoint = resolveWaypoint('oxide-rack')
   const currentNavigationMode = useValue(navigationMode)
   const isGuidedMode = currentNavigationMode === 'guided'
   const isShowcase = useValue(showcaseMode)
+
+  // Perf mode forces continuous rendering and pins canvas size for deterministic runs.
+  const canvasStyle =
+    perfFlags.enabled && perfFlags.canvasSize !== 'full'
+      ? {
+          width: `${perfFlags.canvasSize}px`,
+          height: `${perfFlags.canvasSize}px`,
+        }
+      : undefined
 
   return (
     <>
@@ -473,6 +569,7 @@ export const Scene = () => {
           far: 100,
         }}
         className="absolute inset-0 z-0"
+        style={canvasStyle}
         gl={{
           outputColorSpace: 'srgb',
           toneMapping: 0,
@@ -480,7 +577,7 @@ export const Scene = () => {
         }}
         dpr={gpuConfig.dpr}
         linear
-        frameloop={isShowcase ? 'always' : 'demand'}
+        frameloop={isShowcase || perfFlags.enabled ? 'always' : 'demand'}
         onPointerMissed={() => {
           if (isGuidedMode) return
           const now = performance.now()
@@ -495,9 +592,16 @@ export const Scene = () => {
           }
           lastMissTime.current = now
         }}
-        onCreated={() => sceneReady.set(true)}
+        onCreated={() => {
+          markInit('canvasCreatedMs', performance.now())
+          sceneReady.set(true)
+        }}
       >
-        <SceneContent enableAO={gpuConfig.enableAO} />
+        <SceneContent
+          enableAO={gpuConfig.enableAO}
+          postMode={perfFlags.postOverride}
+          instancing={perfFlags.instancing}
+        />
       </Canvas>
       <DebugOverlay />
     </>
