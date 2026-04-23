@@ -38,7 +38,7 @@ export function TourStartScreen() {
 
       <p className="text-sans-md text-tertiary pr-6">{tour.description}</p>
 
-      <Button onClick={handleStart} className="mt-6 w-full">
+      <Button onClick={handleStart} className="mt-6 w-full" size="sm">
         <div className="flex w-full items-center justify-center gap-2">
           {isVideo ? <Video16Icon /> : <Compass16Icon />}
           {isVideo ? 'Play video tour' : 'Start tour'}
