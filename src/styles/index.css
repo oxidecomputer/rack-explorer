@@ -50,3 +50,29 @@ a:not([class*='rounded']) {
     inset: calc(--value(integer) * -1px);
   }
 }
+
+/* Suppress hover styles on mobile-sized viewports so tap-then-stick "sticky
+   hover" never shows. Mirrors Tailwind's defaults but adds min-width: 1000px. */
+@custom-variant hover {
+  @media (hover: hover) and (min-width: 1000px) {
+    &:hover {
+      @slot;
+    }
+  }
+}
+
+@custom-variant group-hover {
+  @media (hover: hover) and (min-width: 1000px) {
+    &:is(:where(.group):hover *) {
+      @slot;
+    }
+  }
+}
+
+@custom-variant peer-hover {
+  @media (hover: hover) and (min-width: 1000px) {
+    &:is(:where(.peer):hover ~ *) {
+      @slot;
+    }
+  }
+}

@@ -3,7 +3,7 @@ import { Button } from '@oxide/design-system/ui'
 import { useValue } from '@tldraw/state-react'
 import { motion } from 'motion/react'
 
-import { activeTour, tourStartScreen, videoTourPlaying } from '../atoms'
+import { activeTour, mobileOutlineOpen, tourStartScreen, videoTourPlaying } from '../atoms'
 import { Video16Icon } from './Icons'
 
 export function TourStartScreen() {
@@ -23,7 +23,7 @@ export function TourStartScreen() {
 
   return (
     <motion.div
-      className="bg-default pointer-events-auto absolute top-1/2 left-1/2 w-full max-w-110 -translate-1/2 rounded-lg p-6"
+      className="bg-default pointer-events-auto absolute top-1/2 left-1/2 w-full max-w-120 -translate-1/2 rounded-lg p-6 px-8"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 8 }}
@@ -42,6 +42,17 @@ export function TourStartScreen() {
         <div className="flex w-full items-center justify-center gap-2">
           {isVideo ? <Video16Icon /> : <Compass16Icon />}
           {isVideo ? 'Play video tour' : 'Start tour'}
+        </div>
+      </Button>
+
+      <Button
+        onClick={() => mobileOutlineOpen.set(true)}
+        className="1000:hidden mt-2 w-full"
+        variant="secondary"
+        size="sm"
+      >
+        <div className="flex w-full items-center justify-center gap-2">
+          View other tours
         </div>
       </Button>
     </motion.div>

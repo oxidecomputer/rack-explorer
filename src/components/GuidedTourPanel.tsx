@@ -25,29 +25,34 @@ export function GuidedTourPanel() {
   const isLast = stepIndex === totalSteps - 1
 
   return (
-    <div className="flex h-full grow flex-col gap-4">
-      <div className="text-mono-xs text-quaternary uppercase">{tour.title}</div>
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={stepIndex}
-          className="flex h-full flex-col gap-1.5 select-text"
-          initial={{ opacity: 0, y: -4 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 4 }}
-          transition={{ duration: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
-        >
-          <div className="text-sans-md text-default">{standardStep.title}</div>
-          <p className="text-sans-sm text-secondary pr-4">{standardStep.description}</p>
-        </motion.div>
-      </AnimatePresence>
+    <div className="flex h-full grow flex-col">
+      <div className="max-1000:overflow-y-auto max-1000:pt-4 h-full grow pb-2">
+        <div className="max-1000:hidden text-mono-xs text-quaternary max-1000:pt-3 pb-2 uppercase">
+          {tour.title}
+        </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={stepIndex}
+            className="flex flex-col gap-1.5 select-text"
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
+            <div className="text-sans-md text-default">{standardStep.title}</div>
+            <p className="text-sans-sm text-secondary pr-4">{standardStep.description}</p>
+          </motion.div>
+        </AnimatePresence>
+      </div>
 
-      <div className="text-secondary pt-2">
+      <div className="text-secondary">
         <div className="border-default -mx-3 mb-3 h-px w-[calc(100%+24px)] border-t" />
         <div className="flex items-center justify-between">
           <div className="text-mono-xs text-raise">
             {stepIndex + 1} <span className="text-quaternary">/ {totalSteps}</span>
           </div>
-          <div className="-m-1 flex gap-1">
+          <div className="1000:hidden text-mono-xs text-quaternary">{tour.title}</div>
+          <div className="max-1000:hidden -m-1 flex gap-1">
             <button
               onClick={() => goToTourStep(stepIndex - 1)}
               disabled={isFirst}

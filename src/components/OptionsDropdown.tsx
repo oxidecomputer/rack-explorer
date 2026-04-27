@@ -39,7 +39,7 @@ export function OptionsDropdown() {
   const isDebugMode = useValue(debugMode)
 
   return (
-    <div className="relative z-40 flex flex-1 justify-end">
+    <div className="max-1000:hidden relative z-40">
       <button
         onClick={() => setOpen(!open)}
         className="text-mono-xs text-secondary bg-default hover:bg-hover border-neutral-0 flex h-8 w-64 items-center gap-1.5 rounded border p-2"

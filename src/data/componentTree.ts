@@ -1,8 +1,16 @@
 type Vec3 = [number, number, number]
 
 export type ComponentWaypoint = {
-  position: Vec3
+  /** Camera direction from target. Magnitude is ignored — distance is computed
+   *  from the component's bounding box at render time. */
+  direction: Vec3
   target: Vec3
+  /** Focus volume size (width/height/depth) used to drive the fit distance
+   *  when the component has no model. Falls back to the model bbox if omitted. */
+  scale?: Vec3
+  /** Override how much of the frame the component fills, in whichever
+   *  dimension is binding (0–1). Defaults to ~0.67 when omitted. */
+  fitFraction?: number
 }
 
 export type ModelConfig = {
@@ -70,7 +78,12 @@ const selectionOffset: [number, number, number] = [0, 0, 0.1]
 export const componentTree: ComponentNode = {
   id: 'oxide-rack',
   label: 'Oxide Rack',
-  waypoint: { position: [5, 5, 10], target: [0, 1.2, 0] },
+  waypoint: {
+    direction: [5, 3.8, 10],
+    target: [0, 1.2, 0],
+    scale: [0.64, 2.28, 1.07],
+    fitFraction: 0.85,
+  },
   model: [
     { path: './models/rack-frame/lod1/rack-body-1.glb', clickable: false },
     { path: './models/rack-frame/lod1/rack-core-1.glb', clickable: false },
@@ -91,7 +104,7 @@ export const componentTree: ComponentNode = {
     {
       id: 'compute-sled',
       label: 'Compute Sled',
-      waypoint: { position: [1, 2, 4], target: [0, 0, 0.325] },
+      waypoint: { direction: [1, 2, 3.675], target: [0, 0, 0.325], fitFraction: 0.5 },
       instances: generateSledPositions(),
       selectionOffset: selectionOffset,
       model: {
@@ -102,7 +115,7 @@ export const componentTree: ComponentNode = {
         {
           id: 'compute-inner',
           label: 'Inner',
-          waypoint: { position: [1.5, 1, 1.5], target: [0, 0, 0] },
+          waypoint: { direction: [1.5, 1, 1.5], target: [0, 0, 0] },
           model: {
             path: './models/cosmo/lod1/cosmo-int-1.glb',
             textures: { PCB_Texture: './models/cosmo/pcb.png' },
@@ -111,36 +124,56 @@ export const componentTree: ComponentNode = {
             {
               id: 'disks',
               label: 'Disks',
-              waypoint: { position: [1.25, 0.5, 1.25], target: [0, 0, 0.325] },
+              waypoint: {
+                direction: [1.25, 0.5, 0.925],
+                target: [0, 0, 0.325],
+                scale: [0.26, 0.08, 0.3],
+              },
             },
             {
               id: 'cpu',
               label: 'CPU',
-              waypoint: { position: [0.75, 1.25, 0.75], target: [0, 0, 0] },
+              waypoint: {
+                direction: [0.75, 1.25, 0.75],
+                target: [0, 0, 0],
+                fitFraction: 0.4,
+              },
               model: { path: './models/cosmo/lod1/cosmo-heatsink-1.glb' },
             },
             {
               id: 'ram',
               label: 'RAM',
-              waypoint: { position: [0.6, 1.5, 0.6], target: [0, 0, 0] },
+              waypoint: {
+                direction: [0.6, 1.5, 0.6],
+                target: [0, 0, 0],
+                fitFraction: 0.5,
+              },
               model: { path: './models/cosmo/lod1/cosmo-memory-1.glb' },
             },
             {
               id: 'connectors',
               label: 'Connectors',
-              waypoint: { position: [1, 0.75, -1], target: [0, 0, -0.35] },
+              waypoint: {
+                direction: [1, 0.75, -0.65],
+                target: [0, 0, -0.35],
+                scale: [0.26, 0.08, 0.06],
+              },
             },
             {
               id: 'fans',
               label: 'Fans',
-              waypoint: { position: [1.25, 1, -1.25], target: [0, 0.05, -0.25] },
+              waypoint: { direction: [1.25, 0.95, -1], target: [0, 0.05, -0.25] },
               model: { path: './models/cosmo/lod1/cosmo-fans-1.glb' },
             },
             {
               id: 'airflow-shroud',
               label: 'Airflow Shroud',
               hiddenWhenSelected: ['cpu', 'ram'],
-              waypoint: { position: [1.25, 1.5, 1.25], target: [0, 0, 0] },
+              waypoint: {
+                direction: [1.25, 1.5, 1.25],
+                target: [0, 0, 0],
+                fitFraction: 0.5,
+              },
               model: { path: './models/cosmo/lod1/cosmo-shroud-1.glb', clickable: false },
             },
           ],
@@ -150,7 +183,7 @@ export const componentTree: ComponentNode = {
     {
       id: 'network-switch',
       label: 'Network Switch',
-      waypoint: { position: [2, 1.5, 4], target: [0, 0, 0.5] },
+      waypoint: { direction: [2, 1.5, 3.5], target: [0, 0, 0.5], fitFraction: 0.75 },
       instances: [
         [0, 0.99, 0.015],
         [0, 1.26, 0.015],
@@ -169,7 +202,7 @@ export const componentTree: ComponentNode = {
         {
           id: 'switch-inner',
           label: 'Inner',
-          waypoint: { position: [2, 1.5, 3], target: [0, 0, 0.325] },
+          waypoint: { direction: [2, 1.5, 2.675], target: [0, 0, 0.325] },
           model: { path: './models/sidecar/lod1/sidecar-int-1.glb', clickable: false },
         },
       ],
@@ -177,7 +210,7 @@ export const componentTree: ComponentNode = {
     {
       id: 'power-shelf',
       label: 'Power Shelf',
-      waypoint: { position: [1, 1.5, 4], target: [0, 0, 0.325] },
+      waypoint: { direction: [1, 1.5, 3.675], target: [0, 0, 0.325] },
       instances: [
         [0, 1.115, 0.095],
         [0, 1.1623, 0.095],
@@ -188,7 +221,7 @@ export const componentTree: ComponentNode = {
     {
       id: 'patch-panel',
       label: 'Patch Panel',
-      waypoint: { position: [1, 2.15, 4], target: [0, 2.2, 0.325] },
+      waypoint: { direction: [1, -0.05, 3.675], target: [0, 2.2, 0.325] },
       model: {
         path: './models/patch-panel/patch-panel-1.glb',
         position: [0, 2.2, 0.15],
@@ -277,7 +310,7 @@ export function getInstanceContext(selectedId: string): {
 }
 
 /** Resolve the absolute camera waypoint for a selectedId (e.g. 'cpu' or 'compute-sled:5').
- *  For children of instanced parents, offsets are added to the instance position. */
+ *  For children of instanced parents, the target is offset by the instance position. */
 export function resolveWaypoint(selectedId: string): ComponentWaypoint | null {
   const [baseId, indexStr] = selectedId.split(':')
   const node = flatMap.get(baseId)
@@ -285,28 +318,32 @@ export function resolveWaypoint(selectedId: string): ComponentWaypoint | null {
 
   const waypoint = node.node.waypoint
 
-  // If this node itself has instances, use the instance position as the target
+  // If this node itself has instances, target the instance position. Tilt the
+  // direction so the camera doesn't track 1:1 with the instance height — this
+  // keeps top-of-rack and bottom-of-rack instances framed at a similar pitch.
   if (node.node.instances) {
     const idx = indexStr != null ? Number(indexStr) : 0
     const instancePos = node.node.instances[idx]
     if (!instancePos) return null
-    const biasedPos: Vec3 = [instancePos[0], instancePos[1] * 0.25, instancePos[2]]
     return {
-      position: addVec3(waypoint.position, biasedPos),
-      target: addVec3(instancePos, node.node.waypoint.target),
+      direction: addVec3(waypoint.direction, [0, -0.75 * instancePos[1], 0]),
+      target: addVec3(waypoint.target, instancePos),
+      scale: waypoint.scale,
+      fitFraction: waypoint.fitFraction,
     }
   }
 
-  // Otherwise, check if an ancestor is instanced — make waypoint relative to instance position
+  // Child of an instanced ancestor — shift target only; direction is unchanged.
   const ctx = getInstanceContext(selectedId)
   if (ctx) {
     return {
-      position: addVec3(waypoint.position, ctx.instancePosition),
+      direction: waypoint.direction,
       target: addVec3(waypoint.target, ctx.instancePosition),
+      scale: waypoint.scale,
+      fitFraction: waypoint.fitFraction,
     }
   }
 
-  // No instancing — return as-is
   return waypoint
 }
 
@@ -364,12 +401,14 @@ export function inheritInstanceIndex(
   const targetAncestor = findInstancedAncestorId(targetBaseId)
   if (!targetAncestor) return targetBaseId
 
-  // Check if current selection shares the same instanced ancestor
+  // Inherit the index only when both selections share the same instanced
+  // ancestor; otherwise default to the first instance so the resulting id
+  // still matches the rendered (cloned) selection scene's userData.id.
   const currentBase = currentSelectedId.split(':')[0]
   const currentAncestor = findInstancedAncestorId(currentBase)
   if (currentAncestor === targetAncestor) {
     return `${targetBaseId}:${indexStr}`
   }
 
-  return targetBaseId
+  return `${targetBaseId}:0`
 }

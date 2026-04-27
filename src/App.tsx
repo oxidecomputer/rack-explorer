@@ -8,7 +8,7 @@ import {
 import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
 import { AnimatePresence, motion } from 'motion/react'
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 
 import {
   activeTour,
@@ -19,6 +19,7 @@ import {
   goToTourStep,
   isVideoTour,
   landingOpen,
+  mobileOutlineOpen,
   navigationMode,
   sceneReady,
   seekVideo,
@@ -32,9 +33,16 @@ import { GuidedTourOutline } from './components/GuidedTourOutline'
 import { GuidedTourPanel } from './components/GuidedTourPanel'
 import { SidebarIcon } from './components/Icons'
 import { LandingModal } from './components/LandingModal'
+import { MobileOutlineOverlay } from './components/MobileOutlineOverlay'
+import { MobileSpecsDrawer } from './components/MobileSpecsDrawer'
 import { OptionsDropdown } from './components/OptionsDropdown'
 import { Outline } from './components/Outline'
-import { Bar, CTASkeleton, OutlineSkeleton, SpecificationsSkeleton } from './components/Skeletons'
+import {
+  Bar,
+  CTASkeleton,
+  OutlineSkeleton,
+  SpecificationsSkeleton,
+} from './components/Skeletons'
 import { Specifications } from './components/Specifications'
 import { StepPips } from './components/StepPips'
 import { TourStartScreen } from './components/TourStartScreen'
@@ -105,6 +113,22 @@ function App() {
 
   useKeyboardNavigation()
 
+  // Mobile only has guided tours. On mount and on any resize that drops
+  // below the breakpoint, push users out of free explore into the first tour.
+  useEffect(() => {
+    const mm = window.matchMedia('(min-width: 1000px)')
+    const apply = () => {
+      if (mm.matches) return
+      const inFree = navigationMode.get() === 'free'
+      if (!landingOpen.get() && !inFree) return
+      startTour(getFirstStandardTour().id)
+      landingOpen.set(false)
+    }
+    apply()
+    mm.addEventListener('change', apply)
+    return () => mm.removeEventListener('change', apply)
+  }, [])
+
   const breadcrumbPath = findPath(currentSelectedId)
 
   const breadcrumbsEnabled = !isGuided
@@ -120,7 +144,7 @@ function App() {
         <Scene />
       </motion.div>
 
-      <div className="pointer-events-none absolute inset-0 flex h-screen flex-col">
+      <div className="pointer-events-none absolute inset-0 flex h-[100dvh] flex-col">
         {/* Blur overlay — behind sidebars */}
         <AnimatePresence>
           {isLandingOpen && (
@@ -139,7 +163,7 @@ function App() {
             <div className="text-raise text-mono-xs opacity-40">Oxide Computer Co.</div>
             <div className="text-sans-sm text-default">3D Rack Explorer</div>
           </div>
-          <div className="text-secondary flex flex-1 items-center justify-center gap-2 select-none">
+          <div className="text-secondary max-1000:hidden flex flex-1 items-center justify-center gap-2 select-none">
             <button
               disabled={!breadcrumbsEnabled}
               onClick={() => {
@@ -176,11 +200,22 @@ function App() {
                 </>
               )}
           </div>
-          <OptionsDropdown />
+          <div className="1000:flex-1 flex items-center justify-end">
+            <OptionsDropdown />
+            {!isLandingOpen && (
+              <button
+                onClick={() => mobileOutlineOpen.set(true)}
+                className="1000:hidden hover:bg-hover target-8 border-default rounded border p-1.5"
+                aria-label="Open outline"
+              >
+                <SidebarIcon className="text-tertiary h-4 w-4" />
+              </button>
+            )}
+          </div>
         </header>
 
         <div className="relative z-10 flex min-h-0 grow p-4">
-          <nav className="pointer-events-auto flex h-full flex-col gap-2">
+          <nav className="max-1000:hidden pointer-events-auto flex h-full flex-col gap-2">
             <Card
               title={
                 isLandingOpen ? (
@@ -229,7 +264,7 @@ function App() {
             {/* Standard tour: pips + prev/next arrows */}
             {isStandardTour && currentTour && !isLandingOpen && !isStartScreen && (
               <>
-                <div className="pointer-events-auto absolute bottom-4 left-1/2 z-20 -translate-x-1/2">
+                <div className="max-1000:hidden max-1000:bottom-[216px] pointer-events-auto absolute bottom-4 left-1/2 z-20 -translate-x-1/2">
                   <StepPips />
                 </div>
 
@@ -251,7 +286,7 @@ function App() {
                 ].map(({ Icon, pos, step, disabled }) => (
                   <button
                     key={pos}
-                    className={`target-16 pointer-events-auto absolute top-1/2 ${pos} z-30 -translate-y-1/2 rounded-md text-center hover:bg-neutral-800/30 hover:backdrop-blur-sm disabled:pointer-events-none disabled:opacity-30`}
+                    className={`target-16 max-1000:top-[calc(50%-100px)] pointer-events-auto absolute top-1/2 ${pos} z-30 -translate-y-1/2 rounded-md text-center hover:bg-neutral-800/30 hover:backdrop-blur-sm disabled:pointer-events-none disabled:opacity-30`}
                     disabled={disabled}
                     onClick={() => {
                       goToTourStep(step)
@@ -277,7 +312,7 @@ function App() {
                     <VideoTourPlayer />
                   </AnimatePresence>
                 </div>
-                <div className="pointer-events-auto absolute right-0 bottom-0 left-0 z-20 pl-4">
+                <div className="1000:pl-4 pointer-events-auto absolute right-0 bottom-0 left-0 z-20">
                   <div className="bg-default/80 rounded-lg px-4 py-3 backdrop-blur-md">
                     <VideoTourTimeline
                       onSeek={seekVideo}
@@ -298,7 +333,7 @@ function App() {
             }}
             transition={{ type: 'spring', duration: 0.325, bounce: 0 }}
             className={clsx(
-              'flex flex-col gap-2 overflow-hidden',
+              'max-1000:hidden flex flex-col gap-2 overflow-hidden',
               specsOpen && 'pointer-events-auto',
             )}
           >
@@ -324,6 +359,7 @@ function App() {
             </Card>
             <a
               href="https://oxide.computer/contact"
+              target="_blank"
               className="hover:bg-hover/80 block w-64 rounded-md border border-neutral-900/10 bg-transparent p-2.5 backdrop-blur-md transition-colors"
             >
               {isLandingOpen ? (
@@ -350,13 +386,16 @@ function App() {
             transition={{ type: 'spring', duration: 0.5, bounce: 0 }}
             onClick={toggleSpecifications}
             className={clsx(
-              'hover:bg-hover target-8 pointer-events-auto absolute top-17 z-10 rounded border p-0.5 transition-colors',
+              'hover:bg-hover target-8 max-1000:hidden pointer-events-auto absolute top-17 z-10 rounded border p-0.5 transition-colors',
               specsOpen ? 'border-transparent' : 'border-default',
             )}
           >
             <SidebarIcon className="text-tertiary h-4 w-4" />
           </motion.button>
         )}
+
+        {!isLandingOpen && <MobileSpecsDrawer />}
+        <MobileOutlineOverlay />
 
         <AnimatePresence>
           {isLandingOpen && (

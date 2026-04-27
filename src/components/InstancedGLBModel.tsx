@@ -1,5 +1,5 @@
-import { InstancedMesh2 } from '@three.ez/instanced-mesh'
 import { extend, useLoader, useThree, type Vector3 } from '@react-three/fiber'
+import { InstancedMesh2 } from '@three.ez/instanced-mesh'
 import { computed } from '@tldraw/state'
 import { useValue } from '@tldraw/state-react'
 import { memo, useEffect, useMemo, useRef } from 'react'
@@ -103,51 +103,16 @@ export const InstancedGLBModel = memo(function InstancedGLBModel({
 
   const selectedScene = useMemo(() => {
     if (!selectedInstance) {
-      // Dispose previous clone when deselecting
-      if (selectedSceneRef.current) {
-        selectedSceneRef.current.traverse((child) => {
-          if (child instanceof THREE.Mesh) {
-            child.geometry?.dispose()
-            const materials = Array.isArray(child.material) ? child.material : [child.material]
-            materials.forEach((mat) => mat?.dispose())
-          }
-        })
-        selectedSceneRef.current = null
-        selectedSceneSourceRef.current = null
-      }
+      selectedSceneRef.current = null
+      selectedSceneSourceRef.current = null
       return null
     }
-    // Re-clone only when the gltf source changes
     if (selectedSceneSourceRef.current !== gltf.scene) {
-      if (selectedSceneRef.current) {
-        selectedSceneRef.current.traverse((child) => {
-          if (child instanceof THREE.Mesh) {
-            child.geometry?.dispose()
-            const materials = Array.isArray(child.material) ? child.material : [child.material]
-            materials.forEach((mat) => mat?.dispose())
-          }
-        })
-      }
       selectedSceneRef.current = gltf.scene.clone(true)
       selectedSceneSourceRef.current = gltf.scene
     }
     return selectedSceneRef.current
   }, [gltf.scene, selectedInstance])
-
-  // Dispose on unmount
-  useEffect(() => {
-    return () => {
-      if (selectedSceneRef.current) {
-        selectedSceneRef.current.traverse((child) => {
-          if (child instanceof THREE.Mesh) {
-            child.geometry?.dispose()
-            const materials = Array.isArray(child.material) ? child.material : [child.material]
-            materials.forEach((mat) => mat?.dispose())
-          }
-        })
-      }
-    }
-  }, [])
 
   // Create InstancedMesh2 instances imperatively since we need to compose matrices.
   // Each batch holds sledCount × subCount instances, laid out as [sled0_sub0, sled0_sub1, ..., sled1_sub0, ...].
@@ -162,6 +127,7 @@ export const InstancedGLBModel = memo(function InstancedGLBModel({
         createEntities: true,
         renderer: gl,
       })
+      im.perObjectFrustumCulled = false
       im.addInstances(totalCapacity, (entity, flatIdx) => {
         const sledIdx = Math.floor(flatIdx / subCount)
         const subIdx = flatIdx % subCount
@@ -174,7 +140,6 @@ export const InstancedGLBModel = memo(function InstancedGLBModel({
         entity.quaternion.copy(_quat)
         entity.scale.copy(_scale)
       })
-      im.computeBVH()
       return im
     })
   }, [meshes, instances, gl])
@@ -195,13 +160,36 @@ export const InstancedGLBModel = memo(function InstancedGLBModel({
     }
   }, [instancedMeshes, meshes, instances, selectedIndex, hideSelected])
 
-  // Dispose InstancedMesh2 instances and cloned geometries on unmount
+  // Dispose InstancedMesh2 instances and their cloned geometries. We can't
+  // dispose synchronously in the cleanup because React StrictMode's synthetic
+  // effect cycle (cleanup → setup) would dispose IMs that are still mounted
+  // in the scene for the upcoming setup, causing GL "deleted buffer" errors.
+  // Defer dispose via microtask; the next setup cancels it if it's reusing
+  // the same IMs (StrictMode case). Different IMs (real prop change) → dispose.
+  const pendingDisposeRef = useRef<{
+    ims: InstancedMesh2[]
+    cancelled: boolean
+  } | null>(null)
+
   useEffect(() => {
+    if (
+      pendingDisposeRef.current &&
+      pendingDisposeRef.current.ims === instancedMeshes
+    ) {
+      pendingDisposeRef.current.cancelled = true
+      pendingDisposeRef.current = null
+    }
     return () => {
-      for (const im of instancedMeshes) {
-        im.geometry.dispose()
-        im.dispose()
-      }
+      const handle = { ims: instancedMeshes, cancelled: false }
+      pendingDisposeRef.current = handle
+      queueMicrotask(() => {
+        if (handle.cancelled) return
+        pendingDisposeRef.current = null
+        for (const im of handle.ims) {
+          im.geometry.dispose()
+          im.dispose()
+        }
+      })
     }
   }, [instancedMeshes])
 

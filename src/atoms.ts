@@ -12,6 +12,9 @@ export const specificationsOpen = atom('specificationsOpen', true)
 export const landingOpen = atom('landingOpen', true)
 export const sceneReady = atom('sceneReady', false)
 
+// Mobile-only UI state
+export const mobileOutlineOpen = atom('mobileOutlineOpen', false)
+
 // Options
 export const lowQuality = atom('lowQuality', false)
 export const showcaseMode = atom('showcaseMode', false)
