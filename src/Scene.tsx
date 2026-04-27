@@ -706,16 +706,16 @@ const getGPUConfig = (tier: TierResult | null): GPUConfig => {
 }
 
 // Safari masks WEBGL_debug_renderer_info, so @pmndrs/detect-gpu can't identify
-// the GPU model and falls back to tier 1. On Apple devices the GPU is actually
-// capable (Apple Silicon, A-series), so bump the tier to match what Chrome
-// reports on the same hardware. Adaptive DPR will scale back down if needed.
-const isSafariOnApple = () => {
+// the GPU model and falls back to tier 1. On macOS the GPU is reliably capable
+// (Apple Silicon or recent Intel + dGPU), so bump the tier to match what Chrome
+// reports on the same hardware. iOS/iPadOS are left alone — adaptive DPR can't
+// rescue an underpowered A-chip from being pushed past its budget.
+const isSafariOnMac = () => {
   if (typeof navigator === 'undefined') return false
   const ua = navigator.userAgent
   const isSafari =
     /Safari/.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS|EdgA|Edge|OPR/.test(ua)
-  if (!isSafari) return false
-  return /Macintosh|iPhone|iPad|iPod/.test(ua)
+  return isSafari && /Macintosh/.test(ua)
 }
 
 export const Scene = () => {
@@ -733,7 +733,7 @@ export const Scene = () => {
       markInit('gpuTierEndMs', performance.now())
       if (cancelled) return
       const effectiveTier =
-        isSafariOnApple() && (tier?.tier ?? 0) < 3
+        isSafariOnMac() && (tier?.tier ?? 0) < 3
           ? ({ ...tier, tier: 3 } as TierResult)
           : tier
       setDetectedConfig(getGPUConfig(effectiveTier))
