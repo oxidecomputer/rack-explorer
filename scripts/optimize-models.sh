@@ -1,7 +1,12 @@
 #!/bin/bash
-# Optimizes all GLB models in models/ and exports to public/models/.
+# Optimizes GLB models in models/ and exports to public/models/.
 # Non-GLB assets (textures, etc.) are copied as-is.
 # Requires: npx @gltf-transform/cli
+#
+# Usage:
+#   ./optimize-models.sh                       # process all models (full rebuild)
+#   ./optimize-models.sh path/to/model.glb     # process a single model
+#   ./optimize-models.sh sleds/compute.glb     # path may be relative to models/
 #
 # Pipeline per GLB:
 #   1. dedup    — merge duplicate accessors, materials, meshes
@@ -20,16 +25,14 @@ SRC=models
 OUT=public/models
 TMP=/tmp/glb-optimize
 
-# Clean output directory
-rm -rf "$OUT"
-
-# Optimize all GLB files
-find "$SRC" -name '*.glb' | sort | while read -r glb; do
-  rel="${glb#$SRC/}"
-  out="$OUT/$rel"
+optimize_one() {
+  local glb="$1"
+  local rel="${glb#$SRC/}"
+  local out="$OUT/$rel"
   mkdir -p "$(dirname "$out")"
 
   echo "=== Processing $rel ==="
+  local before_size
   before_size=$(ls -lh "$glb" | awk '{print $5}')
 
   npx @gltf-transform/cli dedup    "$glb"          "${TMP}-1.glb" 2>&1
@@ -41,9 +44,38 @@ find "$SRC" -name '*.glb' | sort | while read -r glb; do
   npx @gltf-transform/cli quantize "${TMP}-6.glb"  "${TMP}-7.glb" 2>&1
   npx @gltf-transform/cli draco    "${TMP}-7.glb"  "$out" 2>&1
 
+  local after_size
   after_size=$(ls -lh "$out" | awk '{print $5}')
   echo "  Size: $before_size → $after_size"
   echo ""
+}
+
+# Single-file mode: accept either "models/foo.glb" or "foo.glb"
+if [ $# -gt 0 ]; then
+  target="$1"
+  if [ ! -f "$target" ] && [ -f "$SRC/$target" ]; then
+    target="$SRC/$target"
+  fi
+  if [ ! -f "$target" ]; then
+    echo "Error: file not found: $1" >&2
+    exit 1
+  fi
+  case "$target" in
+    "$SRC"/*) ;;
+    *) echo "Error: target must be inside $SRC/ (got: $target)" >&2; exit 1 ;;
+  esac
+
+  optimize_one "$target"
+  rm -f ${TMP}-*.glb
+  echo "Done!"
+  exit 0
+fi
+
+# Full rebuild
+rm -rf "$OUT"
+
+find "$SRC" -name '*.glb' | sort | while read -r glb; do
+  optimize_one "$glb"
 done
 
 rm -f ${TMP}-*.glb
