@@ -228,14 +228,17 @@ function findSelectedBox(scene: THREE.Scene, sel: string): THREE.Box3 | null {
 /** Project the bbox onto the plane through `target` perpendicular to the
  *  given direction, then compute the camera distance such that the binding
  *  dimension (width or height — whichever is larger relative to the window)
- *  fills `fitFraction` of the frame. The returned position lies along the
- *  direction ray, anchored at the target. */
+ *  fills `fitFraction` of the frame. `verticalFitScale` < 1 reserves the
+ *  bottom of the canvas (e.g. mobile specs drawer) by tightening only the
+ *  height-bound calc — width-bound components still get full canvas width.
+ *  The returned position lies along the direction ray, anchored at target. */
 function computeFitPosition(
   box: THREE.Box3,
   waypointDir: [number, number, number],
   waypointTarget: [number, number, number],
   windowAspect: number,
   fitFraction: number | undefined,
+  verticalFitScale: number = 1,
 ): [number, number, number] {
   _camTarget.fromArray(waypointTarget)
   // Camera direction points from target toward camera; forward is the inverse.
@@ -261,7 +264,8 @@ function computeFitPosition(
   const tanHalfFov = Math.tan((FIXED_FOV * Math.PI) / 360)
   const f = fitFraction != null && fitFraction > 0 ? fitFraction : DEFAULT_FIT_FRACTION
   // Distance such that the projected dimension is `f` × window dimension.
-  const dH = maxY / (f * tanHalfFov)
+  // verticalFitScale only tightens height — the canvas is still full-width.
+  const dH = maxY / (f * verticalFitScale * tanHalfFov)
   const dW = maxX / (f * tanHalfFov * windowAspect)
   const dist = Math.max(dH, dW)
 
@@ -308,20 +312,20 @@ function CameraFitter({
     if (!box) return // model still loading and no scale fallback — retry next frame
 
     const aspect = size.width / size.height
-    // Mobile: bottom of viewport is covered by the specs drawer. Shrink the
-    // fit fraction so the model fills the same proportion of the *visible*
-    // area instead of the full canvas. CameraOffset re-centers vertically.
-    const visibleHeight = panelVisible
-      ? size.height - MOBILE_SPECS_PANEL_HEIGHT
-      : size.height
-    const baseFit = waypoint.fitFraction ?? DEFAULT_FIT_FRACTION
-    const adjustedFit = baseFit * (visibleHeight / size.height)
+    // Mobile: bottom of viewport is covered by the specs drawer. Tighten only
+    // the height-bound fit so the model fills the same proportion of the
+    // *visible* height — width is unaffected since the drawer doesn't shrink
+    // the canvas horizontally. CameraOffset re-centers vertically.
+    const verticalFitScale = panelVisible
+      ? (size.height - MOBILE_SPECS_PANEL_HEIGHT) / size.height
+      : 1
     const position = computeFitPosition(
       box,
       waypoint.direction,
       waypoint.target,
       aspect,
-      adjustedFit,
+      waypoint.fitFraction,
+      verticalFitScale,
     )
 
     const animate = !isFirstFitRef.current
