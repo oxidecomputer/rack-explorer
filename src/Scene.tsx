@@ -276,17 +276,21 @@ function CameraFitter({
 }) {
   const sel = useValue(selectedId)
   const navMode = useValue(navigationMode)
+  const isVideo = useValue(isVideoTour)
+  const isStartScreen = useValue(tourStartScreen)
   const isFirstFitRef = useRef(true)
   const lastFitKeyRef = useRef('')
   const invalidate = useThree((s) => s.invalidate)
 
   useEffect(() => {
     invalidate()
-  }, [sel, navMode, invalidate])
+  }, [sel, navMode, isVideo, isStartScreen, invalidate])
 
   useFrame(({ scene, size }) => {
     if (!controlsRef.current) return
-    const fitKey = `${sel}|${navMode}|${size.width}|${size.height}`
+    const isMobile = size.width < 1000
+    const panelVisible = isMobile && !isVideo && !(navMode === 'guided' && isStartScreen)
+    const fitKey = `${sel}|${navMode}|${size.width}|${size.height}|${panelVisible}`
     if (fitKey === lastFitKeyRef.current) return
 
     const waypoint = resolveWaypoint(sel)
@@ -304,12 +308,20 @@ function CameraFitter({
     if (!box) return // model still loading and no scale fallback — retry next frame
 
     const aspect = size.width / size.height
+    // Mobile: bottom of viewport is covered by the specs drawer. Shrink the
+    // fit fraction so the model fills the same proportion of the *visible*
+    // area instead of the full canvas. CameraOffset re-centers vertically.
+    const visibleHeight = panelVisible
+      ? size.height - MOBILE_SPECS_PANEL_HEIGHT
+      : size.height
+    const baseFit = waypoint.fitFraction ?? DEFAULT_FIT_FRACTION
+    const adjustedFit = baseFit * (visibleHeight / size.height)
     const position = computeFitPosition(
       box,
       waypoint.direction,
       waypoint.target,
       aspect,
-      waypoint.fitFraction,
+      adjustedFit,
     )
 
     const animate = !isFirstFitRef.current

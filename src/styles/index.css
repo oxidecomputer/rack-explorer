@@ -15,11 +15,14 @@
 html,
 body,
 #root {
-  @apply h-full w-full;
+  @apply w-full;
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  @apply bg-secondary text-default;
+  @apply bg-secondary text-default overflow-hidden;
 }
 
 button,

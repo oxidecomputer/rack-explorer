@@ -3,6 +3,7 @@ import { useValue } from '@tldraw/state-react'
 import { AnimatePresence, motion } from 'motion/react'
 
 import { mobileOutlineOpen, navigationMode } from '../atoms'
+import { ContactSales } from './ContactSales'
 import { GuidedTourOutline } from './GuidedTourOutline'
 import { Outline } from './Outline'
 
@@ -51,6 +52,7 @@ export function MobileOutlineOverlay() {
             >
               {isGuided ? <GuidedTourOutline /> : <Outline />}
             </div>
+            {isGuided && <ContactSales className="border-secondary block border-t p-3" />}
           </motion.div>
         </motion.div>
       )}
