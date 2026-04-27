@@ -220,9 +220,11 @@ function ManualRenderer() {
 function DebugStats({
   aoQuality,
   gpuTier,
+  perfFactor,
 }: {
   aoQuality: AOQuality
   gpuTier: number | undefined
+  perfFactor: number
 }) {
   const gl = useThree((s) => s.gl)
   const scene = useThree((s) => s.scene)
@@ -259,7 +261,7 @@ function DebugStats({
       })
       const dpr = gl.getPixelRatio()
       const tierLabel = gpuTier ?? '?'
-      el.textContent = `${(triangles / 1000).toFixed(1)}k tris · ${calls} calls · ${batches} batches / ${instances} instances · dpr ${dpr.toFixed(2)} · ao ${aoQuality} · tier ${tierLabel}`
+      el.textContent = `${(triangles / 1000).toFixed(1)}k tris · ${calls} calls · ${batches} batches / ${instances} instances · dpr ${dpr.toFixed(2)} · ao ${aoQuality} · factor ${perfFactor.toFixed(2)} · tier ${tierLabel}`
     }
     gl.info.reset()
   }, -Infinity)
@@ -289,11 +291,13 @@ function SceneContent({
   postMode,
   instancing,
   gpuTier,
+  perfFactor,
 }: {
   aoQuality: AOQuality
   postMode: PerfFlags['postOverride']
   instancing: PerfFlags['instancing']
   gpuTier: number | undefined
+  perfFactor: number
 }) {
   const cameraControlsRef = useRef<CameraControls>(null)
   const currentSelectedId = useValue(selectedId)
@@ -542,7 +546,7 @@ function SceneContent({
       <ShowcaseRotation cameraControlsRef={cameraControlsRef} />
       <AspectRatioFov />
       <CameraOffset />
-      <DebugStats aoQuality={aoQuality} gpuTier={gpuTier} />
+      <DebugStats aoQuality={aoQuality} gpuTier={gpuTier} perfFactor={perfFactor} />
       {perfFlags.enabled && (
         <>
           <FirstRenderMarker />
@@ -613,6 +617,7 @@ export const Scene = () => {
   // Hysteresis prevents flicker around thresholds. Final value is gated by
   // gpuConfig.enableAO — low-tier GPUs that start with AO off stay off.
   const [adaptiveAO, setAdaptiveAO] = useState<'full' | 'low' | 'off'>('full')
+  const [perfFactor, setPerfFactor] = useState(1)
 
   const initialWaypoint = resolveWaypoint('oxide-rack')
   const currentNavigationMode = useValue(navigationMode)
@@ -672,6 +677,7 @@ export const Scene = () => {
           postMode={perfFlags.postOverride}
           instancing={perfFlags.instancing}
           gpuTier={detectedConfig.tier}
+          perfFactor={perfFactor}
         />
         <PerformanceMonitor
           ms={250}
@@ -679,23 +685,14 @@ export const Scene = () => {
           threshold={0.75}
           factor={1}
           bounds={(refreshrate) => (refreshrate > 90 ? [60, 100] : [40, 60])}
-          flipflops={3}
           onChange={({ factor }) => {
+            setPerfFactor(factor)
             // Map factor (0..1) into [1, maxDpr].
             setDpr(Math.max(1, 1 + (maxDpr - 1) * factor))
-            // 3-state AO with hysteresis: full → low → off as factor drops.
-            // Down: ≤0.8 drops to low, ≤0.5 drops to off.
-            // Up:   ≥0.7 restores to low, ≥0.9 restores to full.
-            setAdaptiveAO((prev) => {
-              if (factor <= 0.5) return 'off'
-              if (factor <= 0.8 && prev === 'full') return 'low'
-              if (factor >= 0.9) return 'full'
-              if (factor >= 0.7 && prev === 'off') return 'low'
-              return prev
-            })
-          }}
-          onFallback={({ factor }) => {
-            if (import.meta.env.DEV) console.log('[perf] fallback, factor:', factor)
+            // Hysteresis: drop AO below 0.6, restore above 0.9. The 'low'
+            // tier is kept available in PostProcessing for future use.
+            if (factor < 0.6) setAdaptiveAO('off')
+            else if (factor > 0.9) setAdaptiveAO('full')
           }}
         />
       </Canvas>
