@@ -1,7 +1,6 @@
 import {
   Compass16Icon,
   NextArrow12Icon,
-  OpenLink12Icon,
   PrevArrow12Icon,
   Show16Icon,
 } from '@oxide/design-system/icons/react'
@@ -29,6 +28,7 @@ import {
   tourStartScreen,
 } from './atoms'
 import { Card } from './components/Card'
+import { ContactSales } from './components/ContactSales'
 import { GuidedTourOutline } from './components/GuidedTourOutline'
 import { GuidedTourPanel } from './components/GuidedTourPanel'
 import { SidebarIcon } from './components/Icons'
@@ -37,12 +37,7 @@ import { MobileOutlineOverlay } from './components/MobileOutlineOverlay'
 import { MobileSpecsDrawer } from './components/MobileSpecsDrawer'
 import { OptionsDropdown } from './components/OptionsDropdown'
 import { Outline } from './components/Outline'
-import {
-  Bar,
-  CTASkeleton,
-  OutlineSkeleton,
-  SpecificationsSkeleton,
-} from './components/Skeletons'
+import { Bar, OutlineSkeleton, SpecificationsSkeleton } from './components/Skeletons'
 import { Specifications } from './components/Specifications'
 import { StepPips } from './components/StepPips'
 import { TourStartScreen } from './components/TourStartScreen'
@@ -136,7 +131,7 @@ function App() {
   return (
     <>
       <motion.div
-        className="absolute inset-0"
+        className="fixed top-0 left-0 h-[100dvh] w-full"
         initial={{ opacity: 0 }}
         animate={{ opacity: isSceneReady ? 1 : 0 }}
         transition={{ duration: 1.2, ease: 'easeOut' }}
@@ -202,7 +197,7 @@ function App() {
           </div>
           <div className="1000:flex-1 flex items-center justify-end">
             <OptionsDropdown />
-            {!isLandingOpen && (
+            {!isLandingOpen && !(isGuided && isStartScreen) && (
               <button
                 onClick={() => mobileOutlineOpen.set(true)}
                 className="1000:hidden hover:bg-hover target-8 border-default rounded border p-1.5"
@@ -357,25 +352,10 @@ function App() {
                 <Specifications />
               )}
             </Card>
-            <a
-              href="https://oxide.computer/contact"
-              target="_blank"
+            <ContactSales
+              loading={isLandingOpen}
               className="hover:bg-hover/80 block w-64 rounded-md border border-neutral-900/10 bg-transparent p-2.5 backdrop-blur-md transition-colors"
-            >
-              {isLandingOpen ? (
-                <CTASkeleton />
-              ) : (
-                <div>
-                  <div className="text-mono-xs text-tertiary flex items-center justify-between">
-                    Contact Sales <OpenLink12Icon className="text-quaternary" />
-                  </div>
-                  <p className="text-default text-sans-sm mt-1 pr-2">
-                    Discuss your computing requirements and business goals with our team of
-                    experts.
-                  </p>
-                </div>
-              )}
-            </a>
+            />
           </motion.div>
         </div>
 
