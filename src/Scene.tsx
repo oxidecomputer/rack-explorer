@@ -201,6 +201,25 @@ const _up = new THREE.Vector3()
 const _corner = new THREE.Vector3()
 const _newPos = new THREE.Vector3()
 
+// Static rack-bbox used to compute the zoom-out cap (max dolly distance) —
+// we want "zoom out as far as needed to see the whole rack" regardless of
+// what's currently selected, including when the rack model isn't in the scene.
+const _rackWaypoint = resolveWaypoint('oxide-rack')
+const RACK_BOX: THREE.Box3 | null = _rackWaypoint?.scale
+  ? new THREE.Box3(
+      new THREE.Vector3(
+        _rackWaypoint.target[0] - _rackWaypoint.scale[0] / 2,
+        _rackWaypoint.target[1] - _rackWaypoint.scale[1] / 2,
+        _rackWaypoint.target[2] - _rackWaypoint.scale[2] / 2,
+      ),
+      new THREE.Vector3(
+        _rackWaypoint.target[0] + _rackWaypoint.scale[0] / 2,
+        _rackWaypoint.target[1] + _rackWaypoint.scale[1] / 2,
+        _rackWaypoint.target[2] + _rackWaypoint.scale[2] / 2,
+      ),
+    )
+  : null
+
 /** Walk the scene to find objects tagged with the selected id (or its base id)
  *  and union their world-space bboxes. Skips recursion into matched subtrees. */
 function findSelectedBox(scene: THREE.Scene, sel: string): THREE.Box3 | null {
@@ -327,6 +346,37 @@ function CameraFitter({
       waypoint.fitFraction,
       verticalFitScale,
     )
+
+    const fitDistance = Math.hypot(
+      position[0] - waypoint.target[0],
+      position[1] - waypoint.target[1],
+      position[2] - waypoint.target[2],
+    )
+    // Zoom-out cap: distance needed to frame the whole rack from the current
+    // target along the current waypoint direction. Reverts to fitDistance when
+    // already at rack level (or larger than rack, e.g. mobile aspect), so the
+    // user can never dolly out past the rack's overview shot.
+    let maxDistance = fitDistance
+    if (RACK_BOX && _rackWaypoint) {
+      const rackPos = computeFitPosition(
+        RACK_BOX,
+        waypoint.direction,
+        waypoint.target,
+        aspect,
+        _rackWaypoint.fitFraction,
+        verticalFitScale,
+      )
+      maxDistance = Math.max(
+        fitDistance,
+        Math.hypot(
+          rackPos[0] - waypoint.target[0],
+          rackPos[1] - waypoint.target[1],
+          rackPos[2] - waypoint.target[2],
+        ),
+      )
+    }
+    controlsRef.current.minDistance = fitDistance
+    controlsRef.current.maxDistance = maxDistance
 
     const animate = !isFirstFitRef.current
     isFirstFitRef.current = false
@@ -671,11 +721,11 @@ function SceneContent({
           left: ACTION.ROTATE,
           middle: ACTION.NONE,
           right: ACTION.TRUCK,
-          wheel: ACTION.NONE,
+          wheel: ACTION.DOLLY,
         }}
         touches={{
           one: ACTION.TOUCH_ROTATE,
-          two: ACTION.NONE,
+          two: ACTION.TOUCH_DOLLY,
           three: ACTION.NONE,
         }}
       />
@@ -717,8 +767,7 @@ const getGPUConfig = (tier: TierResult | null): GPUConfig => {
 const isSafariOnMac = () => {
   if (typeof navigator === 'undefined') return false
   const ua = navigator.userAgent
-  const isSafari =
-    /Safari/.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS|EdgA|Edge|OPR/.test(ua)
+  const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS|EdgA|Edge|OPR/.test(ua)
   return isSafari && /Macintosh/.test(ua)
 }
 
