@@ -58,6 +58,15 @@ const keyHandlers: Record<string, (currentId: string) => void> = {
 export function useKeyboardNavigation() {
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null
+      if (target?.matches('input, textarea, select, [contenteditable]')) return
+      if (
+        target?.matches('button, a') &&
+        (e.key === 'Enter' || e.key === ' ')
+      ) {
+        return
+      }
+
       if (landingOpen.get()) return
 
       if (navigationMode.get() !== 'guided') {
