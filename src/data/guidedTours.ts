@@ -82,7 +82,7 @@ export const guidedTours: GuidedTour[] = [
         title: 'Inside a Sled',
         description:
           "Each compute sled is a self-contained server with its own CPU, memory, storage, and cooling. Let's take a closer look at the key components.",
-        selectedId: 'compute-inner:0',
+        selectedId: 'compute-inner:31',
         annotations: [
           {
             label: 'CPU',
@@ -100,25 +100,25 @@ export const guidedTours: GuidedTour[] = [
         title: 'CPU',
         description:
           'The sled is powered by an AMD EPYC 9005 Series processor with up to 192 cores and 384 threads.',
-        selectedId: 'cpu:0',
+        selectedId: 'cpu:31',
       },
       {
         title: 'Memory',
         description:
           'Each sled has 12 DDR5 DIMM slots supporting up to 1.5 TiB of memory at 6400 MT/s.',
-        selectedId: 'ram:0',
+        selectedId: 'ram:31',
       },
       {
         title: 'Storage',
         description:
           'Each sled holds 10 front-accessible NVMe U.2 SSD bays, each supporting drives up to 30 TB.',
-        selectedId: 'disks:0',
+        selectedId: 'disks:31',
       },
       {
         title: 'Network Switch',
         description:
           'Two network switches provide 12.8 Tbit/s of switching capacity using Intel Tofino 2 ASICs, with 32 uplink ports each.',
-        selectedId: 'network-switch',
+        selectedId: 'network-switch:0',
       },
       {
         title: 'Power Shelf',

@@ -24,6 +24,7 @@ import {
   tourStartScreen,
 } from './atoms'
 import { InstancedGLBModel } from './components/InstancedGLBModel'
+import { MOBILE_SPECS_PANEL_HEIGHT } from './components/MobileSpecsDrawer'
 import { SelectableGLBModel } from './components/SelectableGLBModel'
 import { ModifiedSelection } from './components/Selection'
 import { TourAnnotations } from './components/TourAnnotations'
@@ -123,36 +124,54 @@ function CameraOffset() {
   const isVideo = useValue(isVideoTour)
   const isStartScreen = useValue(tourStartScreen)
   const isGuided = useValue(navigationMode) === 'guided'
-  const currentOffset = useRef(0)
+  const currentOffsetX = useRef(0)
+  const currentOffsetY = useRef(0)
+  const prevAppliedOffsetX = useRef(0)
+  const prevAppliedOffsetY = useRef(0)
   const invalidate = useThree((s) => s.invalidate)
 
-  const prevAppliedOffset = useRef(0)
-
   useFrame(({ camera, size }) => {
+    const isMobile = size.width < 1000
     const sidebarVisible = specsOpen && !isVideo && !(isGuided && isStartScreen)
-    const target = sidebarVisible ? 0 : 128
-    const diff = target - currentOffset.current
+    const targetX = isMobile || sidebarVisible ? 0 : 128
+    const panelVisible = isMobile && !isVideo && !(isGuided && isStartScreen)
+    const targetY = panelVisible ? MOBILE_SPECS_PANEL_HEIGHT / 2 : 0
 
-    if (Math.abs(diff) < 0.5) {
-      currentOffset.current = target
-    } else {
-      currentOffset.current += diff * 0.12
+    const diffX = targetX - currentOffsetX.current
+    const diffY = targetY - currentOffsetY.current
+
+    if (Math.abs(diffX) < 0.5) currentOffsetX.current = targetX
+    else {
+      currentOffsetX.current += diffX * 0.12
+      invalidate()
+    }
+
+    if (Math.abs(diffY) < 0.5) currentOffsetY.current = targetY
+    else {
+      currentOffsetY.current += diffY * 0.12
       invalidate()
     }
 
     // Only update projection matrix when offset actually changed
-    if (Math.abs(currentOffset.current - prevAppliedOffset.current) < 0.01) return
-    prevAppliedOffset.current = currentOffset.current
+    if (
+      Math.abs(currentOffsetX.current - prevAppliedOffsetX.current) < 0.01 &&
+      Math.abs(currentOffsetY.current - prevAppliedOffsetY.current) < 0.01
+    ) {
+      return
+    }
+    prevAppliedOffsetX.current = currentOffsetX.current
+    prevAppliedOffsetY.current = currentOffsetY.current
 
     const cam = camera as THREE.PerspectiveCamera
-    if (currentOffset.current < 0.5) {
+    const hasOffset = currentOffsetX.current >= 0.5 || currentOffsetY.current >= 0.5
+    if (!hasOffset) {
       if (cam.view) cam.clearViewOffset()
     } else {
       cam.setViewOffset(
         size.width,
         size.height,
-        -currentOffset.current,
-        0,
+        -currentOffsetX.current,
+        currentOffsetY.current,
         size.width,
         size.height,
       )
@@ -167,31 +186,145 @@ function CameraOffset() {
   return null
 }
 
-const BASE_FOV = 15
-const REFERENCE_ASPECT = 16 / 9
-// 0 = no zoom-out on narrow windows, 1 = constant horizontal FOV. Tweak here.
-const NARROW_ZOOM_STRENGTH = 0.5
+// Camera FOV is fixed; subject framing is driven by camera distance instead.
+// Must match the `fov` passed to <Canvas camera={...}> below.
+const FIXED_FOV = 15
+// Default fraction of the frame the component fills in its binding dimension
+// (1.0 = bbox edges touch frame edges). Overridable per-waypoint.
+const DEFAULT_FIT_FRACTION = 1 / 1.5
 
-function AspectRatioFov() {
-  const camera = useThree((s) => s.camera)
-  const width = useThree((s) => s.size.width)
-  const height = useThree((s) => s.size.height)
+const _camTarget = new THREE.Vector3()
+const _forward = new THREE.Vector3()
+const _worldUp = new THREE.Vector3(0, 1, 0)
+const _right = new THREE.Vector3()
+const _up = new THREE.Vector3()
+const _corner = new THREE.Vector3()
+const _newPos = new THREE.Vector3()
+
+/** Walk the scene to find objects tagged with the selected id (or its base id)
+ *  and union their world-space bboxes. Skips recursion into matched subtrees. */
+function findSelectedBox(scene: THREE.Scene, sel: string): THREE.Box3 | null {
+  const baseId = sel.split(':')[0]
+  const box = new THREE.Box3()
+  let found = false
+  function walk(obj: THREE.Object3D) {
+    const id = obj.userData?.id
+    if (typeof id === 'string' && (id === sel || id === baseId)) {
+      // Walk parents up, then children down — useFrame runs before R3F's
+      // pre-render scene matrix update, so ancestor matrixWorlds may reflect
+      // the previous selection's instance position.
+      obj.updateWorldMatrix(true, true)
+      box.expandByObject(obj)
+      found = true
+      return
+    }
+    for (const child of obj.children) walk(child)
+  }
+  walk(scene)
+  if (!found || box.isEmpty()) return null
+  return box
+}
+
+/** Project the bbox onto the plane through `target` perpendicular to the
+ *  given direction, then compute the camera distance such that the binding
+ *  dimension (width or height — whichever is larger relative to the window)
+ *  fills `fitFraction` of the frame. The returned position lies along the
+ *  direction ray, anchored at the target. */
+function computeFitPosition(
+  box: THREE.Box3,
+  waypointDir: [number, number, number],
+  waypointTarget: [number, number, number],
+  windowAspect: number,
+  fitFraction: number | undefined,
+): [number, number, number] {
+  _camTarget.fromArray(waypointTarget)
+  // Camera direction points from target toward camera; forward is the inverse.
+  _forward.fromArray(waypointDir).negate()
+  if (_forward.lengthSq() < 1e-6) return waypointTarget
+  _forward.normalize()
+
+  _right.crossVectors(_forward, _worldUp)
+  if (_right.lengthSq() < 1e-6) _right.set(1, 0, 0)
+  else _right.normalize()
+  _up.crossVectors(_right, _forward).normalize()
+
+  let maxX = 0
+  let maxY = 0
+  const { min, max } = box
+  for (let i = 0; i < 8; i++) {
+    _corner.set(i & 1 ? max.x : min.x, i & 2 ? max.y : min.y, i & 4 ? max.z : min.z)
+    _corner.sub(_camTarget)
+    maxX = Math.max(maxX, Math.abs(_corner.dot(_right)))
+    maxY = Math.max(maxY, Math.abs(_corner.dot(_up)))
+  }
+
+  const tanHalfFov = Math.tan((FIXED_FOV * Math.PI) / 360)
+  const f = fitFraction != null && fitFraction > 0 ? fitFraction : DEFAULT_FIT_FRACTION
+  // Distance such that the projected dimension is `f` × window dimension.
+  const dH = maxY / (f * tanHalfFov)
+  const dW = maxX / (f * tanHalfFov * windowAspect)
+  const dist = Math.max(dH, dW)
+
+  _newPos.copy(_camTarget).addScaledVector(_forward, -dist)
+  return [_newPos.x, _newPos.y, _newPos.z]
+}
+
+function CameraFitter({
+  controlsRef,
+}: {
+  controlsRef: React.RefObject<CameraControls | null>
+}) {
+  const sel = useValue(selectedId)
+  const navMode = useValue(navigationMode)
+  const isFirstFitRef = useRef(true)
+  const lastFitKeyRef = useRef('')
   const invalidate = useThree((s) => s.invalidate)
 
   useEffect(() => {
-    const cam = camera as THREE.PerspectiveCamera
-    const aspect = width / height
-    if (aspect < REFERENCE_ASPECT) {
-      // Interpolate between BASE_FOV and constant-horizontal-FOV based on strength.
-      const hFov = 2 * Math.atan(Math.tan((BASE_FOV * Math.PI) / 360) * REFERENCE_ASPECT)
-      const fullVFov = (2 * Math.atan(Math.tan(hFov / 2) / aspect) * 180) / Math.PI
-      cam.fov = BASE_FOV + (fullVFov - BASE_FOV) * NARROW_ZOOM_STRENGTH
-    } else {
-      cam.fov = BASE_FOV
-    }
-    cam.updateProjectionMatrix()
     invalidate()
-  }, [camera, width, height, invalidate])
+  }, [sel, navMode, invalidate])
+
+  useFrame(({ scene, size }) => {
+    if (!controlsRef.current) return
+    const fitKey = `${sel}|${navMode}|${size.width}|${size.height}`
+    if (fitKey === lastFitKeyRef.current) return
+
+    const waypoint = resolveWaypoint(sel)
+    if (!waypoint) return
+    let box = findSelectedBox(scene, sel)
+    if (!box && waypoint.scale) {
+      // No model attached — synthesize a focus volume from explicit scale.
+      const [w, h, d] = waypoint.scale
+      const [tx, ty, tz] = waypoint.target
+      box = new THREE.Box3(
+        new THREE.Vector3(tx - w / 2, ty - h / 2, tz - d / 2),
+        new THREE.Vector3(tx + w / 2, ty + h / 2, tz + d / 2),
+      )
+    }
+    if (!box) return // model still loading and no scale fallback — retry next frame
+
+    const aspect = size.width / size.height
+    const position = computeFitPosition(
+      box,
+      waypoint.direction,
+      waypoint.target,
+      aspect,
+      waypoint.fitFraction,
+    )
+
+    const animate = !isFirstFitRef.current
+    isFirstFitRef.current = false
+    if (animate) controlsRef.current.normalizeRotations()
+    controlsRef.current.setLookAt(...position, ...waypoint.target, animate)
+    // camera-controls only writes camera.position inside its own update(),
+    // which runs at priority -1 — *before* this useFrame at priority 0. So
+    // for a non-animated snap, the new _spherical we just set won't reach
+    // camera.position until the next frame, and in 'demand' mode that next
+    // frame doesn't auto-fire. Flush synchronously so the same frame's render
+    // uses the fit pose.
+    if (!animate) controlsRef.current.update(0)
+    lastFitKeyRef.current = fitKey
+  })
 
   return null
 }
@@ -334,21 +467,8 @@ function SceneContent({
     return map
   }, [])
 
-  const isFirstRender = useRef(true)
   const currentNavigationMode = useValue(navigationMode)
   const isGuidedMode = currentNavigationMode === 'guided'
-
-  useEffect(() => {
-    if (!cameraControlsRef.current || !currentSelectedId) return
-
-    const waypoint = resolveWaypoint(currentSelectedId)
-    if (waypoint) {
-      const animate = !isFirstRender.current
-      isFirstRender.current = false
-      if (animate) cameraControlsRef.current.normalizeRotations()
-      cameraControlsRef.current.setLookAt(...waypoint.position, ...waypoint.target, animate)
-    }
-  }, [currentSelectedId, currentNavigationMode])
 
   return (
     <>
@@ -363,7 +483,7 @@ function SceneContent({
         fadeDistance={25}
         fadeStrength={0.5}
       />
-      <RackShadow />
+      {!viewingChildOfId && <RackShadow />}
       <ModifiedSelection>
         {postMode !== 'none' && (
           <PostProcessing
@@ -544,7 +664,7 @@ function SceneContent({
         }}
       />
       <ShowcaseRotation cameraControlsRef={cameraControlsRef} />
-      <AspectRatioFov />
+      <CameraFitter controlsRef={cameraControlsRef} />
       <CameraOffset />
       <DebugStats aoQuality={aoQuality} gpuTier={gpuTier} perfFactor={perfFactor} />
       {perfFlags.enabled && (
@@ -619,7 +739,16 @@ export const Scene = () => {
   const [adaptiveAO, setAdaptiveAO] = useState<'full' | 'low' | 'off'>('full')
   const [perfFactor, setPerfFactor] = useState(1)
 
+  // Initial camera pose before the first fit lands. CameraFitter will dolly
+  // to the bbox-derived distance on the first frame the rack model is loaded.
   const initialWaypoint = resolveWaypoint('oxide-rack')
+  const initialPosition: [number, number, number] = initialWaypoint
+    ? [
+        initialWaypoint.target[0] + initialWaypoint.direction[0],
+        initialWaypoint.target[1] + initialWaypoint.direction[1],
+        initialWaypoint.target[2] + initialWaypoint.direction[2],
+      ]
+    : [5, 5, 10]
   const currentNavigationMode = useValue(navigationMode)
   const isGuidedMode = currentNavigationMode === 'guided'
   const isShowcase = useValue(showcaseMode)
@@ -637,8 +766,8 @@ export const Scene = () => {
     <>
       <Canvas
         camera={{
-          position: initialWaypoint?.position ?? [5, 5, 10],
-          fov: 15,
+          position: initialPosition,
+          fov: FIXED_FOV,
           near: 1,
           far: 100,
         }}

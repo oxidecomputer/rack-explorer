@@ -42,7 +42,7 @@ export function LandingModal() {
 
   return (
     <motion.div
-      className="pointer-events-auto absolute inset-0 z-20 flex items-center justify-center"
+      className="pointer-events-auto absolute inset-0 z-20 flex items-center justify-center p-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -61,12 +61,14 @@ export function LandingModal() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <OptionCard
-            icon={<Show16Icon className="size-6" />}
-            title="Explore the hardware"
-            description="Take a closer look at Oxide's rack. Explore every sled, switch, and shelf at your own pace."
-            onClick={() => dismiss('free')}
-          />
+          <div className="max-1000:hidden">
+            <OptionCard
+              icon={<Show16Icon className="size-6" />}
+              title="Explore the hardware"
+              description="Take a closer look at Oxide's rack. Explore every sled, switch, and shelf at your own pace."
+              onClick={() => dismiss('free')}
+            />
+          </div>
           <OptionCard
             icon={<Compass16Icon className="size-6" />}
             title="Guided Tour & Help"

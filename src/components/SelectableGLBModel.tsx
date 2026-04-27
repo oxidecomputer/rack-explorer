@@ -67,19 +67,6 @@ export const SelectableGLBModel = memo(function SelectableGLBModel({
     }
   }, [scene, textures])
 
-  useEffect(() => {
-    const s = scene
-    return () => {
-      s.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          child.geometry?.dispose()
-          const materials = Array.isArray(child.material) ? child.material : [child.material]
-          materials.forEach((mat) => mat?.dispose())
-        }
-      })
-    }
-  }, [scene])
-
   const isSelected = useMemo(
     () =>
       computed('select-' + id, () => {
@@ -92,7 +79,7 @@ export const SelectableGLBModel = memo(function SelectableGLBModel({
 
   useEffect(() => {
     scene.traverse((child) => {
-      child.userData = clickable ? { id } : {}
+      child.userData = { id }
       if (!clickable && child instanceof THREE.Mesh) {
         child.raycast = () => {}
       }
