@@ -3,6 +3,7 @@ import {
   Compass16Icon,
   NextArrow12Icon,
   PrevArrow12Icon,
+  Question16Icon,
   Show16Icon,
 } from '@oxide/design-system/icons/react'
 import { useValue } from '@tldraw/state-react'
@@ -21,6 +22,7 @@ import {
   landingOpen,
   mobileOutlineOpen,
   navigationMode,
+  restartFreeTutorial,
   sceneReady,
   seekVideo,
   selectedId,
@@ -30,6 +32,7 @@ import {
 } from './atoms'
 import { Card } from './components/Card'
 import { ContactSales } from './components/ContactSales'
+import { FreeTutorial } from './components/FreeTutorial'
 import { GuidedTourOutline } from './components/GuidedTourOutline'
 import { GuidedTourPanel } from './components/GuidedTourPanel'
 import { SidebarIcon } from './components/Icons'
@@ -196,6 +199,7 @@ function App() {
                             }}
                             className={clsx(
                               'text-mono-xs transition-colors',
+                              isLast && 'text-default',
                               breadcrumbsEnabled && !isLast && 'hover:text-default',
                             )}
                           >
@@ -223,8 +227,17 @@ function App() {
                 </>
               )}
           </div>
-          <div className="flex items-center justify-end">
+          <div className="flex w-64 items-center justify-end gap-2">
             <OptionsDropdown />
+            {!isLandingOpen && !isGuided && (
+              <button
+                onClick={restartFreeTutorial}
+                className="hover:bg-hover/80 target-8 max-1000:hidden text-tertiary hover:text-default rounded-md border border-neutral-900/10 bg-transparent p-1.5 transition-colors"
+                aria-label="Replay tutorial"
+              >
+                <Question16Icon className="h-4 w-4" />
+              </button>
+            )}
             {!isLandingOpen && !(isGuided && isStartScreen) && (
               <button
                 onClick={() => mobileOutlineOpen.set(true)}
@@ -404,6 +417,7 @@ function App() {
 
         {!isLandingOpen && <MobileSpecsDrawer />}
         <MobileOutlineOverlay />
+        <FreeTutorial />
 
         <AnimatePresence>
           {isLandingOpen && (

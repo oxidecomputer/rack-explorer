@@ -1,7 +1,7 @@
 import { Compass16Icon, Show16Icon } from '@oxide/design-system/icons/react'
 import { motion } from 'motion/react'
 
-import { landingOpen, startTour } from '../atoms'
+import { landingOpen, maybeStartFreeTutorial, startTour } from '../atoms'
 import { getFirstStandardTour } from '../data/guidedTours'
 
 function OptionCard({
@@ -36,6 +36,9 @@ export function LandingModal() {
     if (mode === 'guided') {
       const first = getFirstStandardTour()
       startTour(first.id)
+    } else {
+      // Wait for the modal exit animation before showing coachmarks.
+      setTimeout(maybeStartFreeTutorial, 400)
     }
     landingOpen.set(false)
   }

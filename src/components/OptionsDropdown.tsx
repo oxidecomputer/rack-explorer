@@ -39,10 +39,10 @@ export function OptionsDropdown() {
   const isDebugMode = useValue(debugMode)
 
   return (
-    <div className="max-1000:hidden relative z-40">
+    <div className="max-1000:hidden relative z-40 w-full">
       <button
         onClick={() => setOpen(!open)}
-        className="text-mono-xs text-secondary bg-default hover:bg-hover border-neutral-0 flex h-8 w-64 items-center gap-1.5 rounded border p-2"
+        className="text-mono-xs text-secondary bg-default hover:bg-hover border-neutral-0 flex h-8 w-full items-center gap-1.5 rounded border p-2"
       >
         <PrevArrow12Icon
           className={clsx(

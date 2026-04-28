@@ -117,3 +117,50 @@ export function exitGuidedMode() {
   videoTourCurrentTime.set(0)
   tourStartScreen.set(true)
 }
+
+// Free-explore tutorial: 3-step coachmark sequence shown on first visit.
+// Index null = inactive; 0..2 = visible step.
+const FREE_TUTORIAL_SEEN_KEY = 'rack-explorer:free-tutorial-seen'
+
+function readTutorialSeen(): boolean {
+  try {
+    return localStorage.getItem(FREE_TUTORIAL_SEEN_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+export const freeTutorialStepIndex = atom<number | null>('freeTutorialStepIndex', null)
+
+export const FREE_TUTORIAL_STEP_COUNT = 3
+
+/** Start the tutorial if it hasn't been seen before. */
+export function maybeStartFreeTutorial() {
+  if (readTutorialSeen()) return
+  freeTutorialStepIndex.set(0)
+}
+
+/** Force-start the tutorial from the help icon, regardless of seen state. */
+export function restartFreeTutorial() {
+  freeTutorialStepIndex.set(0)
+}
+
+export function advanceFreeTutorial() {
+  const current = freeTutorialStepIndex.get()
+  if (current === null) return
+  const next = current + 1
+  if (next >= FREE_TUTORIAL_STEP_COUNT) {
+    dismissFreeTutorial()
+  } else {
+    freeTutorialStepIndex.set(next)
+  }
+}
+
+export function dismissFreeTutorial() {
+  freeTutorialStepIndex.set(null)
+  try {
+    localStorage.setItem(FREE_TUTORIAL_SEEN_KEY, '1')
+  } catch {
+    // localStorage unavailable — tutorial will reappear next visit, acceptable.
+  }
+}
