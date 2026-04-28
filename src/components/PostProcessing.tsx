@@ -7,9 +7,11 @@ export type AOQuality = 'full' | 'low' | 'off'
 export const PostProcessing = ({
   aoQuality,
   enableOutline = true,
+  lowTier = false,
 }: {
   aoQuality: AOQuality
   enableOutline?: boolean
+  lowTier?: boolean
 }) => {
   const outlineRef = useRef<OutlineEffect>(null)
   const patched = useRef(false)
@@ -53,6 +55,9 @@ export const PostProcessing = ({
         blendFunction={BlendFunction.ALPHA}
         visibleEdgeColor={4773271}
         hiddenEdgeColor={4773271}
+        // Default is 0.5 (half-res). Drop to quarter on low tier — outline is
+        // a full-screen effect and at high DPR it's a real fragment cost.
+        resolutionScale={lowTier ? 0.25 : 0.5}
       />,
     )
   }
