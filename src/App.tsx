@@ -195,7 +195,9 @@ function App() {
                           <button
                             disabled={!breadcrumbsEnabled || isLast}
                             onClick={() => {
-                              selectedId.set(item.id)
+                              selectedId.set(
+                                inheritInstanceIndex(selectedId.get(), item.id),
+                              )
                             }}
                             className={clsx(
                               'text-mono-xs transition-colors',
