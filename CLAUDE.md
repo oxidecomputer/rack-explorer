@@ -16,6 +16,8 @@ Rack Explorer is an interactive 3D web application for visualizing Oxide Rack ha
 
 Package manager is **Bun**.
 
+**Do not start the dev server (`bun run dev`) — the user always verifies UI changes themselves.** Run `bunx tsc -b` to verify changes compile.
+
 ## Architecture
 
 ### State Management
