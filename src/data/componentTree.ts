@@ -30,6 +30,8 @@ export type ComponentNode = {
   waypoint?: ComponentWaypoint
   /** For components with multiple instances (e.g. compute sleds positioned in a grid). */
   instances?: Vec3[]
+  /** Instance index to land on when navigating to this component without an explicit index. */
+  defaultInstance?: number
   /** Child waypoints are relative offsets from the parent instance position. */
   children?: ComponentNode[]
   /** GLB model(s) to render for this component. Accepts a single config or an array. */
@@ -106,6 +108,7 @@ export const componentTree: ComponentNode = {
       label: 'Compute Sled',
       waypoint: { direction: [1, 2, 3.675], target: [0, 0, 0.325], fitFraction: 0.5 },
       instances: generateSledPositions(),
+      defaultInstance: 16,
       selectionOffset: selectionOffset,
       model: {
         path: './models/cosmo/lod1/cosmo-ext-1.glb',
@@ -392,9 +395,10 @@ export function inheritInstanceIndex(
 ): string {
   const [, indexStr] = currentSelectedId.split(':')
   if (indexStr == null) {
-    // Default to first instance if the target is an instanced component
     const targetAncestor = findInstancedAncestorId(targetBaseId)
-    return targetAncestor ? `${targetBaseId}:0` : targetBaseId
+    if (!targetAncestor) return targetBaseId
+    const defaultIdx = flatMap.get(targetAncestor)?.node.defaultInstance ?? 0
+    return `${targetBaseId}:${defaultIdx}`
   }
 
   // Check if target has an instanced ancestor
