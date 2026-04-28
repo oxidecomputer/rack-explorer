@@ -274,7 +274,7 @@ export const guidedTours: GuidedTour[] = [
       {
         title: 'Network Switches',
         timestamp: 20,
-        selectedId: 'network-switch',
+        selectedId: 'network-switch:0',
       },
       {
         title: 'Summary',
