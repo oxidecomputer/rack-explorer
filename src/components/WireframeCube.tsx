@@ -50,7 +50,10 @@ export function WireframeCube({
   }, size)
 
   return (
-    <lineSegments geometry={geometry} position={position}>
+    // raycast disabled — the default Line threshold (1 world unit) is huge
+    // relative to a sled, so the wireframe edges intercept clicks the user
+    // intends as background, blocking onPointerMissed (double-click-to-go-up).
+    <lineSegments geometry={geometry} position={position} raycast={() => null}>
       <lineBasicMaterial color={color} />
     </lineSegments>
   )
