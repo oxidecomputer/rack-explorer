@@ -201,6 +201,10 @@ const _up = new THREE.Vector3()
 const _corner = new THREE.Vector3()
 const _newPos = new THREE.Vector3()
 
+// Zoom-in cap: minimum camera-to-target distance in world units.
+const MIN_DOLLY_DISTANCE_TOP = 5
+const MIN_DOLLY_DISTANCE_DRILLED = 1.5
+
 // Static rack-bbox used to compute the zoom-out cap (max dolly distance) —
 // we want "zoom out as far as needed to see the whole rack" regardless of
 // what's currently selected, including when the rack model isn't in the scene.
@@ -375,7 +379,12 @@ function CameraFitter({
         ),
       )
     }
-    controlsRef.current.minDistance = fitDistance
+    const baseId = sel.split(':')[0]
+    const drilledIn = (componentTree.children ?? []).some(
+      (child) => child.children && isDescendantOf(baseId, child.id),
+    )
+    const minDolly = drilledIn ? MIN_DOLLY_DISTANCE_DRILLED : MIN_DOLLY_DISTANCE_TOP
+    controlsRef.current.minDistance = Math.min(fitDistance, minDolly)
     controlsRef.current.maxDistance = maxDistance
 
     const animate = !isFirstFitRef.current
