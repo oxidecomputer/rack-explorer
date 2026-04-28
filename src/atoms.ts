@@ -41,6 +41,9 @@ export const adaptiveDprSetting = atom<QualitySetting>('adaptiveDprSetting', 'au
 /** Detected GPU tier (0..3). Null until getGPUTier() resolves. */
 export const detectedTier = atom<number | null>('detectedTier', null)
 
+/** True when the browser is rendering WebGL via software (SwiftShader/llvmpipe). */
+export const softwareRenderingDetected = atom('softwareRenderingDetected', false)
+
 /** True when GLB model components should render with downgraded Lambert
  *  materials. Computed from the high-quality setting + detected tier so manual
  *  overrides win and 'auto' falls back to tier ≥ 2. */
