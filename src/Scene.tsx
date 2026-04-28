@@ -485,7 +485,7 @@ function DebugOverlay() {
     <>
       <div
         id="debug-stats"
-        className="pointer-events-none absolute bottom-3 left-3 z-50 rounded bg-black/70 px-2 py-1 font-mono text-xs text-white"
+        className="pointer-events-none absolute bottom-0 left-3 z-50 rounded bg-black/70 px-2 py-1 font-mono text-xs text-white"
       />
       <Stats showPanel={0} className="" />
       <Stats showPanel={1} className="ml-20" />
