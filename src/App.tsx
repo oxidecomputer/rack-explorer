@@ -1,4 +1,5 @@
 import {
+  Close8Icon,
   Compass16Icon,
   NextArrow12Icon,
   PrevArrow12Icon,
@@ -43,7 +44,7 @@ import { StepPips } from './components/StepPips'
 import { TourStartScreen } from './components/TourStartScreen'
 import { VideoTourPlayer } from './components/VideoTourPlayer'
 import { VideoTourTimeline } from './components/VideoTourTimeline'
-import { getNode } from './data/componentTree'
+import { getNode, inheritInstanceIndex } from './data/componentTree'
 import { getFirstStandardTour } from './data/guidedTours'
 import { Scene } from './Scene'
 import { useKeyboardNavigation } from './useKeyboardNavigation'
@@ -154,7 +155,7 @@ function App() {
         </AnimatePresence>
 
         <header className="pointer-events-auto relative z-30 flex w-full items-center justify-between px-4 pt-4">
-          <div className="flex flex-1 flex-col">
+          <div className="flex w-64 flex-col">
             <div className="text-raise text-mono-xs opacity-40">Oxide Computer Co.</div>
             <div className="text-sans-sm text-default">3D Rack Explorer</div>
           </div>
@@ -175,27 +176,54 @@ function App() {
               breadcrumbPath.length > 0 &&
               breadcrumbPath[0].label !== 'Oxide Rack' && (
                 <>
-                  {breadcrumbPath.map((item) => (
-                    <span key={item.id} className="flex items-center gap-2">
-                      <span className="text-raise text-mono-xs opacity-20">/</span>
-                      <button
-                        disabled={!breadcrumbsEnabled}
-                        onClick={() => {
-                          selectedId.set(item.id)
-                        }}
-                        className={clsx(
-                          'text-mono-xs transition-colors',
-                          breadcrumbsEnabled && 'hover:text-default',
-                        )}
-                      >
-                        {item.label}
-                      </button>
-                    </span>
-                  ))}
+                  {breadcrumbPath.map((item, i) => {
+                    const isLast = i === breadcrumbPath.length - 1
+                    return (
+                      <span key={item.id} className="flex items-center gap-2">
+                        <span className="text-raise text-mono-xs opacity-20">/</span>
+                        <div
+                          className={clsx(
+                            'flex items-center gap-2',
+                            isLast
+                              ? 'flex items-center gap-2 rounded-md bg-neutral-800/30 px-1'
+                              : '',
+                          )}
+                        >
+                          <button
+                            disabled={!breadcrumbsEnabled || isLast}
+                            onClick={() => {
+                              selectedId.set(item.id)
+                            }}
+                            className={clsx(
+                              'text-mono-xs transition-colors',
+                              breadcrumbsEnabled && !isLast && 'hover:text-default',
+                            )}
+                          >
+                            {item.label}
+                          </button>
+                          {isLast && breadcrumbsEnabled && (
+                            <button
+                              onClick={() => {
+                                const current = selectedId.get()
+                                const base = current.split(':')[0]
+                                const entry = getNode(base)
+                                const parentId = entry?.parent?.id ?? 'oxide-rack'
+                                selectedId.set(inheritInstanceIndex(current, parentId))
+                              }}
+                              className="text-tertiary target-4 hover:text-default -ml-1 transition-colors"
+                              aria-label="Go up one level"
+                            >
+                              <Close8Icon />
+                            </button>
+                          )}
+                        </div>
+                      </span>
+                    )
+                  })}
                 </>
               )}
           </div>
-          <div className="1000:flex-1 flex items-center justify-end">
+          <div className="flex items-center justify-end">
             <OptionsDropdown />
             {!isLandingOpen && !(isGuided && isStartScreen) && (
               <button
