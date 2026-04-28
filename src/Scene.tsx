@@ -23,6 +23,7 @@ import {
   sceneReady,
   selectedId,
   showcaseMode,
+  softwareRenderingDetected,
   specificationsOpen,
   tourStartScreen,
 } from './atoms'
@@ -43,6 +44,7 @@ import {
   isDescendantOf,
   resolveWaypoint,
 } from './data/componentTree'
+import { detectSoftwareRendering } from './gpuProbe'
 import { eventsWithoutHover } from './perf/eventsWithoutHover'
 import { markInit, parsePerfFlags, type PerfFlags } from './perf/harness'
 
@@ -807,6 +809,7 @@ export const Scene = () => {
 
   useEffect(() => {
     let cancelled = false
+    if (detectSoftwareRendering()) softwareRenderingDetected.set(true)
     markInit('gpuTierStartMs', performance.now())
     getGPUTier().then((tier) => {
       markInit('gpuTierEndMs', performance.now())

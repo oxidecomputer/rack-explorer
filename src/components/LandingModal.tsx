@@ -1,7 +1,14 @@
-import { Compass16Icon, Show16Icon } from '@oxide/design-system/icons/react'
+import { Compass16Icon, Show16Icon, Warning12Icon } from '@oxide/design-system/icons/react'
+import { useValue } from '@tldraw/state-react'
 import { motion } from 'motion/react'
 
-import { landingOpen, maybeStartFreeTutorial, startTour } from '../atoms'
+import {
+  detectedTier,
+  landingOpen,
+  maybeStartFreeTutorial,
+  softwareRenderingDetected,
+  startTour,
+} from '../atoms'
 import { getFirstStandardTour } from '../data/guidedTours'
 
 function OptionCard({
@@ -28,6 +35,26 @@ function OptionCard({
         <p className="text-sans-sm text-tertiary">{description}</p>
       </div>
     </button>
+  )
+}
+
+function PerformanceNotice() {
+  const isSoftware = useValue(softwareRenderingDetected)
+  const tier = useValue(detectedTier)
+
+  const message = isSoftware
+    ? "Your browser doesn't appear to be using hardware acceleration. Try enabling it in your settings, or switching to a more recent browser."
+    : tier !== null && tier <= 1
+      ? 'A lower performance GPU was detected. For the smoothest experience, try with another computer or mobile device.'
+      : null
+
+  if (!message) return null
+
+  return (
+    <div className="bg-notice text-notice mt-4 flex items-start gap-2 rounded-md p-3">
+      <Warning12Icon className="text-notice-tertiary mt-px shrink-0" />
+      <p className="text-sans-sm pr-6">{message}</p>
+    </div>
   )
 }
 
@@ -79,6 +106,8 @@ export function LandingModal() {
             onClick={() => dismiss('guided')}
           />
         </div>
+
+        <PerformanceNotice />
       </motion.div>
     </motion.div>
   )
