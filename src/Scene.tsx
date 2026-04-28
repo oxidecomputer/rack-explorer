@@ -852,15 +852,45 @@ const SceneCanvas = ({ detectedConfig }: { detectedConfig: GPUConfig }) => {
   // are immutable after WebGL context creation, so we can't track lowTier here.
   const tierAtMount = useRef((detectedConfig.tier ?? 1) < 2)
 
+  // Tier promotion via sustained factor. detect-gpu's database lags new GPUs
+  // and some browsers farble the renderer string, so capable GPUs can land on
+  // tier 1 even after the renderer-string regex fallback. After
+  // PROMOTION_DURATION_MS at factor ceiling, bump tier by one (capped at 3).
+  // If factor immediately collapses post-promotion, demote once and lock to
+  // prevent oscillation — adaptive DPR/AO can't claw back the Lambert→PBR
+  // material cost on a truly tier-1 GPU. The user can still manually override
+  // via the Quality dropdown either way.
+  //
+  // antialias and precision are immutable after canvas mount, so a promoted
+  // user gets the Lambert→PBR / DPR / AO upgrade but not antialias until reload.
+  const baseTier = detectedConfig.tier ?? 1
+  const [tierBump, setTierBump] = useState(0)
+  const [promotionLocked, setPromotionLocked] = useState(false)
+  const promotedTier = Math.min(3, baseTier + tierBump)
+  const effectiveConfig = useMemo<GPUConfig>(
+    () =>
+      promotedTier === baseTier
+        ? detectedConfig
+        : getGPUConfig({ tier: promotedTier } as TierResult),
+    [detectedConfig, baseTier, promotedTier],
+  )
+  const lastPromotionRef = useRef<number | null>(null)
+  useEffect(() => {
+    if (tierBump > 0) {
+      detectedTier.set(promotedTier)
+      lastPromotionRef.current = performance.now()
+    }
+  }, [promotedTier, tierBump])
+
   const tierAOEnabled =
     perfFlags.postOverride === 'outline+ao' || perfFlags.postOverride === 'ao'
       ? true
       : perfFlags.postOverride === 'outline' || perfFlags.postOverride === 'none'
         ? false
-        : detectedConfig.enableAO
+        : effectiveConfig.enableAO
 
   // Max DPR the GPU tier / override allows. Adaptive DPR scales in [1, maxDpr].
-  const dprConfig = perfFlags.dprOverride ?? detectedConfig.dpr
+  const dprConfig = perfFlags.dprOverride ?? effectiveConfig.dpr
   const maxDpr = Array.isArray(dprConfig) ? dprConfig[1] : dprConfig
   const [dpr, setDpr] = useState(maxDpr)
   useEffect(() => {
@@ -877,6 +907,70 @@ const SceneCanvas = ({ detectedConfig }: { detectedConfig: GPUConfig }) => {
   // tier supports AO; otherwise the manual or tier-disabled value wins.
   const [adaptiveAO, setAdaptiveAO] = useState<'full' | 'low' | 'off'>('full')
   const [perfFactor, setPerfFactor] = useState(1)
+
+  // Promotion timer: factor sustained above PROMOTION_FACTOR_THRESHOLD for the
+  // full duration → bump tier. The first-crossed timestamp lives in a ref so
+  // the timer resumes from where it left off across PerformanceMonitor's
+  // onChange wobbles within the high range (factor 0.97 → 1.0 → 0.98 …).
+  // Resets if factor drops below the threshold.
+  const promotePendingSinceRef = useRef<number | null>(null)
+  useEffect(() => {
+    if (promotionLocked || promotedTier >= 3) return
+    if (perfFactor < 0.95) {
+      promotePendingSinceRef.current = null
+      return
+    }
+    if (promotePendingSinceRef.current === null) {
+      promotePendingSinceRef.current = performance.now()
+    }
+    const remaining = 10_000 - (performance.now() - promotePendingSinceRef.current)
+    if (remaining <= 0) {
+      promotePendingSinceRef.current = null
+      setTierBump((b) => b + 1)
+      return
+    }
+    const timer = window.setTimeout(() => {
+      promotePendingSinceRef.current = null
+      setTierBump((b) => b + 1)
+    }, remaining)
+    return () => window.clearTimeout(timer)
+  }, [perfFactor, promotedTier, promotionLocked])
+
+  // Demotion verifier: within 5s of a recent promotion, if factor stays below
+  // 0.5 for 2s, the GPU couldn't keep up — undo the bump and lock to prevent
+  // oscillation. PerformanceMonitor reacts to a tier change within ~1.5s, so
+  // a low reading inside this window is a real signal, not measurement lag.
+  // Outside the window, transient stutters from unrelated causes (model
+  // loading, scene transition) are tolerated by adaptive DPR/AO.
+  const demotePendingSinceRef = useRef<number | null>(null)
+  useEffect(() => {
+    if (tierBump === 0) return
+    if (lastPromotionRef.current === null) return
+    if (performance.now() - lastPromotionRef.current > 5_000) {
+      demotePendingSinceRef.current = null
+      return
+    }
+    if (perfFactor > 0.5) {
+      demotePendingSinceRef.current = null
+      return
+    }
+    if (demotePendingSinceRef.current === null) {
+      demotePendingSinceRef.current = performance.now()
+    }
+    const elapsed = performance.now() - demotePendingSinceRef.current
+    const demote = () => {
+      demotePendingSinceRef.current = null
+      lastPromotionRef.current = null
+      setTierBump((b) => Math.max(0, b - 1))
+      setPromotionLocked(true)
+    }
+    if (elapsed >= 2_000) {
+      demote()
+      return
+    }
+    const timer = window.setTimeout(demote, 2_000 - elapsed)
+    return () => window.clearTimeout(timer)
+  }, [perfFactor, tierBump])
 
   // Effective AO quality routed into PostProcessing.
   const effectiveAO: AOQuality =
@@ -958,7 +1052,7 @@ const SceneCanvas = ({ detectedConfig }: { detectedConfig: GPUConfig }) => {
           aoQuality={effectiveAO}
           postMode={perfFlags.postOverride}
           instancing={perfFlags.instancing}
-          gpuTier={detectedConfig.tier}
+          gpuTier={effectiveConfig.tier}
           perfFactor={perfFactor}
           lowTier={lowTier}
         />
