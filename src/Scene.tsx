@@ -590,7 +590,6 @@ function SceneContent({
                   : aoQuality
             }
             enableOutline={postMode !== 'ao'}
-            lowTier={lowTier}
           />
         )}
         {postMode === 'none' && perfFlags.enabled && <ManualRenderer />}
