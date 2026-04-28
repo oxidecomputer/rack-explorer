@@ -10,6 +10,7 @@ import {
   ambientOcclusionSetting,
   debugMode,
   highQualitySetting,
+  navigationMode,
   showcaseMode,
   type QualitySetting,
 } from '../atoms'
@@ -77,6 +78,8 @@ export function OptionsDropdown() {
   const [open, setOpen] = useState(false)
   const isShowcaseMode = useValue(showcaseMode)
   const isDebugMode = useValue(debugMode)
+  const currentNavigationMode = useValue(navigationMode)
+  const isGuided = currentNavigationMode === 'guided'
 
   return (
     <div className="max-1000:hidden relative z-40 w-full">
@@ -98,7 +101,10 @@ export function OptionsDropdown() {
             initial={{ opacity: 0, x: -4 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ type: 'spring', duration: 0.3, bounce: 0 }}
-            className="bg-default text-sans-sm absolute top-0 right-56 z-30 w-68 rounded-md p-px"
+            className={clsx(
+              'bg-default text-sans-sm absolute top-0 z-30 w-68 rounded-md p-px',
+              isGuided ? 'right-66' : 'right-56',
+            )}
           >
             <label className="hover:bg-hover flex cursor-pointer items-center justify-between rounded px-3 py-2">
               <span className="text-secondary">Showcase Mode</span>
