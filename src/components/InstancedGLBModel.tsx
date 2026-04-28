@@ -6,9 +6,11 @@ import { memo, useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 
-import { navigationMode, selectedId } from '../atoms'
+import { lowTierRendering, navigationMode, selectedId } from '../atoms'
 import { isDescendantOf } from '../data/componentTree'
 import { dracoLoader } from '../loaders'
+import { downgradeMaterial, downgradeMaterials } from '../perf/materialDowngrade'
+import { ensureBoundsTree } from '../perf/raycasting'
 import { useSelectionOffset } from '../useSelectionOffset'
 import { ModifiedSelect } from './Selection'
 
@@ -50,15 +52,33 @@ export const InstancedGLBModel = memo(function InstancedGLBModel({
   const gltf = useLoader(GLTFLoader, path, (loader) => {
     loader.setDRACOLoader(dracoLoader)
   })
+  ensureBoundsTree(gltf.scene)
+  const lowTier = useValue(lowTierRendering)
 
   // Extract all meshes from the GLB. For InstancedMesh (from EXT_mesh_gpu_instancing),
   // expand per-instance matrices so each sub-instance gets rendered at its baked transform.
-  const meshes = useMemo(() => {
+  // When low tier, materials are swapped to Lambert; the new materials live in
+  // `meshesInfo.created` and get disposed when this memo's value is replaced.
+  const meshesInfo = useMemo(() => {
     const result: {
       geometry: THREE.BufferGeometry
       material: THREE.Material | THREE.Material[]
       matrices: THREE.Matrix4[]
     }[] = []
+    const created: THREE.Material[] = []
+    const swap = (mat: THREE.Material | THREE.Material[]) => {
+      if (!lowTier) return mat
+      const next = downgradeMaterial(mat)
+      if (next === mat) return mat
+      if (Array.isArray(next)) {
+        for (let i = 0; i < next.length; i++) {
+          if (Array.isArray(mat) ? next[i] !== mat[i] : true) created.push(next[i])
+        }
+      } else {
+        created.push(next)
+      }
+      return next
+    }
     gltf.scene.updateMatrixWorld(true)
     const local = new THREE.Matrix4()
     gltf.scene.traverse((child) => {
@@ -68,17 +88,24 @@ export const InstancedGLBModel = memo(function InstancedGLBModel({
           child.getMatrixAt(i, local)
           matrices.push(child.matrixWorld.clone().multiply(local))
         }
-        result.push({ geometry: child.geometry, material: child.material, matrices })
+        result.push({ geometry: child.geometry, material: swap(child.material), matrices })
       } else if (child instanceof THREE.Mesh) {
         result.push({
           geometry: child.geometry,
-          material: child.material,
+          material: swap(child.material),
           matrices: [child.matrixWorld.clone()],
         })
       }
     })
-    return result
-  }, [gltf.scene])
+    return { meshes: result, created }
+  }, [gltf.scene, lowTier])
+  const meshes = meshesInfo.meshes
+
+  useEffect(() => {
+    return () => {
+      for (const m of meshesInfo.created) m.dispose()
+    }
+  }, [meshesInfo])
 
   // Derived atom: only triggers re-render when the matched index actually changes
   const selectedIndexAtom = useMemo(
@@ -97,22 +124,23 @@ export const InstancedGLBModel = memo(function InstancedGLBModel({
   const selectedIndex = useValue(selectedIndexAtom)
   const selectedInstance = selectedIndex >= 0 ? instances[selectedIndex] : undefined
 
-  // Lazily clone the scene for the selected instance's outline — only allocate when needed
-  const selectedSceneRef = useRef<THREE.Group | null>(null)
-  const selectedSceneSourceRef = useRef<THREE.Group | null>(null)
+  // Outline overlay: clone (and optionally downgrade) the scene once per
+  // gltf+lowTier combination. The clone is reused across selection changes —
+  // we just toggle whether we render it. Created lambert materials are
+  // disposed when this combo changes.
+  const overlayInfo = useMemo(() => {
+    const cloned = gltf.scene.clone(true)
+    const created = lowTier ? downgradeMaterials(cloned) : []
+    return { scene: cloned, created }
+  }, [gltf.scene, lowTier])
 
-  const selectedScene = useMemo(() => {
-    if (!selectedInstance) {
-      selectedSceneRef.current = null
-      selectedSceneSourceRef.current = null
-      return null
+  useEffect(() => {
+    return () => {
+      for (const m of overlayInfo.created) m.dispose()
     }
-    if (selectedSceneSourceRef.current !== gltf.scene) {
-      selectedSceneRef.current = gltf.scene.clone(true)
-      selectedSceneSourceRef.current = gltf.scene
-    }
-    return selectedSceneRef.current
-  }, [gltf.scene, selectedInstance])
+  }, [overlayInfo])
+
+  const selectedScene = selectedInstance ? overlayInfo.scene : null
 
   // Create InstancedMesh2 instances imperatively since we need to compose matrices.
   // Each batch holds sledCount × subCount instances, laid out as [sled0_sub0, sled0_sub1, ..., sled1_sub0, ...].

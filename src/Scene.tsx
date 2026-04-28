@@ -13,9 +13,12 @@ import { lazy, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 
 import {
+  adaptiveDprSetting,
+  ambientOcclusionSetting,
   debugMode,
+  detectedTier,
   isVideoTour,
-  lowQuality,
+  lowTierRendering,
   navigationMode,
   sceneReady,
   selectedId,
@@ -40,6 +43,7 @@ import {
   isDescendantOf,
   resolveWaypoint,
 } from './data/componentTree'
+import { eventsWithoutHover } from './perf/eventsWithoutHover'
 import { markInit, parsePerfFlags, type PerfFlags } from './perf/harness'
 
 const perfFlags = parsePerfFlags()
@@ -500,12 +504,14 @@ function SceneContent({
   instancing,
   gpuTier,
   perfFactor,
+  lowTier,
 }: {
   aoQuality: AOQuality
   postMode: PerfFlags['postOverride']
   instancing: PerfFlags['instancing']
   gpuTier: number | undefined
   perfFactor: number
+  lowTier: boolean
 }) {
   const cameraControlsRef = useRef<CameraControls>(null)
   const currentSelectedId = useValue(selectedId)
@@ -547,17 +553,29 @@ function SceneContent({
 
   return (
     <>
-      <Environment files="./common/hdri.jpg" environmentIntensity={2} />
-      <Grid
-        cellSize={0.025}
-        sectionSize={0.025}
-        sectionColor="#373F41"
-        cellColor="#373F41"
-        scale={15}
-        position={[0, 0, 0]}
-        fadeDistance={25}
-        fadeStrength={0.5}
-      />
+      {lowTier ? (
+        // Lambert lighting fallback — replaces the per-fragment env-map BRDF
+        // sampling that's the dominant cost on integrated GPUs.
+        <>
+          <ambientLight intensity={1.4} />
+          <directionalLight intensity={1.6} position={[5, 8, 6]} />
+          <directionalLight intensity={0.4} position={[-6, 3, -4]} />
+        </>
+      ) : (
+        <Environment files="./common/hdri.jpg" environmentIntensity={2} />
+      )}
+      {!lowTier && (
+        <Grid
+          cellSize={0.025}
+          sectionSize={0.025}
+          sectionColor="#373F41"
+          cellColor="#373F41"
+          scale={15}
+          position={[0, 0, 0]}
+          fadeDistance={25}
+          fadeStrength={0.5}
+        />
+      )}
       {!viewingChildOfId && <RackShadow />}
       <ModifiedSelection>
         {postMode !== 'none' && (
@@ -570,6 +588,7 @@ function SceneContent({
                   : aoQuality
             }
             enableOutline={postMode !== 'ao'}
+            lowTier={lowTier}
           />
         )}
         {postMode === 'none' && perfFlags.enabled && <ManualRenderer />}
@@ -781,12 +800,10 @@ const isSafariOnMac = () => {
 }
 
 export const Scene = () => {
-  const [detectedConfig, setDetectedConfig] = useState<GPUConfig>({
-    dpr: 1,
-    enableAO: false,
-  })
-  const isLowQuality = useValue(lowQuality)
-  const lastMissTime = useRef(0)
+  // Null until getGPUTier() resolves. Canvas mount is deferred so GL context
+  // options (powerPreference, antialias, precision) can be tier-aware — these
+  // can't be changed after the WebGL context is created. Detection is ~30ms.
+  const [detectedConfig, setDetectedConfig] = useState<GPUConfig | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -798,38 +815,59 @@ export const Scene = () => {
         isSafariOnMac() && (tier?.tier ?? 0) < 3
           ? ({ ...tier, tier: 3 } as TierResult)
           : tier
-      setDetectedConfig(getGPUConfig(effectiveTier))
+      const config = getGPUConfig(effectiveTier)
+      detectedTier.set(config.tier ?? 1)
+      setDetectedConfig(config)
     })
     return () => {
       cancelled = true
     }
   }, [])
 
-  const baseGpuConfig: GPUConfig = isLowQuality
-    ? { dpr: 1, enableAO: false }
-    : detectedConfig
-  const gpuConfig: GPUConfig = {
-    dpr: perfFlags.dprOverride ?? baseGpuConfig.dpr,
-    enableAO:
-      perfFlags.postOverride === 'outline+ao' || perfFlags.postOverride === 'ao'
-        ? true
-        : perfFlags.postOverride === 'outline' || perfFlags.postOverride === 'none'
-          ? false
-          : baseGpuConfig.enableAO,
-  }
+  if (!detectedConfig) return null
+  return <SceneCanvas detectedConfig={detectedConfig} />
+}
+
+const SceneCanvas = ({ detectedConfig }: { detectedConfig: GPUConfig }) => {
+  const lastMissTime = useRef(0)
+  const aoSetting = useValue(ambientOcclusionSetting)
+  const dprSetting = useValue(adaptiveDprSetting)
+  // Respects a manual highQualitySetting override and otherwise falls back to
+  // (tier < 2). Same value the GLB model components observe.
+  const lowTier = useValue(lowTierRendering)
+  // Tier-bound flag captured at mount for the GL context options below — these
+  // are immutable after WebGL context creation, so we can't track lowTier here.
+  const tierAtMount = useRef((detectedConfig.tier ?? 1) < 2)
+
+  const tierAOEnabled =
+    perfFlags.postOverride === 'outline+ao' || perfFlags.postOverride === 'ao'
+      ? true
+      : perfFlags.postOverride === 'outline' || perfFlags.postOverride === 'none'
+        ? false
+        : detectedConfig.enableAO
 
   // Max DPR the GPU tier / override allows. Adaptive DPR scales in [1, maxDpr].
-  const maxDpr = Array.isArray(gpuConfig.dpr) ? gpuConfig.dpr[1] : gpuConfig.dpr
+  const dprConfig = perfFlags.dprOverride ?? detectedConfig.dpr
+  const maxDpr = Array.isArray(dprConfig) ? dprConfig[1] : dprConfig
   const [dpr, setDpr] = useState(maxDpr)
   useEffect(() => {
     setDpr(maxDpr)
   }, [maxDpr])
+  // When DPR adaptation is manually disabled, pin to maxDpr regardless of
+  // factor — fires whenever the setting changes back to 'off'.
+  useEffect(() => {
+    if (dprSetting === 'off') setDpr(maxDpr)
+  }, [dprSetting, maxDpr])
 
-  // Adaptive AO quality: 'full' → 'low' → 'off' as perf factor drops.
-  // Hysteresis prevents flicker around thresholds. Final value is gated by
-  // gpuConfig.enableAO — low-tier GPUs that start with AO off stay off.
+  // Adaptive AO quality: 'full' → 'off' as perf factor drops. Hysteresis
+  // prevents flicker. Only takes effect when aoSetting === 'auto' AND the
+  // tier supports AO; otherwise the manual or tier-disabled value wins.
   const [adaptiveAO, setAdaptiveAO] = useState<'full' | 'low' | 'off'>('full')
   const [perfFactor, setPerfFactor] = useState(1)
+
+  // Effective AO quality routed into PostProcessing.
+  const effectiveAO: AOQuality =
+    aoSetting === 'on' ? 'full' : aoSetting === 'off' ? 'off' : tierAOEnabled ? adaptiveAO : 'off'
 
   // Initial camera pose before the first fit lands. CameraFitter will dolly
   // to the bbox-derived distance on the first frame the rack model is loaded.
@@ -863,6 +901,7 @@ export const Scene = () => {
           near: 1,
           far: 100,
         }}
+        events={eventsWithoutHover}
         performance={{ current: 1, min: 0.5, max: 1, debounce: 200 }}
         className="absolute inset-0 z-0"
         style={canvasStyle}
@@ -870,6 +909,9 @@ export const Scene = () => {
           outputColorSpace: 'srgb',
           toneMapping: 0,
           premultipliedAlpha: false,
+          powerPreference: 'high-performance',
+          antialias: !tierAtMount.current,
+          precision: tierAtMount.current ? 'mediump' : 'highp',
         }}
         dpr={dpr}
         linear
@@ -894,11 +936,12 @@ export const Scene = () => {
         }}
       >
         <SceneContent
-          aoQuality={gpuConfig.enableAO ? adaptiveAO : 'off'}
+          aoQuality={effectiveAO}
           postMode={perfFlags.postOverride}
           instancing={perfFlags.instancing}
           gpuTier={detectedConfig.tier}
           perfFactor={perfFactor}
+          lowTier={lowTier}
         />
         <PerformanceMonitor
           ms={250}
@@ -908,12 +951,16 @@ export const Scene = () => {
           bounds={(refreshrate) => (refreshrate > 90 ? [60, 100] : [40, 60])}
           onChange={({ factor }) => {
             setPerfFactor(factor)
-            // Map factor (0..1) into [1, maxDpr].
-            setDpr(Math.max(1, 1 + (maxDpr - 1) * factor))
-            // Hysteresis: drop AO below 0.6, restore above 0.9. The 'low'
-            // tier is kept available in PostProcessing for future use.
-            if (factor < 0.6) setAdaptiveAO('off')
-            else if (factor > 0.9) setAdaptiveAO('full')
+            // Adaptive DPR: only when 'auto' or 'on'. 'off' pins via the effect above.
+            if (dprSetting !== 'off') {
+              setDpr(Math.max(1, 1 + (maxDpr - 1) * factor))
+            }
+            // Adaptive AO: only when 'auto' (manual on/off bypasses adaptiveAO).
+            // Hysteresis: drop below 0.6, restore above 0.9.
+            if (aoSetting === 'auto') {
+              if (factor < 0.6) setAdaptiveAO('off')
+              else if (factor > 0.9) setAdaptiveAO('full')
+            }
           }}
         />
       </Canvas>

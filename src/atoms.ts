@@ -16,9 +16,41 @@ export const sceneReady = atom('sceneReady', false)
 export const mobileOutlineOpen = atom('mobileOutlineOpen', false)
 
 // Options
-export const lowQuality = atom('lowQuality', false)
 export const showcaseMode = atom('showcaseMode', false)
 export const debugMode = atom('debugMode', false)
+
+// 3-state quality settings. 'auto' lets tier detection (and adaptive perf, for
+// AO and DPR) drive the effective value; 'on'/'off' is a manual override that
+// adaptive perf must respect.
+export type QualitySetting = 'auto' | 'on' | 'off'
+
+/** High-quality materials, environment HDRI, grid, and full-resolution outline.
+ *  Off = MeshLambert + ambient/directional lights, no grid, quarter-res outline. */
+export const highQualitySetting = atom<QualitySetting>('highQualitySetting', 'auto')
+
+/** Screen-space ambient occlusion. Adaptive perf can flip this when 'auto'. */
+export const ambientOcclusionSetting = atom<QualitySetting>(
+  'ambientOcclusionSetting',
+  'auto',
+)
+
+/** Whether render resolution drops under load (PerformanceMonitor → DPR). When
+ *  'off', DPR is pinned at the tier's maxDpr regardless of frame timing. */
+export const adaptiveDprSetting = atom<QualitySetting>('adaptiveDprSetting', 'auto')
+
+/** Detected GPU tier (0..3). Null until getGPUTier() resolves. */
+export const detectedTier = atom<number | null>('detectedTier', null)
+
+/** True when GLB model components should render with downgraded Lambert
+ *  materials. Computed from the high-quality setting + detected tier so manual
+ *  overrides win and 'auto' falls back to tier ≥ 2. */
+export const lowTierRendering = computed('lowTierRendering', () => {
+  const setting = highQualitySetting.get()
+  if (setting === 'on') return false
+  if (setting === 'off') return true
+  const tier = detectedTier.get()
+  return tier == null ? false : tier < 2
+})
 
 // Guided tour state
 export const activeTourId = atom<string | null>('activeTourId', null)

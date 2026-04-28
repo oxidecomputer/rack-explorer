@@ -5,8 +5,10 @@ import { memo, useEffect, useMemo } from 'react'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 
-import { selectedId } from '../atoms'
+import { lowTierRendering, selectedId } from '../atoms'
 import { dracoLoader } from '../loaders'
+import { downgradeMaterials } from '../perf/materialDowngrade'
+import { ensureBoundsTree } from '../perf/raycasting'
 
 const textureLoader = new THREE.TextureLoader()
 import { useSelectionOffset } from '../useSelectionOffset'
@@ -34,10 +36,27 @@ export const SelectableGLBModel = memo(function SelectableGLBModel({
   const gltf = useLoader(GLTFLoader, path, (loader) => {
     loader.setDRACOLoader(dracoLoader)
   })
+  ensureBoundsTree(gltf.scene)
+  const lowTier = useValue(lowTierRendering)
 
-  const scene = useMemo(() => gltf.scene.clone(true), [gltf.scene])
+  // Re-clone whenever the source GLTF or low-tier setting changes. The clone
+  // owns any new lambert materials we create during downgrade — they get
+  // disposed when the next clone replaces this one.
+  const sceneInfo = useMemo(() => {
+    const cloned = gltf.scene.clone(true)
+    const created = lowTier ? downgradeMaterials(cloned) : []
+    return { scene: cloned, created }
+  }, [gltf.scene, lowTier])
+  const scene = sceneInfo.scene
 
-  // Apply external textures to matching materials
+  useEffect(() => {
+    return () => {
+      for (const m of sceneInfo.created) m.dispose()
+    }
+  }, [sceneInfo])
+
+  // Apply external textures to matching materials. Material name is preserved
+  // through downgrade, so the lookup works for both Standard and Lambert.
   useEffect(() => {
     if (!textures) return
     const loaded: THREE.Texture[] = []
@@ -52,7 +71,11 @@ export const SelectableGLBModel = memo(function SelectableGLBModel({
           if (child instanceof THREE.Mesh) {
             const mats = Array.isArray(child.material) ? child.material : [child.material]
             for (const mat of mats) {
-              if (mat.name === materialName && mat instanceof THREE.MeshStandardMaterial) {
+              if (
+                mat.name === materialName &&
+                (mat instanceof THREE.MeshStandardMaterial ||
+                  mat instanceof THREE.MeshLambertMaterial)
+              ) {
                 mat.map = tex
                 mat.needsUpdate = true
               }

@@ -28,7 +28,8 @@
     "react-dom": "^19.2.0",
     "remeda": "^2.32.0",
     "tailwindcss": "^4.1.17",
-    "three": "^0.181.1"
+    "three": "^0.181.1",
+    "three-mesh-bvh": "^0.9.9"
   },
   "devDependencies": {
     "@eslint/compat": "^1.4.1",
