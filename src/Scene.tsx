@@ -13,13 +13,13 @@ import { lazy, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 
 import {
-  adaptiveDprSetting,
-  ambientOcclusionSetting,
   debugMode,
   detectedTier,
   isVideoTour,
   lowTierRendering,
   navigationMode,
+  postProcessingSetting,
+  resolutionSetting,
   sceneReady,
   selectedId,
   showcaseMode,
@@ -559,8 +559,8 @@ function SceneContent({
         // Lambert lighting fallback — replaces the per-fragment env-map BRDF
         // sampling that's the dominant cost on integrated GPUs.
         <>
-          <ambientLight intensity={1.4} />
-          <directionalLight intensity={1.6} position={[5, 8, 6]} />
+          <ambientLight intensity={0.8} />
+          <directionalLight intensity={2.8} position={[5, 8, 6]} />
           <directionalLight intensity={0.4} position={[-6, 3, -4]} />
         </>
       ) : (
@@ -833,9 +833,9 @@ export const Scene = () => {
 
 const SceneCanvas = ({ detectedConfig }: { detectedConfig: GPUConfig }) => {
   const lastMissTime = useRef(0)
-  const aoSetting = useValue(ambientOcclusionSetting)
-  const dprSetting = useValue(adaptiveDprSetting)
-  // Respects a manual highQualitySetting override and otherwise falls back to
+  const postSetting = useValue(postProcessingSetting)
+  const dprSetting = useValue(resolutionSetting)
+  // Respects a manual qualitySetting override and otherwise falls back to
   // (tier < 2). Same value the GLB model components observe.
   const lowTier = useValue(lowTierRendering)
   // Tier-bound flag captured at mount for the GL context options below — these
@@ -856,21 +856,27 @@ const SceneCanvas = ({ detectedConfig }: { detectedConfig: GPUConfig }) => {
   useEffect(() => {
     setDpr(maxDpr)
   }, [maxDpr])
-  // When DPR adaptation is manually disabled, pin to maxDpr regardless of
-  // factor — fires whenever the setting changes back to 'off'.
+  // Manual resolution overrides pin DPR regardless of perf factor.
   useEffect(() => {
-    if (dprSetting === 'off') setDpr(maxDpr)
+    if (dprSetting === 'high') setDpr(maxDpr)
+    else if (dprSetting === 'low') setDpr(1)
   }, [dprSetting, maxDpr])
 
   // Adaptive AO quality: 'full' → 'off' as perf factor drops. Hysteresis
-  // prevents flicker. Only takes effect when aoSetting === 'auto' AND the
+  // prevents flicker. Only takes effect when postSetting === 'auto' AND the
   // tier supports AO; otherwise the manual or tier-disabled value wins.
   const [adaptiveAO, setAdaptiveAO] = useState<'full' | 'low' | 'off'>('full')
   const [perfFactor, setPerfFactor] = useState(1)
 
   // Effective AO quality routed into PostProcessing.
   const effectiveAO: AOQuality =
-    aoSetting === 'on' ? 'full' : aoSetting === 'off' ? 'off' : tierAOEnabled ? adaptiveAO : 'off'
+    postSetting === 'high'
+      ? 'full'
+      : postSetting === 'low'
+        ? 'low'
+        : tierAOEnabled
+          ? adaptiveAO
+          : 'off'
 
   // Initial camera pose before the first fit lands. CameraFitter will dolly
   // to the bbox-derived distance on the first frame the rack model is loaded.
@@ -954,13 +960,13 @@ const SceneCanvas = ({ detectedConfig }: { detectedConfig: GPUConfig }) => {
           bounds={(refreshrate) => (refreshrate > 90 ? [60, 100] : [40, 60])}
           onChange={({ factor }) => {
             setPerfFactor(factor)
-            // Adaptive DPR: only when 'auto' or 'on'. 'off' pins via the effect above.
-            if (dprSetting !== 'off') {
+            // Adaptive DPR: only when 'auto'. 'high'/'low' pin via the effect above.
+            if (dprSetting === 'auto') {
               setDpr(Math.max(1, 1 + (maxDpr - 1) * factor))
             }
-            // Adaptive AO: only when 'auto' (manual on/off bypasses adaptiveAO).
+            // Adaptive AO: only when 'auto' (manual high/low bypasses adaptiveAO).
             // Hysteresis: drop below 0.6, restore above 0.9.
-            if (aoSetting === 'auto') {
+            if (postSetting === 'auto') {
               if (factor < 0.6) setAdaptiveAO('off')
               else if (factor > 0.9) setAdaptiveAO('full')
             }
