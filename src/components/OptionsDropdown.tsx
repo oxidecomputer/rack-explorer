@@ -3,16 +3,17 @@ import type { Atom } from '@tldraw/state'
 import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
 import { motion } from 'motion/react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import {
-  adaptiveDprSetting,
-  ambientOcclusionSetting,
   debugMode,
-  highQualitySetting,
+  landingOpen,
   navigationMode,
+  postProcessingSetting,
+  qualitySetting,
+  resolutionSetting,
   showcaseMode,
-  type QualitySetting,
+  type QualityLevel,
 } from '../atoms'
 
 function Toggle({
@@ -41,20 +42,30 @@ function Toggle({
   )
 }
 
-const SETTING_OPTIONS: QualitySetting[] = ['auto', 'on', 'off']
-const SETTING_LABELS: Record<QualitySetting, string> = {
+const LEVEL_OPTIONS: QualityLevel[] = ['auto', 'high', 'low']
+const LEVEL_LABELS: Record<QualityLevel, string> = {
   auto: 'Auto',
-  on: 'On',
-  off: 'Off',
+  high: 'High',
+  low: 'Low',
 }
 
-function SegmentedSetting({ label, atom }: { label: string; atom: Atom<QualitySetting> }) {
+function Segmented<T extends string>({
+  label,
+  atom,
+  options,
+  labels,
+}: {
+  label: string
+  atom: Atom<T>
+  options: readonly T[]
+  labels: Record<T, string>
+}) {
   const value = useValue(atom)
   return (
     <div className="flex items-center justify-between rounded px-3 py-2">
       <span className="text-secondary">{label}</span>
       <div className="bg-tertiary flex rounded-sm p-px">
-        {SETTING_OPTIONS.map((option) => {
+        {options.map((option) => {
           const selected = value === option
           return (
             <button
@@ -65,7 +76,7 @@ function SegmentedSetting({ label, atom }: { label: string; atom: Atom<QualitySe
                 selected ? 'bg-raise text-default' : 'text-quaternary hover:text-secondary',
               )}
             >
-              {SETTING_LABELS[option]}
+              {labels[option]}
             </button>
           )
         })}
@@ -80,12 +91,18 @@ export function OptionsDropdown() {
   const isDebugMode = useValue(debugMode)
   const currentNavigationMode = useValue(navigationMode)
   const isGuided = currentNavigationMode === 'guided'
+  const isLandingOpen = useValue(landingOpen)
+
+  useEffect(() => {
+    if (isLandingOpen && open) setOpen(false)
+  }, [isLandingOpen, open])
 
   return (
     <div className="max-1000:hidden relative z-40 w-full">
       <button
         onClick={() => setOpen(!open)}
-        className="text-mono-xs text-secondary bg-default hover:bg-hover border-neutral-0 flex h-8 w-full items-center gap-1.5 rounded border p-2"
+        disabled={isLandingOpen}
+        className="text-mono-xs text-secondary bg-default hover:bg-hover border-neutral-0 flex h-8 w-full items-center gap-1.5 rounded border p-2 disabled:pointer-events-none disabled:opacity-50"
       >
         <PrevArrow12Icon
           className={clsx(
@@ -115,9 +132,24 @@ export function OptionsDropdown() {
               <Toggle checked={isDebugMode} onChange={(v) => debugMode.set(v)} />
             </label>
             <div className="border-secondary border-t" />
-            <SegmentedSetting label="High Quality" atom={highQualitySetting} />
-            <SegmentedSetting label="Ambient Occlusion" atom={ambientOcclusionSetting} />
-            <SegmentedSetting label="Adaptive DPR" atom={adaptiveDprSetting} />
+            <Segmented
+              label="Quality"
+              atom={qualitySetting}
+              options={LEVEL_OPTIONS}
+              labels={LEVEL_LABELS}
+            />
+            <Segmented
+              label="Post Processing"
+              atom={postProcessingSetting}
+              options={LEVEL_OPTIONS}
+              labels={LEVEL_LABELS}
+            />
+            <Segmented
+              label="Resolution"
+              atom={resolutionSetting}
+              options={LEVEL_OPTIONS}
+              labels={LEVEL_LABELS}
+            />
           </motion.div>
         </>
       )}

@@ -19,24 +19,24 @@ export const mobileOutlineOpen = atom('mobileOutlineOpen', false)
 export const showcaseMode = atom('showcaseMode', false)
 export const debugMode = atom('debugMode', false)
 
-// 3-state quality settings. 'auto' lets tier detection (and adaptive perf, for
-// AO and DPR) drive the effective value; 'on'/'off' is a manual override that
-// adaptive perf must respect.
-export type QualitySetting = 'auto' | 'on' | 'off'
+/** Three-level quality scale: 'auto' lets tier detection (and adaptive perf,
+ *  for post-processing and DPR) drive the effective value; 'high'/'low' is a
+ *  manual override that adaptive perf must respect. */
+export type QualityLevel = 'auto' | 'high' | 'low'
 
-/** High-quality materials, environment HDRI, grid, and full-resolution outline.
- *  Off = MeshLambert + ambient/directional lights, no grid, quarter-res outline. */
-export const highQualitySetting = atom<QualitySetting>('highQualitySetting', 'auto')
+/** High = full materials, environment HDRI, grid, full-resolution outline.
+ *  Low = MeshLambert + ambient/directional lights, no grid, quarter-res outline.
+ *  Auto = tier detection picks. */
+export const qualitySetting = atom<QualityLevel>('qualitySetting', 'auto')
 
-/** Screen-space ambient occlusion. Adaptive perf can flip this when 'auto'. */
-export const ambientOcclusionSetting = atom<QualitySetting>(
-  'ambientOcclusionSetting',
-  'auto',
-)
+/** Screen-space ambient occlusion quality. High = full samples/radius. Low =
+ *  reduced samples/radius. Auto = tier detection picks, and adaptive perf can
+ *  drop AO entirely under sustained load. */
+export const postProcessingSetting = atom<QualityLevel>('postProcessingSetting', 'auto')
 
-/** Whether render resolution drops under load (PerformanceMonitor → DPR). When
- *  'off', DPR is pinned at the tier's maxDpr regardless of frame timing. */
-export const adaptiveDprSetting = atom<QualitySetting>('adaptiveDprSetting', 'auto')
+/** Render resolution. Auto = adaptive (drops DPR under load via
+ *  PerformanceMonitor). High = pinned at the tier's maxDpr. Low = pinned at 1x. */
+export const resolutionSetting = atom<QualityLevel>('resolutionSetting', 'auto')
 
 /** Detected GPU tier (0..3). Null until getGPUTier() resolves. */
 export const detectedTier = atom<number | null>('detectedTier', null)
@@ -48,9 +48,9 @@ export const softwareRenderingDetected = atom('softwareRenderingDetected', false
  *  materials. Computed from the high-quality setting + detected tier so manual
  *  overrides win and 'auto' falls back to tier ≥ 2. */
 export const lowTierRendering = computed('lowTierRendering', () => {
-  const setting = highQualitySetting.get()
-  if (setting === 'on') return false
-  if (setting === 'off') return true
+  const setting = qualitySetting.get()
+  if (setting === 'high') return false
+  if (setting === 'low') return true
   const tier = detectedTier.get()
   return tier == null ? false : tier < 2
 })
