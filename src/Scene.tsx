@@ -800,6 +800,18 @@ const isSafariOnMac = () => {
   return isSafari && /Macintosh/.test(ua)
 }
 
+// detect-gpu's benchmark database lags new releases (e.g. RTX 5070 at time of
+// writing) and some browsers (Brave's "Standard" fingerprinting protection)
+// farble the renderer string so the lookup misses. Both produce
+// type: 'FALLBACK' with a populated `gpu` field. Pattern-match known capable
+// GPU families on FALLBACK only, so recognized weak GPUs (type: 'BENCHMARK')
+// still flow through with their real tier.
+const HIGH_TIER_RENDERER_RE =
+  /(rtx\s*[3-9]\d{3}|geforce\s*(rtx\s*)?[3-9]\d{3}|radeon\s*rx\s*[6-9]\d{3}|apple\s*m\d|arc\s*[ab]\d{3})/i
+
+const isUnrecognizedHighTierGPU = (tier: TierResult | null) =>
+  tier?.type === 'FALLBACK' && !!tier.gpu && HIGH_TIER_RENDERER_RE.test(tier.gpu)
+
 export const Scene = () => {
   // Null until getGPUTier() resolves. Canvas mount is deferred so GL context
   // options (powerPreference, antialias, precision) can be tier-aware — these
@@ -813,10 +825,9 @@ export const Scene = () => {
     getGPUTier().then((tier) => {
       markInit('gpuTierEndMs', performance.now())
       if (cancelled) return
-      const effectiveTier =
-        isSafariOnMac() && (tier?.tier ?? 0) < 3
-          ? ({ ...tier, tier: 3 } as TierResult)
-          : tier
+      const shouldPromote =
+        (isSafariOnMac() || isUnrecognizedHighTierGPU(tier)) && (tier?.tier ?? 0) < 3
+      const effectiveTier = shouldPromote ? ({ ...tier, tier: 3 } as TierResult) : tier
       const config = getGPUConfig(effectiveTier)
       detectedTier.set(config.tier ?? 1)
       setDetectedConfig(config)
