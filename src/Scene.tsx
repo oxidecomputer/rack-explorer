@@ -720,6 +720,7 @@ function SceneContent({
                       path={model.path}
                       instances={instancesById[node.id]}
                       selectionOffset={node.selectionOffset}
+                      textures={model.textures}
                     />
                   ))}
                 </group>

@@ -111,7 +111,8 @@ export const componentTree: ComponentNode = {
       defaultInstance: 16,
       selectionOffset: selectionOffset,
       model: {
-        path: './models/cosmo/lod1/cosmo-ext-1.glb',
+        path: './models/cosmo/lod1/cosmo-ext-1-texture.glb',
+        textures: { Cosmo_Front_Perf: './models/cosmo/lod1/cosmo-perf-512x256.jpg' },
         showModelInChildView: true,
       },
       children: [
