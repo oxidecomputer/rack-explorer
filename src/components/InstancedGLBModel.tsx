@@ -13,6 +13,7 @@ import { downgradeMaterial, downgradeMaterials } from '../perf/materialDowngrade
 import { ensureBoundsTree } from '../perf/raycasting'
 import { useSelectionOffset } from '../useSelectionOffset'
 import { ModifiedSelect } from './Selection'
+import { applyExternalTextures } from './textureApply'
 
 extend({ InstancedMesh2 })
 
@@ -31,6 +32,8 @@ interface InstancedGLBModelProps {
   path: string
   instances: GLBInstance[]
   selectionOffset?: [number, number, number]
+  /** Map of material name → texture path to apply. */
+  textures?: Record<string, string>
 }
 
 const DRAG_THRESHOLD = 5
@@ -46,6 +49,7 @@ export const InstancedGLBModel = memo(function InstancedGLBModel({
   path,
   instances,
   selectionOffset,
+  textures,
 }: InstancedGLBModelProps) {
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null)
   const gl = useThree((s) => s.gl)
@@ -139,6 +143,27 @@ export const InstancedGLBModel = memo(function InstancedGLBModel({
       for (const m of overlayInfo.created) m.dispose()
     }
   }, [overlayInfo])
+
+  // Apply external textures to materials on both the instanced render path
+  // (`meshes[].material`) and the selection-outline overlay scene. After a
+  // lowTier toggle these are separate material refs, so both need the texture.
+  useEffect(() => {
+    if (!textures) return
+    return applyExternalTextures(textures, () => {
+      const mats: THREE.Material[] = []
+      for (const m of meshes) {
+        const ms = Array.isArray(m.material) ? m.material : [m.material]
+        mats.push(...ms)
+      }
+      overlayInfo.scene.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          const ms = Array.isArray(child.material) ? child.material : [child.material]
+          mats.push(...ms)
+        }
+      })
+      return mats
+    })
+  }, [meshes, overlayInfo, textures])
 
   const selectedScene = selectedInstance ? overlayInfo.scene : null
 

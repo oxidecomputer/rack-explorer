@@ -9,10 +9,9 @@ import { lowTierRendering, selectedId } from '../atoms'
 import { dracoLoader } from '../loaders'
 import { downgradeMaterials } from '../perf/materialDowngrade'
 import { ensureBoundsTree } from '../perf/raycasting'
-
-const textureLoader = new THREE.TextureLoader()
 import { useSelectionOffset } from '../useSelectionOffset'
 import { ModifiedSelect } from './Selection'
+import { applyExternalTextures } from './textureApply'
 
 interface SelectableGLBModelProps {
   id: string
@@ -59,35 +58,16 @@ export const SelectableGLBModel = memo(function SelectableGLBModel({
   // through downgrade, so the lookup works for both Standard and Lambert.
   useEffect(() => {
     if (!textures) return
-    const loaded: THREE.Texture[] = []
-
-    for (const [materialName, texturePath] of Object.entries(textures)) {
-      textureLoader.load(texturePath, (tex) => {
-        tex.flipY = false
-        tex.colorSpace = THREE.SRGBColorSpace
-        loaded.push(tex)
-
-        scene.traverse((child) => {
-          if (child instanceof THREE.Mesh) {
-            const mats = Array.isArray(child.material) ? child.material : [child.material]
-            for (const mat of mats) {
-              if (
-                mat.name === materialName &&
-                (mat instanceof THREE.MeshStandardMaterial ||
-                  mat instanceof THREE.MeshLambertMaterial)
-              ) {
-                mat.map = tex
-                mat.needsUpdate = true
-              }
-            }
-          }
-        })
+    return applyExternalTextures(textures, () => {
+      const mats: THREE.Material[] = []
+      scene.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          const ms = Array.isArray(child.material) ? child.material : [child.material]
+          mats.push(...ms)
+        }
       })
-    }
-
-    return () => {
-      loaded.forEach((tex) => tex.dispose())
-    }
+      return mats
+    })
   }, [scene, textures])
 
   const isSelected = useMemo(
