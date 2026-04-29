@@ -2,7 +2,6 @@ import {
   Close8Icon,
   Compass16Icon,
   NextArrow12Icon,
-  PrevArrow12Icon,
   Question16Icon,
   Show16Icon,
 } from '@oxide/design-system/icons/react'
@@ -44,6 +43,7 @@ import { Outline } from './components/Outline'
 import { Bar, OutlineSkeleton, SpecificationsSkeleton } from './components/Skeletons'
 import { Specifications } from './components/Specifications'
 import { StepPips } from './components/StepPips'
+import { TourNavArrow } from './components/TourNavArrow'
 import { TourStartScreen } from './components/TourStartScreen'
 import { VideoCaptions } from './components/VideoCaptions'
 import { VideoPlayPauseFlash } from './components/VideoPlayPauseFlash'
@@ -328,37 +328,29 @@ function App() {
                   <StepPips />
                 </div>
 
-                {[
-                  {
-                    Icon: PrevArrow12Icon,
-                    pos: 'left-4',
-                    step: currentStepIndex - 1,
-                    disabled: currentStepIndex === 0,
-                  },
-                  {
-                    Icon: NextArrow12Icon,
-                    pos: specsOpen ? 'right-4' : 'right-0',
-                    step: currentStepIndex + 1,
-                    disabled:
-                      currentTour.type !== 'video' &&
-                      currentStepIndex === currentTour.steps.length - 1,
-                  },
-                ].map(({ Icon, pos, step, disabled }) => (
-                  <button
-                    key={pos}
-                    className={`target-16 max-1000:top-[calc(50%-100px)] pointer-events-auto absolute top-1/2 ${pos} z-30 -translate-y-1/2 rounded-md text-center hover:bg-neutral-800/30 hover:backdrop-blur-sm disabled:pointer-events-none disabled:opacity-30`}
-                    disabled={disabled}
-                    onClick={() => {
-                      goToTourStep(step)
-                      const pip = document.querySelector<HTMLElement>(
-                        `[data-step="${step}"]`,
-                      )
-                      pip?.focus()
-                    }}
-                  >
-                    <Icon className="m-1 size-6" />
-                  </button>
-                ))}
+                {(['prev', 'next'] as const).map((direction) => {
+                  const step =
+                    direction === 'prev' ? currentStepIndex - 1 : currentStepIndex + 1
+                  const disabled =
+                    direction === 'prev'
+                      ? currentStepIndex === 0
+                      : currentStepIndex === currentTour.steps.length - 1
+                  return (
+                    <TourNavArrow
+                      key={direction}
+                      direction={direction}
+                      pos={direction === 'next' && !specsOpen ? 'right-0' : undefined}
+                      disabled={disabled}
+                      onClick={() => {
+                        goToTourStep(step)
+                        const pip = document.querySelector<HTMLElement>(
+                          `[data-step="${step}"]`,
+                        )
+                        pip?.focus()
+                      }}
+                    />
+                  )
+                })}
               </>
             )}
 
@@ -372,16 +364,24 @@ function App() {
                     <VideoTourPlayer />
                   </AnimatePresence>
                 </div>
+
+                <TourNavArrow
+                  direction="prev"
+                  disabled={currentVideoStepIndex === 0}
+                  onClick={handleVideoSkipPrev}
+                />
+                <TourNavArrow
+                  direction="next"
+                  disabled={currentVideoStepIndex === currentVideoTour.steps.length - 1}
+                  onClick={handleVideoSkipNext}
+                />
+
                 <div className="absolute right-0 bottom-20 left-0 z-20 px-4">
                   <VideoCaptions />
                 </div>
                 <div className="1000:pl-4 pointer-events-auto absolute right-0 bottom-0 left-0 z-20">
                   <div className="bg-default/80 rounded-lg px-4 py-3 backdrop-blur-md">
-                    <VideoTourTimeline
-                      onSeek={seekVideo}
-                      onSkipPrev={handleVideoSkipPrev}
-                      onSkipNext={handleVideoSkipNext}
-                    />
+                    <VideoTourTimeline onSeek={seekVideo} />
                   </div>
                 </div>
               </>
