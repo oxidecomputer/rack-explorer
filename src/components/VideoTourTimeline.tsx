@@ -106,7 +106,7 @@ export function VideoTourTimeline({ onSeek }: { onSeek: (time: number) => void }
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 4 }}
               transition={{ duration: 0.1 }}
-              className="pointer-events-none absolute -top-10 z-10 -translate-x-1/2 rounded bg-neutral-300 px-2.5 py-1"
+              className="1000:block pointer-events-none absolute -top-10 z-10 hidden -translate-x-1/2 rounded bg-neutral-300 px-2.5 py-1"
               style={{ left: hoverX }}
             >
               <span className="text-sans-sm text-default text-nowrap">
