@@ -22,7 +22,7 @@ export function TourNavArrow({
   const defaultPos = direction === 'prev' ? 'left-4' : 'right-4'
   return (
     <button
-      className={`target-16 pointer-events-auto absolute ${className ?? 'top-1/2'} ${pos ?? defaultPos} z-30 -translate-y-1/2 rounded-md text-center hover:bg-neutral-800/30 hover:backdrop-blur-sm disabled:pointer-events-none disabled:opacity-15`}
+      className={`target-16 pointer-events-auto absolute transition-all duration-150 ${className ?? 'top-1/2'} ${pos ?? defaultPos} z-30 -translate-y-1/2 rounded-md text-center hover:bg-neutral-800/30 hover:backdrop-blur-sm disabled:pointer-events-none disabled:opacity-15`}
       disabled={disabled}
       onClick={onClick}
     >
