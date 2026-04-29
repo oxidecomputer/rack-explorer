@@ -1,0 +1,159 @@
+1
+00:00:00,020 --> 00:00:02,500
+Hey, it's Bryan from Oxide back with another FAQ Friday.
+
+2
+00:00:02,660 --> 00:00:06,020
+And a question we get is, where are the power supplies in the system?
+
+3
+00:00:06,180 --> 00:00:10,600
+You keep saying there's a DC bus bar that runs DC up and down the rack.
+
+4
+00:00:10,650 --> 00:00:14,080
+And I know that sleds blind mate into that DC bus bar.
+
+5
+00:00:14,610 --> 00:00:17,660
+But who does the actual conversion from AC to DC?
+
+6
+00:00:17,860 --> 00:00:18,360
+Where does that happen?
+
+7
+00:00:18,700 --> 00:00:20,120
+The answer is, that happens here.
+
+8
+00:00:20,280 --> 00:00:21,660
+That happens in the power shelf.
+
+9
+00:00:22,420 --> 00:00:24,880
+The power shelf is a series of rectifiers.
+
+10
+00:00:25,680 --> 00:00:29,700
+And when we were looking at this, one of the very important things for us is,
+
+11
+00:00:30,080 --> 00:00:32,759
+finding the right partner for our rectifiers.
+
+12
+00:00:33,160 --> 00:00:34,360
+What were we looking for in a partner?
+
+13
+00:00:34,420 --> 00:00:36,040
+Well, one, we of course want one
+
+14
+00:00:36,040 --> 00:00:37,860
+that made a high quality power supply.
+
+15
+00:00:38,660 --> 00:00:41,800
+This is Murata is our PSU partner.
+
+16
+00:00:42,520 --> 00:00:45,700
+We of course wanted one that had a high quality unit,
+
+17
+00:00:45,940 --> 00:00:47,040
+which this absolutely is.
+
+18
+00:00:47,600 --> 00:00:49,560
+But the other thing that we wanted to be able to do
+
+19
+00:00:50,040 --> 00:00:52,600
+is really build in in-depth monitoring
+
+20
+00:00:53,240 --> 00:00:54,640
+of these power supply units.
+
+21
+00:00:54,780 --> 00:00:57,800
+And so in particular, we were looking for a partner
+
+22
+00:00:58,539 --> 00:01:02,100
+around which we could develop really custom software and hardware.
+
+23
+00:01:02,660 --> 00:01:04,780
+So what we actually developed is,
+
+24
+00:01:04,839 --> 00:01:09,320
+in addition to using the Murata power shelf and the power supplies,
+
+25
+00:01:09,880 --> 00:01:11,600
+we developed our own power shelf controller.
+
+26
+00:01:11,860 --> 00:01:14,740
+Power shelf controller plugs into this PMBus interface
+
+27
+00:01:15,200 --> 00:01:17,100
+and is able to speak to these power supply units.
+
+28
+00:01:17,640 --> 00:01:19,540
+And this thing has our service processor on it
+
+29
+00:01:19,580 --> 00:01:21,200
+and is over our management network.
+
+30
+00:01:21,700 --> 00:01:26,119
+It allows us to integrate deeply with the Murata power supply
+
+31
+00:01:26,440 --> 00:01:29,180
+so we can do things like manage its firmware.
+
+32
+00:01:29,720 --> 00:01:31,120
+There's firmware running on these things.
+
+33
+00:01:31,460 --> 00:01:33,740
+These things are really sophisticated units.
+
+34
+00:01:34,320 --> 00:01:38,480
+And we have had issues where in order to be able to deliver what a customer needed,
+
+35
+00:01:38,960 --> 00:01:41,060
+we needed to be able to update the firmware on these things.
+
+36
+00:01:41,640 --> 00:01:44,600
+That firmware update is handled by this power shelf controller,
+
+37
+00:01:45,120 --> 00:01:47,700
+and our partnership with Murata allows us to do it.
+
+38
+00:01:47,720 --> 00:01:49,900
+It's another example, another concrete example,
+
+39
+00:01:50,270 --> 00:01:53,480
+of the power of hardware software co-design that we have here at Oxide.
+
+40
+00:01:53,980 --> 00:01:54,900
+Thanks, and see you next time.
