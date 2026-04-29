@@ -103,6 +103,20 @@ export function goToTourStep(index: number) {
 // Video tour playback state
 export const videoTourPlaying = atom('videoTourPlaying', false)
 export const videoTourCurrentTime = atom('videoTourCurrentTime', 0)
+
+/** Last user-driven play/pause toggle. The center-of-screen flash watches this
+ *  and shows the matching icon for ~700ms. Bumped only by canvas clicks (not
+ *  by every play-state change) so auto-pauses don't trigger a flash. */
+export const playPauseFlash = atom<{ key: number; isPlaying: boolean } | null>(
+  'playPauseFlash',
+  null,
+)
+/** Toggle videoTourPlaying and trigger the flash overlay. */
+export function togglePlayWithFlash() {
+  const next = !videoTourPlaying.get()
+  videoTourPlaying.set(next)
+  playPauseFlash.set({ key: Date.now(), isPlaying: next })
+}
 /** Whether the tour start screen is showing (before the user begins the tour) */
 export const tourStartScreen = atom('tourStartScreen', true)
 

@@ -13,6 +13,7 @@ import { lazy, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 
 import {
+  activeTourStep,
   debugMode,
   detectedTier,
   isVideoTour,
@@ -25,6 +26,7 @@ import {
   showcaseMode,
   softwareRenderingDetected,
   specificationsOpen,
+  togglePlayWithFlash,
   tourStartScreen,
 } from './atoms'
 import { InstancedGLBModel } from './components/InstancedGLBModel'
@@ -311,24 +313,33 @@ function CameraFitter({
   const navMode = useValue(navigationMode)
   const isVideo = useValue(isVideoTour)
   const isStartScreen = useValue(tourStartScreen)
+  const tourStep = useValue(activeTourStep)
+  const stepWaypoint = navMode === 'guided' ? (tourStep?.waypoint ?? null) : null
   const isFirstFitRef = useRef(true)
   const lastFitKeyRef = useRef('')
   const invalidate = useThree((s) => s.invalidate)
 
   useEffect(() => {
     invalidate()
-  }, [sel, navMode, isVideo, isStartScreen, invalidate])
+  }, [sel, navMode, isVideo, isStartScreen, stepWaypoint, invalidate])
 
   useFrame(({ scene, size }) => {
     if (!controlsRef.current) return
     const isMobile = size.width < 1000
     const panelVisible = isMobile && !isVideo && !(navMode === 'guided' && isStartScreen)
-    const fitKey = `${sel}|${navMode}|${size.width}|${size.height}|${panelVisible}`
+    // Include a stable key for the step waypoint so changing it re-fits.
+    const wpKey = stepWaypoint
+      ? `${stepWaypoint.direction.join(',')}|${stepWaypoint.target.join(',')}|${stepWaypoint.scale?.join(',') ?? ''}|${stepWaypoint.fitFraction ?? ''}`
+      : ''
+    const fitKey = `${sel}|${navMode}|${size.width}|${size.height}|${panelVisible}|${wpKey}`
     if (fitKey === lastFitKeyRef.current) return
 
-    const waypoint = resolveWaypoint(sel)
+    // Step-level waypoint overrides the selected component's default. When the
+    // step provides an explicit `scale` it acts as a focus volume (great for
+    // pointing at things that aren't separate meshes — e.g. the PSC module).
+    const waypoint = stepWaypoint ?? resolveWaypoint(sel)
     if (!waypoint) return
-    let box = findSelectedBox(scene, sel)
+    let box = stepWaypoint ? null : findSelectedBox(scene, sel)
     if (!box && waypoint.scale) {
       // No model attached — synthesize a focus volume from explicit scale.
       const [w, h, d] = waypoint.scale
@@ -338,7 +349,12 @@ function CameraFitter({
         new THREE.Vector3(tx + w / 2, ty + h / 2, tz + d / 2),
       )
     }
-    if (!box) return // model still loading and no scale fallback — retry next frame
+    if (!box && !stepWaypoint) return // model still loading and no scale fallback — retry next frame
+    if (!box) {
+      // Step waypoint with no scale: fall back to selected mesh bbox.
+      box = findSelectedBox(scene, sel)
+      if (!box) return
+    }
 
     const aspect = size.width / size.height
     // Mobile: bottom of viewport is covered by the specs drawer. Tighten only
@@ -517,6 +533,7 @@ function SceneContent({
 }) {
   const cameraControlsRef = useRef<CameraControls>(null)
   const currentSelectedId = useValue(selectedId)
+  const tourStep = useValue(activeTourStep)
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null)
 
   const baseId = currentSelectedId.split(':')[0]
@@ -531,7 +548,20 @@ function SceneContent({
     return null
   }, [baseId])
 
-  const instanceCtx = viewingChildOfId ? getInstanceContext(currentSelectedId) : null
+  // The id we're "focused on" — either drilled into (children visible) or
+  // explicitly isolated by a tour step (rest of rack hidden). Used for hiding
+  // the rack background and unrelated top-level components.
+  const isolatedToId = useMemo(() => {
+    if (viewingChildOfId) return viewingChildOfId
+    if (!tourStep?.isolate) return null
+    const isTopLevel = (componentTree.children ?? []).some((c) => c.id === baseId)
+    return isTopLevel ? baseId : null
+  }, [viewingChildOfId, tourStep?.isolate, baseId])
+
+  const instanceCtx = useMemo(
+    () => getInstanceContext(currentSelectedId),
+    [currentSelectedId],
+  )
 
   // Collect descendant models for the active parent (e.g. cosmo-lod0 when inside compute-sled)
   const descendantModels = useMemo(
@@ -552,6 +582,9 @@ function SceneContent({
 
   const currentNavigationMode = useValue(navigationMode)
   const isGuidedMode = currentNavigationMode === 'guided'
+  const isVideo = useValue(isVideoTour)
+  const isStartScreen = useValue(tourStartScreen)
+  const videoClickActive = isVideo && !isStartScreen
 
   return (
     <>
@@ -578,7 +611,7 @@ function SceneContent({
           fadeStrength={0.5}
         />
       )}
-      {!viewingChildOfId && <RackShadow />}
+      {!isolatedToId && <RackShadow />}
       <ModifiedSelection>
         {postMode !== 'none' && (
           <PostProcessing
@@ -599,6 +632,15 @@ function SceneContent({
           }}
           onClick={(e) => {
             e.stopPropagation()
+            if (videoClickActive) {
+              if (pointerDownPos.current) {
+                const dx = e.clientX - pointerDownPos.current.x
+                const dy = e.clientY - pointerDownPos.current.y
+                if (dx * dx + dy * dy > 5 * 5) return
+              }
+              togglePlayWithFlash()
+              return
+            }
             if (isGuidedMode) return
 
             if (pointerDownPos.current) {
@@ -638,7 +680,7 @@ function SceneContent({
           }}
         >
           {/* Rack model — only at rack level */}
-          {!viewingChildOfId &&
+          {!isolatedToId &&
             getNodeModels(componentTree).map((model, i) => (
               <SelectableGLBModel
                 key={`${componentTree.id}-${i}`}
@@ -648,16 +690,39 @@ function SceneContent({
               />
             ))}
 
-          {/* Wireframe rack outline when drilled in */}
-          {viewingChildOfId && <RackWireframe />}
+          {/* Wireframe rack outline whenever the rest of the rack is hidden */}
+          {isolatedToId && <RackWireframe />}
 
           {/* Top-level components from tree */}
           {componentTree.children?.map((node) => {
             const models = getNodeModels(node)
             if (models.length === 0) return null
 
-            // Hide non-active siblings when drilled in
-            if (viewingChildOfId && viewingChildOfId !== node.id) return null
+            // Hide non-active siblings when focused (drilldown or isolation)
+            if (isolatedToId && isolatedToId !== node.id) return null
+
+            // Isolation-only on an instanced top-level node (e.g. power-shelf):
+            // render just the targeted instance to match drilldown framing.
+            if (
+              isolatedToId === node.id &&
+              !viewingChildOfId &&
+              node.instances &&
+              instanceCtx
+            ) {
+              return (
+                <group key={node.id} position={instanceCtx.instancePosition}>
+                  {models.map((model, i) => (
+                    <SelectableGLBModel
+                      key={`${node.id}-iso-${i}`}
+                      id={`${node.id}:${instanceCtx.instanceIndex}`}
+                      path={model.path}
+                      clickable={false}
+                      textures={model.textures}
+                    />
+                  ))}
+                </group>
+              )
+            }
 
             // When drilled into this component, render its descendant models
             if (viewingChildOfId === node.id && instanceCtx) {
@@ -995,6 +1060,9 @@ const SceneCanvas = ({ detectedConfig }: { detectedConfig: GPUConfig }) => {
     : [5, 5, 10]
   const currentNavigationMode = useValue(navigationMode)
   const isGuidedMode = currentNavigationMode === 'guided'
+  const isVideo = useValue(isVideoTour)
+  const isStartScreen = useValue(tourStartScreen)
+  const videoClickActive = isVideo && !isStartScreen
   const isShowcase = useValue(showcaseMode)
 
   // Perf mode forces continuous rendering and pins canvas size for deterministic runs.
@@ -1031,6 +1099,10 @@ const SceneCanvas = ({ detectedConfig }: { detectedConfig: GPUConfig }) => {
         linear
         frameloop={isShowcase || perfFlags.enabled ? 'always' : 'demand'}
         onPointerMissed={() => {
+          if (videoClickActive) {
+            togglePlayWithFlash()
+            return
+          }
           if (isGuidedMode) return
           const now = performance.now()
           if (now - lastMissTime.current < 400) {

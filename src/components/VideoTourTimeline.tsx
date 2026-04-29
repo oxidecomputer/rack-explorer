@@ -65,7 +65,7 @@ function ProgressFill({ duration }: { duration: number }) {
 function TimeDisplay({ duration }: { duration: number }) {
   const currentTime = useValue(videoTourCurrentTime)
   return (
-    <div className="text-mono-xs text-secondary">
+    <div className="text-mono-xs text-secondary pr-3 text-nowrap">
       {formatTime(currentTime)}{' '}
       <span className="text-quaternary">/ {formatTime(duration)}</span>
     </div>
@@ -232,7 +232,7 @@ export function VideoTourTimeline({
         <TimeDisplay duration={tour.duration} />
 
         {/* Current step label */}
-        <div className="text-sans-sm text-default ml-auto">
+        <div className="text-sans-sm text-default ml-auto truncate">
           {tour.steps[currentStepIndex]?.title}
         </div>
       </div>

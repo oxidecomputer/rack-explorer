@@ -45,12 +45,33 @@ import { Bar, OutlineSkeleton, SpecificationsSkeleton } from './components/Skele
 import { Specifications } from './components/Specifications'
 import { StepPips } from './components/StepPips'
 import { TourStartScreen } from './components/TourStartScreen'
+import { VideoCaptions } from './components/VideoCaptions'
+import { VideoPlayPauseFlash } from './components/VideoPlayPauseFlash'
 import { VideoTourPlayer } from './components/VideoTourPlayer'
 import { VideoTourTimeline } from './components/VideoTourTimeline'
 import { getNode, inheritInstanceIndex } from './data/componentTree'
-import { getFirstStandardTour } from './data/guidedTours'
+import { getFirstStandardTour, getTour } from './data/guidedTours'
 import { Scene } from './Scene'
 import { useKeyboardNavigation } from './useKeyboardNavigation'
+
+// Deep link: `?tour=<id>` jumps straight into the named tour, skipping the
+// landing modal. Runs at module load — before the first React render — so the
+// initial paint already reflects the tour state and the right sidebar doesn't
+// animate from "open" to "hidden". The param is stripped so a refresh doesn't
+// trap the user in it.
+{
+  const url = new URL(window.location.href)
+  const tourId = url.searchParams.get('tour')
+  if (tourId) {
+    const tour = getTour(tourId)
+    if (tour) {
+      startTour(tour.id)
+      landingOpen.set(false)
+    }
+    url.searchParams.delete('tour')
+    window.history.replaceState({}, '', url.pathname + url.search + url.hash)
+  }
+}
 
 function findPath(targetId: string | null): { id: string; label: string }[] | null {
   if (!targetId) return null
@@ -299,6 +320,7 @@ function App() {
 
           {/* Center area between sidebars — tour controls live here */}
           <div className="relative min-h-0 min-w-0 grow">
+            {isVideo && !isStartScreen && <VideoPlayPauseFlash />}
             {/* Standard tour: pips + prev/next arrows */}
             {isStandardTour && currentTour && !isLandingOpen && !isStartScreen && (
               <>
@@ -349,6 +371,9 @@ function App() {
                   <AnimatePresence>
                     <VideoTourPlayer />
                   </AnimatePresence>
+                </div>
+                <div className="absolute right-0 bottom-20 left-0 z-20 px-4">
+                  <VideoCaptions />
                 </div>
                 <div className="1000:pl-4 pointer-events-auto absolute right-0 bottom-0 left-0 z-20">
                   <div className="bg-default/80 rounded-lg px-4 py-3 backdrop-blur-md">
