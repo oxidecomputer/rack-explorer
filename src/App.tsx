@@ -343,8 +343,8 @@ function App() {
                       direction={direction}
                       pos={direction === 'next' && !specsOpen ? 'right-0' : undefined}
                       // On mobile, center inside the space above the specs
-                      // drawer (MOBILE_SPECS_PANEL_HEIGHT = 160 → shift -80px).
-                      className="max-1000:top-[calc(50%-80px)] top-1/2"
+                      // drawer (MOBILE_SPECS_PANEL_HEIGHT = 200 → shift -80px).
+                      className="max-1000:top-[calc(50%-100px)] top-1/2"
                       disabled={disabled}
                       onClick={() => {
                         goToTourStep(step)
