@@ -183,73 +183,75 @@ function App() {
             <div className="text-raise text-mono-xs opacity-40">Oxide Computer Co.</div>
             <div className="text-sans-sm text-default">3D Rack Explorer</div>
           </div>
-          <div className="text-secondary max-1000:hidden flex flex-1 items-center justify-center gap-2 select-none">
-            <button
-              disabled={!breadcrumbsEnabled}
-              onClick={() => {
-                selectedId.set('oxide-rack')
-              }}
-              className={clsx(
-                'text-mono-xs transition-colors',
-                breadcrumbsEnabled && 'hover:text-default',
-              )}
-            >
-              Oxide Rack
-            </button>
-            {breadcrumbPath &&
-              breadcrumbPath.length > 0 &&
-              breadcrumbPath[0].label !== 'Oxide Rack' && (
-                <>
-                  {breadcrumbPath.map((item, i) => {
-                    const isLast = i === breadcrumbPath.length - 1
-                    return (
-                      <span key={item.id} className="flex items-center gap-2">
-                        <span className="text-raise text-mono-xs opacity-20">/</span>
-                        <div
-                          className={clsx(
-                            'flex items-center gap-2',
-                            isLast
-                              ? 'flex items-center gap-2 rounded-md bg-neutral-800/30 px-1'
-                              : '',
-                          )}
-                        >
-                          <button
-                            disabled={!breadcrumbsEnabled || isLast}
-                            onClick={() => {
-                              selectedId.set(
-                                inheritInstanceIndex(selectedId.get(), item.id),
-                              )
-                            }}
+          {!isGuided && (
+            <div className="text-secondary max-1000:hidden flex flex-1 items-center justify-center gap-2 select-none">
+              <button
+                disabled={!breadcrumbsEnabled}
+                onClick={() => {
+                  selectedId.set('oxide-rack')
+                }}
+                className={clsx(
+                  'text-mono-xs transition-colors',
+                  breadcrumbsEnabled && 'hover:text-default',
+                )}
+              >
+                Oxide Rack
+              </button>
+              {breadcrumbPath &&
+                breadcrumbPath.length > 0 &&
+                breadcrumbPath[0].label !== 'Oxide Rack' && (
+                  <>
+                    {breadcrumbPath.map((item, i) => {
+                      const isLast = i === breadcrumbPath.length - 1
+                      return (
+                        <span key={item.id} className="flex items-center gap-2">
+                          <span className="text-raise text-mono-xs opacity-20">/</span>
+                          <div
                             className={clsx(
-                              'text-mono-xs transition-colors',
-                              isLast && 'text-default',
-                              breadcrumbsEnabled && !isLast && 'hover:text-default',
+                              'flex items-center gap-2',
+                              isLast
+                                ? 'flex items-center gap-2 rounded-md bg-neutral-800/30 px-1'
+                                : '',
                             )}
                           >
-                            {item.label}
-                          </button>
-                          {isLast && breadcrumbsEnabled && (
                             <button
+                              disabled={!breadcrumbsEnabled || isLast}
                               onClick={() => {
-                                const current = selectedId.get()
-                                const base = current.split(':')[0]
-                                const entry = getNode(base)
-                                const parentId = entry?.parent?.id ?? 'oxide-rack'
-                                selectedId.set(inheritInstanceIndex(current, parentId))
+                                selectedId.set(
+                                  inheritInstanceIndex(selectedId.get(), item.id),
+                                )
                               }}
-                              className="text-tertiary target-4 hover:text-default -ml-1 transition-colors"
-                              aria-label="Go up one level"
+                              className={clsx(
+                                'text-mono-xs transition-colors',
+                                isLast && 'text-default',
+                                breadcrumbsEnabled && !isLast && 'hover:text-default',
+                              )}
                             >
-                              <Close8Icon />
+                              {item.label}
                             </button>
-                          )}
-                        </div>
-                      </span>
-                    )
-                  })}
-                </>
-              )}
-          </div>
+                            {isLast && breadcrumbsEnabled && (
+                              <button
+                                onClick={() => {
+                                  const current = selectedId.get()
+                                  const base = current.split(':')[0]
+                                  const entry = getNode(base)
+                                  const parentId = entry?.parent?.id ?? 'oxide-rack'
+                                  selectedId.set(inheritInstanceIndex(current, parentId))
+                                }}
+                                className="text-tertiary target-4 hover:text-default -ml-1 transition-colors"
+                                aria-label="Go up one level"
+                              >
+                                <Close8Icon />
+                              </button>
+                            )}
+                          </div>
+                        </span>
+                      )
+                    })}
+                  </>
+                )}
+            </div>
+          )}
           <div className="flex w-64 items-center justify-end gap-2">
             <OptionsDropdown />
             {!isLandingOpen && !isGuided && (
@@ -342,7 +344,7 @@ function App() {
                       pos={direction === 'next' && !specsOpen ? 'right-0' : undefined}
                       // On mobile, center inside the space above the specs
                       // drawer (MOBILE_SPECS_PANEL_HEIGHT = 160 → shift -80px).
-                      className="top-1/2 max-1000:top-[calc(50%-80px)]"
+                      className="max-1000:top-[calc(50%-80px)] top-1/2"
                       disabled={disabled}
                       onClick={() => {
                         goToTourStep(step)
@@ -372,13 +374,13 @@ function App() {
                     ~80px timeline at the bottom (offset shift = (150-80)/2). */}
                 <TourNavArrow
                   direction="prev"
-                  className="top-1/2 max-1000:top-[calc(50%+35px)]"
+                  className="max-1000:top-[calc(50%+35px)] top-1/2"
                   disabled={currentVideoStepIndex === 0}
                   onClick={handleVideoSkipPrev}
                 />
                 <TourNavArrow
                   direction="next"
-                  className="top-1/2 max-1000:top-[calc(50%+35px)]"
+                  className="max-1000:top-[calc(50%+35px)] top-1/2"
                   disabled={currentVideoStepIndex === currentVideoTour.steps.length - 1}
                   onClick={handleVideoSkipNext}
                 />
