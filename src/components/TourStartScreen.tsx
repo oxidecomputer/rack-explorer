@@ -26,7 +26,7 @@ export function TourStartScreen() {
       className="bg-default pointer-events-auto absolute top-1/2 left-1/2 w-full max-w-120 -translate-1/2 rounded-lg p-6 px-8"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 8 }}
+      exit={{ opacity: 0, y: 8, transition: { duration: 0.24, ease: [0.25, 0.46, 0.45, 0.94] } }}
       transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
       <div className="mb-2">

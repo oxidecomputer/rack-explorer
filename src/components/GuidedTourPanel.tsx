@@ -48,7 +48,7 @@ export function GuidedTourPanel() {
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 4 }}
-            transition={{ duration: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ duration: 0.18, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             <div className="text-sans-md text-default">{standardStep.title}</div>
             <p className="text-sans-sm text-secondary pr-4">{standardStep.description}</p>
