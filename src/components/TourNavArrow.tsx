@@ -4,12 +4,17 @@ import { NextArrow12Icon, PrevArrow12Icon } from '@oxide/design-system/icons/rea
 export function TourNavArrow({
   direction,
   pos,
+  className,
   disabled,
   onClick,
 }: {
   direction: 'prev' | 'next'
   /** Tailwind class for horizontal position. Defaults to `left-4` / `right-4`. */
   pos?: string
+  /** Extra classes for vertical positioning. Lets the call site center the
+   *  arrow inside the visible canvas region (offsetting for drawers/timelines
+   *  that cover parts of the screen on mobile). Defaults to viewport-center. */
+  className?: string
   disabled?: boolean
   onClick: () => void
 }) {
@@ -17,7 +22,7 @@ export function TourNavArrow({
   const defaultPos = direction === 'prev' ? 'left-4' : 'right-4'
   return (
     <button
-      className={`target-16 max-1000:top-[calc(50%-100px)] pointer-events-auto absolute top-1/2 ${pos ?? defaultPos} z-30 -translate-y-1/2 rounded-md text-center hover:bg-neutral-800/30 hover:backdrop-blur-sm disabled:pointer-events-none disabled:opacity-15`}
+      className={`target-16 pointer-events-auto absolute ${className ?? 'top-1/2'} ${pos ?? defaultPos} z-30 -translate-y-1/2 rounded-md text-center hover:bg-neutral-800/30 hover:backdrop-blur-sm disabled:pointer-events-none disabled:opacity-15`}
       disabled={disabled}
       onClick={onClick}
     >

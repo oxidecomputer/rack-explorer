@@ -340,6 +340,9 @@ function App() {
                       key={direction}
                       direction={direction}
                       pos={direction === 'next' && !specsOpen ? 'right-0' : undefined}
+                      // On mobile, center inside the space above the specs
+                      // drawer (MOBILE_SPECS_PANEL_HEIGHT = 160 → shift -80px).
+                      className="top-1/2 max-1000:top-[calc(50%-80px)]"
                       disabled={disabled}
                       onClick={() => {
                         goToTourStep(step)
@@ -365,13 +368,17 @@ function App() {
                   </AnimatePresence>
                 </div>
 
+                {/* Center between the 150px video player at the top and the
+                    ~80px timeline at the bottom (offset shift = (150-80)/2). */}
                 <TourNavArrow
                   direction="prev"
+                  className="top-1/2 max-1000:top-[calc(50%+35px)]"
                   disabled={currentVideoStepIndex === 0}
                   onClick={handleVideoSkipPrev}
                 />
                 <TourNavArrow
                   direction="next"
+                  className="top-1/2 max-1000:top-[calc(50%+35px)]"
                   disabled={currentVideoStepIndex === currentVideoTour.steps.length - 1}
                   onClick={handleVideoSkipNext}
                 />
