@@ -204,7 +204,7 @@ export const guidedTours: GuidedTour[] = [
         title: 'Power Shelf',
         description:
           'Two power shelves at the base of the rack hold six 3600 W rectifiers each, configurable as 1+1 redundant (~21.6 kW) or 2+0 (~30 kW). Their DC output runs up a single copper busbar to every sled, consolidating what would otherwise be 64 individual AC power supplies and their associated cabling.',
-        selectedId: 'power-shelf:0',
+        selectedId: 'power-shelf:1',
       },
       {
         title: 'Fiber Patch Panel',
@@ -233,7 +233,7 @@ export const guidedTours: GuidedTour[] = [
       {
         title: 'Where Are the Power Supplies?',
         timestamp: 0,
-        selectedId: 'oxide-rack',
+        selectedId: 'power-shelf:1',
       },
       {
         title: 'The DC Busbar',
@@ -260,13 +260,13 @@ export const guidedTours: GuidedTour[] = [
       {
         title: 'AC to DC Happens Here',
         timestamp: 18,
-        selectedId: 'power-shelf:0',
+        selectedId: 'power-shelf:1',
         isolate: true,
       },
       {
         title: 'A Series of Rectifiers',
         timestamp: 22,
-        selectedId: 'power-shelf:0',
+        selectedId: 'power-shelf:1',
         isolate: true,
         // Frame the front face of the shelf where the six PSU bays live.
         waypoint: {
@@ -287,7 +287,7 @@ export const guidedTours: GuidedTour[] = [
       {
         title: 'In-Depth Monitoring',
         timestamp: 49,
-        selectedId: 'power-shelf:0',
+        selectedId: 'power-shelf:1',
         isolate: true,
         waypoint: {
           direction: [0.2, 0.6, 2.5],
@@ -307,7 +307,7 @@ export const guidedTours: GuidedTour[] = [
       {
         title: 'Power Shelf Controller',
         timestamp: 62,
-        selectedId: 'power-shelf:0',
+        selectedId: 'power-shelf:1',
         isolate: true,
         // Swing around to the back of the shelf where the PSC plugs into the
         // RMU slot. The PSC is part of the shelf model rather than its own
@@ -330,7 +330,7 @@ export const guidedTours: GuidedTour[] = [
       {
         title: 'Service Processor & Management Network',
         timestamp: 78,
-        selectedId: 'power-shelf:0',
+        selectedId: 'power-shelf:1',
         isolate: true,
         waypoint: {
           direction: [1.2, 0.8, -2.5],
@@ -350,7 +350,7 @@ export const guidedTours: GuidedTour[] = [
       {
         title: 'Managing Rectifier Firmware',
         timestamp: 86,
-        selectedId: 'power-shelf:0',
+        selectedId: 'power-shelf:1',
         isolate: true,
         waypoint: {
           direction: [1.2, 0.8, -2.5],
