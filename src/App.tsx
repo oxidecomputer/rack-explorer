@@ -7,7 +7,7 @@ import {
 } from '@oxide/design-system/icons/react'
 import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, motion, MotionConfig } from 'motion/react'
 import { useCallback, useEffect } from 'react'
 
 import {
@@ -154,12 +154,12 @@ function App() {
   const breadcrumbsEnabled = !isGuided
 
   return (
-    <>
+    <MotionConfig reducedMotion="user">
       <motion.div
         className="fixed top-0 left-0 h-[100dvh] w-full"
         initial={{ opacity: 0 }}
         animate={{ opacity: isSceneReady ? 1 : 0 }}
-        transition={{ duration: 1.2, ease: 'easeOut' }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       >
         <Scene />
       </motion.div>
@@ -439,11 +439,11 @@ function App() {
         {!isLandingOpen && !isVideo && (
           <motion.button
             initial={false}
-            animate={{ right: specsOpen ? 22 : 16 }}
+            animate={{ x: specsOpen ? -6 : 0 }}
             transition={{ type: 'spring', duration: 0.5, bounce: 0 }}
             onClick={toggleSpecifications}
             className={clsx(
-              'hover:bg-hover target-8 max-1000:hidden pointer-events-auto absolute top-17 z-10 rounded border p-0.5 transition-colors',
+              'hover:bg-hover target-8 max-1000:hidden pointer-events-auto absolute top-17 right-4 z-10 rounded border p-0.5 transition-colors',
               specsOpen ? 'border-transparent' : 'border-default',
             )}
           >
@@ -463,7 +463,7 @@ function App() {
           )}
         </AnimatePresence>
       </div>
-    </>
+    </MotionConfig>
   )
 }
 
