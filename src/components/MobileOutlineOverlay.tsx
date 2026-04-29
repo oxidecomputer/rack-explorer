@@ -7,6 +7,11 @@ import { ContactSales } from './ContactSales'
 import { GuidedTourOutline } from './GuidedTourOutline'
 import { Outline } from './Outline'
 
+const overlayTransition = {
+  duration: 0.25,
+  ease: [0.25, 0.46, 0.45, 0.94],
+} as const
+
 export function MobileOutlineOverlay() {
   const isOpen = useValue(mobileOutlineOpen)
   const isGuided = useValue(navigationMode) === 'guided'
@@ -19,13 +24,14 @@ export function MobileOutlineOverlay() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
+          transition={overlayTransition}
         >
           <motion.div
             className="absolute inset-0 bg-black/40 backdrop-blur-md"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={overlayTransition}
             onClick={() => mobileOutlineOpen.set(false)}
           />
           <motion.div
@@ -33,7 +39,7 @@ export function MobileOutlineOverlay() {
             initial={{ x: 16, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 16, opacity: 0 }}
-            transition={{ type: 'spring', duration: 0.35, bounce: 0 }}
+            transition={overlayTransition}
           >
             <div className="border-secondary flex items-center justify-between border-b px-4 py-3">
               <div className="text-mono-xs text-secondary">

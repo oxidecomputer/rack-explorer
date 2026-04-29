@@ -2,7 +2,7 @@ import { PrevArrow12Icon } from '@oxide/design-system/icons/react'
 import type { Atom } from '@tldraw/state'
 import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
-import { motion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useState } from 'react'
 
 import {
@@ -33,9 +33,9 @@ function Toggle({
       }`}
     >
       <motion.div
-        className="bg-raise absolute top-0.5 h-3 w-3 rounded-full"
+        className="bg-raise absolute top-0.5 left-0.5 h-3 w-3 rounded-full"
         initial={false}
-        animate={{ left: checked ? 14 : 2 }}
+        animate={{ x: checked ? 12 : 0 }}
         transition={{ type: 'spring', duration: 0.3, bounce: 0 }}
       />
     </button>
@@ -112,11 +112,12 @@ export function OptionsDropdown() {
         />{' '}
         Options
       </button>
-      {open && (
-        <>
+      <AnimatePresence>
+        {open && (
           <motion.div
             initial={{ opacity: 0, x: -4 }}
             animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -4 }}
             transition={{ type: 'spring', duration: 0.3, bounce: 0 }}
             className={clsx(
               'bg-default text-sans-sm absolute top-0 z-30 w-68 rounded-md p-px',
@@ -151,8 +152,8 @@ export function OptionsDropdown() {
               labels={LEVEL_LABELS}
             />
           </motion.div>
-        </>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   )
 }
