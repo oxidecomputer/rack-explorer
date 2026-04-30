@@ -9,7 +9,7 @@ import React, {
 } from 'react'
 import * as THREE from 'three'
 
-export const selectContext = /* @__PURE__ */ createContext<Api | null>(null)
+const selectContext = /* @__PURE__ */ createContext<Api | null>(null)
 
 export function ModifiedSelect({ enabled = false, children, ...props }: SelectApi) {
   const group = useRef<THREE.Group>(null!)
@@ -32,7 +32,7 @@ export function ModifiedSelect({ enabled = false, children, ...props }: SelectAp
         api.select((state) => state.filter((selected) => !toRemove.has(selected)))
       }
     }
-  }, [enabled, api]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [enabled, api])  
   return (
     <group ref={group} {...props}>
       {children}
@@ -48,12 +48,21 @@ export function ModifiedSelection({
   children: React.ReactNode
 }) {
   const [selected, select] = useState<THREE.Object3D[]>([])
-  const selectApiRef = useRef({ selected, select, enabled })
-  const selectApi = selectApiRef.current
+  // Stable-identity api: lets consumers (e.g. ModifiedSelect) keep a single
+  // useEffect dep on `api` without re-running on every selection change.
+  // Properties are kept in sync via the effect below; consumers only read
+  // `select` inside their own effects, never during render.
+  const selectApiRef = useRef<Api | null>(null)
+  if (selectApiRef.current === null) {
+    selectApiRef.current = { selected, select, enabled }
+  }
 
-  selectApi.selected = selected
-  selectApi.select = select
-  selectApi.enabled = enabled
+  useEffect(() => {
+    const api = selectApiRef.current!
+    api.selected = selected
+    api.select = select
+    api.enabled = enabled
+  }, [selected, select, enabled])
 
   const selectionApi = useMemo(
     () => ({ selected, select, enabled }),
@@ -61,6 +70,7 @@ export function ModifiedSelection({
   )
 
   return (
+    // eslint-disable-next-line react-hooks/refs -- stable ref intentionally provided as context value
     <selectContext.Provider value={selectApiRef.current}>
       <selectionContext.Provider value={selectionApi}>{children}</selectionContext.Provider>
     </selectContext.Provider>
