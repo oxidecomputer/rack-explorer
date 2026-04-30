@@ -9,7 +9,6 @@ import {
   freeTutorialStepIndex,
   landingOpen,
   navigationMode,
-  selectedId,
 } from '../atoms'
 
 const STEPS: {
@@ -56,15 +55,6 @@ export function FreeTutorial() {
   const step = stepIndex !== null ? STEPS[stepIndex] : null
   const isLast = stepIndex === FREE_TUTORIAL_STEP_COUNT - 1
   const isFirst = stepIndex === 0
-
-  // Step 3 talks about contextual specifications, which the rack frame itself
-  // doesn't surface in a useful way — drill into a compute sled so the panel
-  // has something to show.
-  useEffect(() => {
-    if (stepIndex !== 2) return
-    if (selectedId.get().split(':')[0] !== 'oxide-rack') return
-    selectedId.set('compute-sled:16')
-  }, [stepIndex])
 
   const shakeControls = useAnimationControls()
   const shakeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)

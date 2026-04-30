@@ -948,12 +948,6 @@ const SceneCanvas = ({ detectedConfig }: { detectedConfig: GPUConfig }) => {
     [detectedConfig, baseTier, promotedTier],
   )
   const lastPromotionRef = useRef<number | null>(null)
-  useEffect(() => {
-    if (tierBump > 0) {
-      detectedTier.set(promotedTier)
-      lastPromotionRef.current = performance.now()
-    }
-  }, [promotedTier, tierBump])
 
   const tierAOEnabled =
     perfFlags.postOverride === 'outline+ao' || perfFlags.postOverride === 'ao'
@@ -996,17 +990,19 @@ const SceneCanvas = ({ detectedConfig }: { detectedConfig: GPUConfig }) => {
       promotePendingSinceRef.current = performance.now()
     }
     const remaining = 10_000 - (performance.now() - promotePendingSinceRef.current)
-    if (remaining <= 0) {
+    const promote = () => {
       promotePendingSinceRef.current = null
+      detectedTier.set(Math.min(3, baseTier + tierBump + 1))
+      lastPromotionRef.current = performance.now()
       setTierBump((b) => b + 1)
+    }
+    if (remaining <= 0) {
+      promote()
       return
     }
-    const timer = window.setTimeout(() => {
-      promotePendingSinceRef.current = null
-      setTierBump((b) => b + 1)
-    }, remaining)
+    const timer = window.setTimeout(promote, remaining)
     return () => window.clearTimeout(timer)
-  }, [perfFactor, promotedTier, promotionLocked])
+  }, [perfFactor, promotedTier, promotionLocked, baseTier, tierBump])
 
   // Demotion verifier: within 5s of a recent promotion, if factor stays below
   // 0.5 for 2s, the GPU couldn't keep up — undo the bump and lock to prevent
