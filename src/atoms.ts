@@ -1,6 +1,6 @@
 import { atom, computed } from '@tldraw/state'
 
-import { guidedTours, getVideoTourStepAtTime, type VideoTour } from './data/guidedTours'
+import { getVideoTourStepAtTime, guidedTours, type VideoTour } from './data/guidedTours'
 
 export const selectedId = atom('selectedId', 'oxide-rack')
 export const hoveredId = atom<string | null>('hoveredId', null)
@@ -114,6 +114,16 @@ export function goToNextTour() {
 // Video tour playback state
 export const videoTourPlaying = atom('videoTourPlaying', false)
 export const videoTourCurrentTime = atom('videoTourCurrentTime', 0)
+
+export const VIDEO_TOUR_PLAYBACK_RATES = [1.0, 1.3, 1.8] as const
+export type VideoTourPlaybackRate = (typeof VIDEO_TOUR_PLAYBACK_RATES)[number]
+export const videoTourPlaybackRate = atom<VideoTourPlaybackRate>('videoTourPlaybackRate', 1)
+export function cycleVideoTourPlaybackRate() {
+  const current = videoTourPlaybackRate.get()
+  const idx = VIDEO_TOUR_PLAYBACK_RATES.indexOf(current)
+  const next = VIDEO_TOUR_PLAYBACK_RATES[(idx + 1) % VIDEO_TOUR_PLAYBACK_RATES.length]
+  videoTourPlaybackRate.set(next)
+}
 
 /** Last user-driven play/pause toggle. The center-of-screen flash watches this
  *  and shows the matching icon for ~700ms. Bumped only by canvas clicks (not

@@ -9,6 +9,7 @@ import {
   selectedId,
   tourStartScreen,
   videoTourCurrentTime,
+  videoTourPlaybackRate,
   videoTourPlaying,
 } from '../atoms'
 
@@ -21,6 +22,7 @@ export function VideoTourPlayer({
   const isPlaying = useValue(videoTourPlaying)
   const isStartScreen = useValue(tourStartScreen)
   const stepIndex = useValue(activeVideoTourStepIndex)
+  const playbackRate = useValue(videoTourPlaybackRate)
   const videoRef = useRef<HTMLVideoElement>(null)
   const prevStepRef = useRef(stepIndex)
   const [isLoading, setIsLoading] = useState(true)
@@ -38,6 +40,12 @@ export function VideoTourPlayer({
       video.pause()
     }
   }, [isPlaying])
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+    video.playbackRate = playbackRate
+  }, [playbackRate])
 
   // When video tour step changes, update selectedId for 3D scene navigation
   useEffect(() => {
