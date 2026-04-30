@@ -1,5 +1,5 @@
 import { useValue } from '@tldraw/state-react'
-import { AnimatePresence, delay, motion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 import { useEffect } from 'react'
 
 import {
