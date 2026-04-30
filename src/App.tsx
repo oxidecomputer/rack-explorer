@@ -16,6 +16,7 @@ import {
   activeVideoTour,
   activeVideoTourStepIndex,
   exitGuidedMode,
+  goToNextTour,
   goToTourStep,
   isVideoTour,
   landingOpen,
@@ -123,7 +124,11 @@ function App() {
 
   const handleVideoSkipNext = useCallback(() => {
     if (!currentVideoTour) return
-    const nextIndex = Math.min(currentVideoTour.steps.length - 1, currentVideoStepIndex + 1)
+    if (currentVideoStepIndex === currentVideoTour.steps.length - 1) {
+      goToNextTour()
+      return
+    }
+    const nextIndex = currentVideoStepIndex + 1
     seekVideo(currentVideoTour.steps[nextIndex].timestamp)
   }, [currentVideoTour, currentVideoStepIndex])
 
@@ -331,12 +336,13 @@ function App() {
                 </div>
 
                 {(['prev', 'next'] as const).map((direction) => {
+                  const isAtEnd =
+                    direction === 'next' &&
+                    currentStepIndex === currentTour.steps.length - 1
                   const step =
                     direction === 'prev' ? currentStepIndex - 1 : currentStepIndex + 1
                   const disabled =
-                    direction === 'prev'
-                      ? currentStepIndex === 0
-                      : currentStepIndex === currentTour.steps.length - 1
+                    direction === 'prev' ? currentStepIndex === 0 : false
                   return (
                     <TourNavArrow
                       key={direction}
@@ -347,6 +353,10 @@ function App() {
                       className="max-1000:top-[calc(50%-100px)] top-1/2"
                       disabled={disabled}
                       onClick={() => {
+                        if (isAtEnd) {
+                          goToNextTour()
+                          return
+                        }
                         goToTourStep(step)
                         const pip = document.querySelector<HTMLElement>(
                           `[data-step="${step}"]`,
@@ -381,7 +391,6 @@ function App() {
                 <TourNavArrow
                   direction="next"
                   className="max-1000:top-[calc(50%+35px)] top-1/2"
-                  disabled={currentVideoStepIndex === currentVideoTour.steps.length - 1}
                   onClick={handleVideoSkipNext}
                 />
 
