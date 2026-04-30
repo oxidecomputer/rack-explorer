@@ -3,7 +3,7 @@ import type { Atom } from '@tldraw/state'
 import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
 import { AnimatePresence, motion } from 'motion/react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import {
   debugMode,
@@ -16,28 +16,43 @@ import {
   type QualityLevel,
 } from '../atoms'
 
-function Toggle({
+function ToggleIndicator({ checked }: { checked: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`relative inline-block h-4 w-7 rounded-full transition-colors ${
+        checked ? 'bg-accent-secondary' : 'bg-tertiary'
+      }`}
+    >
+      <motion.span
+        className="bg-raise absolute top-0.5 left-0.5 block h-3 w-3 rounded-full"
+        initial={false}
+        animate={{ x: checked ? 12 : 0 }}
+        transition={{ type: 'spring', duration: 0.3, bounce: 0 }}
+      />
+    </span>
+  )
+}
+
+function ToggleRow({
+  label,
   checked,
   onChange,
 }: {
+  label: string
   checked: boolean
   onChange: (v: boolean) => void
 }) {
   return (
     <button
+      type="button"
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className={`relative h-4 w-7 rounded-full transition-colors ${
-        checked ? 'bg-accent-secondary' : 'bg-tertiary'
-      }`}
+      className="hover:bg-hover flex w-full cursor-pointer items-center justify-between rounded px-3 py-2"
     >
-      <motion.div
-        className="bg-raise absolute top-0.5 left-0.5 h-3 w-3 rounded-full"
-        initial={false}
-        animate={{ x: checked ? 12 : 0 }}
-        transition={{ type: 'spring', duration: 0.3, bounce: 0 }}
-      />
+      <span className="text-secondary">{label}</span>
+      <ToggleIndicator checked={checked} />
     </button>
   )
 }
@@ -86,16 +101,14 @@ function Segmented<T extends string>({
 }
 
 export function OptionsDropdown() {
-  const [open, setOpen] = useState(false)
+  const [openState, setOpen] = useState(false)
   const isShowcaseMode = useValue(showcaseMode)
   const isDebugMode = useValue(debugMode)
   const currentNavigationMode = useValue(navigationMode)
   const isGuided = currentNavigationMode === 'guided'
   const isLandingOpen = useValue(landingOpen)
-
-  useEffect(() => {
-    if (isLandingOpen && open) setOpen(false)
-  }, [isLandingOpen, open])
+  // While landing modal is open, the dropdown is force-hidden.
+  const open = openState && !isLandingOpen
 
   return (
     <div className="max-1000:hidden relative z-40 w-full">
@@ -124,14 +137,16 @@ export function OptionsDropdown() {
               isGuided ? 'right-66' : 'right-56',
             )}
           >
-            <label className="hover:bg-hover flex cursor-pointer items-center justify-between rounded px-3 py-2">
-              <span className="text-secondary">Showcase Mode</span>
-              <Toggle checked={isShowcaseMode} onChange={(v) => showcaseMode.set(v)} />
-            </label>
-            <label className="hover:bg-hover flex cursor-pointer items-center justify-between rounded px-3 py-2">
-              <span className="text-secondary">Debug Stats</span>
-              <Toggle checked={isDebugMode} onChange={(v) => debugMode.set(v)} />
-            </label>
+            <ToggleRow
+              label="Showcase Mode"
+              checked={isShowcaseMode}
+              onChange={(v) => showcaseMode.set(v)}
+            />
+            <ToggleRow
+              label="Debug Stats"
+              checked={isDebugMode}
+              onChange={(v) => debugMode.set(v)}
+            />
             <div className="border-secondary border-t" />
             <Segmented
               label="Quality"

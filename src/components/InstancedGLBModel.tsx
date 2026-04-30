@@ -1,4 +1,10 @@
-import { extend, useLoader, useThree, type Vector3 } from '@react-three/fiber'
+import {
+  extend,
+  useLoader,
+  useThree,
+  type ThreeElement,
+  type Vector3,
+} from '@react-three/fiber'
 import { InstancedMesh2 } from '@three.ez/instanced-mesh'
 import { computed } from '@tldraw/state'
 import { useValue } from '@tldraw/state-react'
@@ -19,7 +25,7 @@ extend({ InstancedMesh2 })
 
 declare module '@react-three/fiber' {
   interface ThreeElements {
-    instancedMesh2: any
+    instancedMesh2: ThreeElement<typeof InstancedMesh2>
   }
 }
 

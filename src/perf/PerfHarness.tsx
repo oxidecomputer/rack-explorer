@@ -8,7 +8,6 @@ import { useEffect, useRef } from 'react'
 import { selectedId, showcaseMode } from '../atoms'
 import { GPUTimer } from './gpuTimer'
 import {
-  ALL_SCENARIOS,
   downloadJson,
   initMetrics,
   logReport,
@@ -315,5 +314,3 @@ function readGpuInfo(gl: WebGL2RenderingContext | WebGLRenderingContext): {
   }
 }
 
-// Re-export ALL_SCENARIOS so Scene / other callers don't need to import two modules.
-export { ALL_SCENARIOS }
