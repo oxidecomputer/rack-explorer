@@ -1,6 +1,7 @@
+import { Spinner } from '@oxide/design-system/ui'
 import { useValue } from '@tldraw/state-react'
-import { motion } from 'motion/react'
-import { useCallback, useEffect, useRef } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import {
   activeVideoTour,
@@ -22,6 +23,11 @@ export function VideoTourPlayer({
   const stepIndex = useValue(activeVideoTourStepIndex)
   const videoRef = useRef<HTMLVideoElement>(null)
   const prevStepRef = useRef(stepIndex)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    setIsLoading(true)
+  }, [tour?.videoUrl])
 
   // Sync play/pause state to video element
   useEffect(() => {
@@ -68,7 +74,7 @@ export function VideoTourPlayer({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 8 }}
       transition={{ type: 'spring', duration: 0.5, bounce: 0 }}
-      className="bg-default pointer-events-auto overflow-hidden rounded-md"
+      className="bg-default pointer-events-auto relative overflow-hidden rounded-md"
       style={{ width: 150, height: 150 }}
     >
       <video
@@ -77,8 +83,24 @@ export function VideoTourPlayer({
         className="h-full w-full object-cover"
         onTimeUpdate={handleTimeUpdate}
         onEnded={handleEnded}
+        onWaiting={() => setIsLoading(true)}
+        onCanPlay={() => setIsLoading(false)}
+        onPlaying={() => setIsLoading(false)}
         playsInline
       />
+      <AnimatePresence>
+        {isLoading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ type: 'spring', duration: 0.5, bounce: 0 }}
+            className="bg-default absolute inset-0 flex items-center justify-center"
+          >
+            <Spinner variant="secondary" />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }
