@@ -100,6 +100,16 @@ export function goToTourStep(index: number) {
   }
 }
 
+/** Advance to the next tour, cycling back to the first when at the end. Lands
+ *  on the next tour's start screen so the user gets its intro before stepping
+ *  into the content. */
+export function goToNextTour() {
+  const current = activeTourId.get()
+  const idx = guidedTours.findIndex((t) => t.id === current)
+  const next = guidedTours[(idx + 1) % guidedTours.length]
+  startTour(next.id)
+}
+
 // Video tour playback state
 export const videoTourPlaying = atom('videoTourPlaying', false)
 export const videoTourCurrentTime = atom('videoTourCurrentTime', 0)

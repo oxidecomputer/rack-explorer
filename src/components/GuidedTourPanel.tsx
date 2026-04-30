@@ -3,7 +3,13 @@ import { useValue } from '@tldraw/state-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef } from 'react'
 
-import { activeTour, activeTourStep, activeTourStepIndex, goToTourStep } from '../atoms'
+import {
+  activeTour,
+  activeTourStep,
+  activeTourStepIndex,
+  goToNextTour,
+  goToTourStep,
+} from '../atoms'
 import type { TourStep } from '../data/guidedTours'
 
 export function GuidedTourPanel() {
@@ -72,9 +78,8 @@ export function GuidedTourPanel() {
               <PrevArrow12Icon />
             </button>
             <button
-              onClick={() => goToTourStep(stepIndex + 1)}
-              disabled={isLast}
-              className="hover:bg-hover disabled:text-quaternary text-secondary flex h-6 w-6 items-center justify-center rounded transition-colors disabled:pointer-events-none"
+              onClick={() => (isLast ? goToNextTour() : goToTourStep(stepIndex + 1))}
+              className="hover:bg-hover text-secondary flex h-6 w-6 items-center justify-center rounded transition-colors"
             >
               <NextArrow12Icon />
             </button>

@@ -5,6 +5,7 @@ import {
   activeTourStepIndex,
   activeVideoTour,
   activeVideoTourStepIndex,
+  goToNextTour,
   goToTourStep,
   landingOpen,
   navigationMode,
@@ -100,10 +101,14 @@ export function useKeyboardNavigation() {
 
         const stepIndex = activeVideoTourStepIndex.get()
 
-        // Arrow keys to skip between steps
-        if (e.key === 'ArrowRight' && stepIndex < videoTour.steps.length - 1) {
+        // Arrow keys to skip between steps; ArrowRight at the end cycles tours.
+        if (e.key === 'ArrowRight') {
           e.preventDefault()
-          seekVideo(videoTour.steps[stepIndex + 1].timestamp)
+          if (stepIndex === videoTour.steps.length - 1) {
+            goToNextTour()
+          } else {
+            seekVideo(videoTour.steps[stepIndex + 1].timestamp)
+          }
         } else if (e.key === 'ArrowLeft' && stepIndex > 0) {
           e.preventDefault()
           seekVideo(videoTour.steps[stepIndex - 1].timestamp)
@@ -115,6 +120,11 @@ export function useKeyboardNavigation() {
       const tour = activeTour.get()
       if (!tour) return
       const stepIndex = activeTourStepIndex.get()
+      if (e.key === 'ArrowRight' && stepIndex === tour.steps.length - 1) {
+        e.preventDefault()
+        goToNextTour()
+        return
+      }
       let nextStep: number | null = null
       if (e.key === 'ArrowRight' && stepIndex < tour.steps.length - 1) {
         nextStep = stepIndex + 1
