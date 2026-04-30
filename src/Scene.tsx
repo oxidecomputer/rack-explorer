@@ -9,6 +9,7 @@ import {
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useValue } from '@tldraw/state-react'
 import CameraControlsImpl from 'camera-controls'
+import { useReducedMotion } from 'motion/react'
 import { lazy, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 
@@ -132,6 +133,7 @@ function CameraOffset() {
   const isVideo = useValue(isVideoTour)
   const isStartScreen = useValue(tourStartScreen)
   const isGuided = useValue(navigationMode) === 'guided'
+  const reducedMotion = useReducedMotion()
   const currentOffsetX = useRef(0)
   const currentOffsetY = useRef(0)
   const prevAppliedOffsetX = useRef(0)
@@ -148,13 +150,13 @@ function CameraOffset() {
     const diffX = targetX - currentOffsetX.current
     const diffY = targetY - currentOffsetY.current
 
-    if (Math.abs(diffX) < 0.5) currentOffsetX.current = targetX
+    if (reducedMotion || Math.abs(diffX) < 0.5) currentOffsetX.current = targetX
     else {
       currentOffsetX.current += diffX * 0.12
       invalidate()
     }
 
-    if (Math.abs(diffY) < 0.5) currentOffsetY.current = targetY
+    if (reducedMotion || Math.abs(diffY) < 0.5) currentOffsetY.current = targetY
     else {
       currentOffsetY.current += diffY * 0.12
       invalidate()
@@ -315,6 +317,7 @@ function CameraFitter({
   const isStartScreen = useValue(tourStartScreen)
   const tourStep = useValue(activeTourStep)
   const stepWaypoint = navMode === 'guided' ? (tourStep?.waypoint ?? null) : null
+  const reducedMotion = useReducedMotion()
   const isFirstFitRef = useRef(true)
   const lastFitKeyRef = useRef('')
   const invalidate = useThree((s) => s.invalidate)
@@ -409,7 +412,7 @@ function CameraFitter({
     controlsRef.current.minDistance = Math.min(fitDistance, minDolly)
     controlsRef.current.maxDistance = maxDistance
 
-    const animate = !isFirstFitRef.current
+    const animate = !isFirstFitRef.current && !reducedMotion
     isFirstFitRef.current = false
     if (animate) controlsRef.current.normalizeRotations()
     controlsRef.current.setLookAt(...position, ...waypoint.target, animate)
