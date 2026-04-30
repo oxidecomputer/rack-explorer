@@ -25,10 +25,6 @@ export function VideoTourPlayer({
   const prevStepRef = useRef(stepIndex)
   const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    setIsLoading(true)
-  }, [tour?.videoUrl])
-
   // Sync play/pause state to video element
   useEffect(() => {
     const video = videoRef.current
@@ -77,12 +73,15 @@ export function VideoTourPlayer({
       className="bg-default pointer-events-auto relative overflow-hidden rounded-md"
       style={{ width: 150, height: 150 }}
     >
+      {/* TODO: add <track kind="captions"> when narrated tours ship. */}
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <video
         ref={videoRef}
         src={tour.videoUrl}
         className="h-full w-full object-cover"
         onTimeUpdate={handleTimeUpdate}
         onEnded={handleEnded}
+        onLoadStart={() => setIsLoading(true)}
         onWaiting={() => setIsLoading(true)}
         onCanPlay={() => setIsLoading(false)}
         onPlaying={() => setIsLoading(false)}

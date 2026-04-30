@@ -4,6 +4,22 @@ import { useEffect, useRef, type ReactElement } from 'react'
 
 export type AOQuality = 'full' | 'low' | 'off'
 
+type QuadRender = (...args: unknown[]) => void
+type AORender = (
+  renderer: unknown,
+  input: { width: number; height: number },
+  output: unknown,
+  dt: unknown,
+  mask: unknown,
+) => void
+type N8AOLike = {
+  __temporallyPatched?: boolean
+  effectShaderQuad?: { render: QuadRender }
+  poissonBlurQuad?: { render: QuadRender }
+  accumulationQuad?: { render: QuadRender }
+  render: AORender
+}
+
 export const PostProcessing = ({
   aoQuality,
   enableOutline = true,
@@ -12,14 +28,15 @@ export const PostProcessing = ({
   enableOutline?: boolean
 }) => {
   const outlineRef = useRef<OutlineEffect>(null)
-  const aoRef = useRef<any>(null)
+  const aoRef = useRef<N8AOLike>(null)
   const patched = useRef(false)
 
   useEffect(() => {
     if (outlineRef.current && !patched.current) {
       // Skip the depth pass — it re-renders the entire scene to distinguish
       // visible vs hidden edges, but we use the same color for both.
-      const depthPass = (outlineRef.current as any).depthPass
+      const depthPass = (outlineRef.current as unknown as { depthPass?: { render: () => void } })
+        .depthPass
       if (depthPass) {
         depthPass.render = () => {}
       }
@@ -37,16 +54,19 @@ export const PostProcessing = ({
   useEffect(() => {
     const ao = aoRef.current
     if (!ao || !aoEnabled || ao.__temporallyPatched) return
-    if (!ao.effectShaderQuad || !ao.poissonBlurQuad || !ao.accumulationQuad) return
+    const effectQuad = ao.effectShaderQuad
+    const blurQuad = ao.poissonBlurQuad
+    const accumQuad = ao.accumulationQuad
+    if (!effectQuad || !blurQuad || !accumQuad) return
     ao.__temporallyPatched = true
 
     let frame = 0
     let lastW = 0
     let lastH = 0
     const noop = () => {}
-    const origAO = ao.effectShaderQuad.render.bind(ao.effectShaderQuad)
-    const origBlur = ao.poissonBlurQuad.render.bind(ao.poissonBlurQuad)
-    const origAccum = ao.accumulationQuad.render.bind(ao.accumulationQuad)
+    const origAO = effectQuad.render.bind(effectQuad)
+    const origBlur = blurQuad.render.bind(blurQuad)
+    const origAccum = accumQuad.render.bind(accumQuad)
     const origPass = ao.render.bind(ao)
 
     ao.render = (
@@ -62,15 +82,15 @@ export const PostProcessing = ({
       lastH = input.height
       const skip = !resized && (frame++ & 1) === 1
       if (skip) {
-        ao.effectShaderQuad.render = noop
-        ao.poissonBlurQuad.render = noop
-        ao.accumulationQuad.render = noop
+        effectQuad.render = noop
+        blurQuad.render = noop
+        accumQuad.render = noop
       }
       origPass(renderer, input, output, dt, mask)
       if (skip) {
-        ao.effectShaderQuad.render = origAO
-        ao.poissonBlurQuad.render = origBlur
-        ao.accumulationQuad.render = origAccum
+        effectQuad.render = origAO
+        blurQuad.render = origBlur
+        accumQuad.render = origAccum
       }
     }
   }, [aoEnabled, aoQuality])

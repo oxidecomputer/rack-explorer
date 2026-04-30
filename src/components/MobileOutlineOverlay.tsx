@@ -52,6 +52,9 @@ export function MobileOutlineOverlay() {
                 <Close12Icon />
               </button>
             </div>
+            {/* Bubble-listener wrapper: any tap on a tree button inside dismisses the
+                overlay. Inner buttons handle keyboard + focus, so this div is presentational. */}
+            {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
             <div
               className="min-h-0 flex-1 overflow-y-auto p-3"
               onClick={() => mobileOutlineOpen.set(false)}

@@ -52,6 +52,7 @@ export function VideoTourTimeline({ onSeek }: { onSeek: (time: number) => void }
   const tour = useValue(activeVideoTour)
   const isPlaying = useValue(videoTourPlaying)
   const currentStepIndex = useValue(activeVideoTourStepIndex)
+  const currentTime = useValue(videoTourCurrentTime)
   const [hoveredStep, setHoveredStep] = useState<number | null>(null)
   const [hoverX, setHoverX] = useState(0)
   const trackRef = useRef<HTMLDivElement>(null)
@@ -84,6 +85,27 @@ export function VideoTourTimeline({ onSeek }: { onSeek: (time: number) => void }
       setHoveredStep(stepIdx)
     },
     [tour],
+  )
+
+  const handleTrackKey = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!tour) return
+      const current = videoTourCurrentTime.get()
+      if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        onSeek(Math.min(tour.duration, current + 5))
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        onSeek(Math.max(0, current - 5))
+      } else if (e.key === 'Home') {
+        e.preventDefault()
+        onSeek(0)
+      } else if (e.key === 'End') {
+        e.preventDefault()
+        onSeek(tour.duration)
+      }
+    },
+    [tour, onSeek],
   )
 
   if (!tour) return null
@@ -119,8 +141,15 @@ export function VideoTourTimeline({ onSeek }: { onSeek: (time: number) => void }
         {/* Track background with step segments */}
         <div
           ref={trackRef}
-          className="group 800:h-2 relative flex h-3 cursor-pointer items-center"
+          role="slider"
+          aria-label="Seek video tour"
+          aria-valuemin={0}
+          aria-valuemax={tour.duration}
+          aria-valuenow={Math.round(currentTime)}
+          tabIndex={0}
+          className="group 800:h-2 focus-visible:outline-accent-secondary relative flex h-3 cursor-pointer items-center rounded-sm focus-visible:outline focus-visible:outline-offset-2"
           onClick={handleTrackClick}
+          onKeyDown={handleTrackKey}
           onMouseMove={handleTrackHover}
           onMouseLeave={() => setHoveredStep(null)}
         >

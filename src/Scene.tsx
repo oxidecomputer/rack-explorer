@@ -919,7 +919,7 @@ const SceneCanvas = ({ detectedConfig }: { detectedConfig: GPUConfig }) => {
   const lowTier = useValue(lowTierRendering)
   // Tier-bound flag captured at mount for the GL context options below — these
   // are immutable after WebGL context creation, so we can't track lowTier here.
-  const tierAtMount = useRef((detectedConfig.tier ?? 1) < 2)
+  const [tierAtMount] = useState(() => (detectedConfig.tier ?? 1) < 2)
 
   // Tier promotion via sustained factor. detect-gpu's database lags new GPUs
   // and some browsers farble the renderer string, so capable GPUs can land on
@@ -1095,8 +1095,8 @@ const SceneCanvas = ({ detectedConfig }: { detectedConfig: GPUConfig }) => {
           toneMapping: 0,
           premultipliedAlpha: false,
           powerPreference: 'high-performance',
-          antialias: !tierAtMount.current,
-          precision: tierAtMount.current ? 'mediump' : 'highp',
+          antialias: !tierAtMount,
+          precision: tierAtMount ? 'mediump' : 'highp',
         }}
         dpr={dpr}
         linear
