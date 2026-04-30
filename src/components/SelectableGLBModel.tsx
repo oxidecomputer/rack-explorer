@@ -40,12 +40,19 @@ export const SelectableGLBModel = memo(function SelectableGLBModel({
 
   // Re-clone whenever the source GLTF or low-tier setting changes. The clone
   // owns any new lambert materials we create during downgrade — they get
-  // disposed when the next clone replaces this one.
+  // disposed when the next clone replaces this one. userData/raycast are
+  // mutated here too: the clone is fresh, so this is safe during render.
   const sceneInfo = useMemo(() => {
     const cloned = gltf.scene.clone(true)
     const created = lowTier ? downgradeMaterials(cloned) : []
+    cloned.traverse((child) => {
+      child.userData = { id }
+      if (!clickable && child instanceof THREE.Mesh) {
+        child.raycast = () => {}
+      }
+    })
     return { scene: cloned, created }
-  }, [gltf.scene, lowTier])
+  }, [gltf.scene, lowTier, id, clickable])
   const scene = sceneInfo.scene
 
   useEffect(() => {
@@ -79,15 +86,6 @@ export const SelectableGLBModel = memo(function SelectableGLBModel({
     [id],
   )
   const enabled = useValue(isSelected)
-
-  useEffect(() => {
-    scene.traverse((child) => {
-      child.userData = { id }
-      if (!clickable && child instanceof THREE.Mesh) {
-        child.raycast = () => {}
-      }
-    })
-  }, [scene, id, clickable])
 
   const offsetGroupRef = useSelectionOffset(enabled, selectionOffset)
 

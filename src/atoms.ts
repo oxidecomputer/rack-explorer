@@ -228,9 +228,13 @@ export function advanceFreeTutorial() {
   const next = current + 1
   if (next >= FREE_TUTORIAL_STEP_COUNT) {
     dismissFreeTutorial()
-  } else {
-    freeTutorialStepIndex.set(next)
+    return
   }
+  // drill into a compute sled
+  if (next === 2 && selectedId.get().split(':')[0] === 'oxide-rack') {
+    selectedId.set('compute-sled:16')
+  }
+  freeTutorialStepIndex.set(next)
 }
 
 export function dismissFreeTutorial() {
