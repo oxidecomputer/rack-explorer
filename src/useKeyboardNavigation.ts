@@ -11,6 +11,7 @@ import {
   navigationMode,
   seekVideo,
   selectedId,
+  togglePlayWithFlash,
   videoTourPlaying,
   tourStartScreen,
 } from './atoms'
@@ -92,10 +93,10 @@ export function useKeyboardNavigation() {
       // Guided mode — check if it's a video tour
       const videoTour = activeVideoTour.get()
       if (videoTour) {
-        // Space to toggle play/pause
+        // Space to toggle play/pause — flash the icon like a canvas click.
         if (e.key === ' ') {
           e.preventDefault()
-          videoTourPlaying.set(!videoTourPlaying.get())
+          togglePlayWithFlash()
           return
         }
 
