@@ -26,7 +26,11 @@ export function TourStartScreen() {
       className="bg-default pointer-events-auto absolute top-1/2 left-1/2 w-full max-w-120 -translate-1/2 rounded-lg p-6 px-8"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 8, transition: { duration: 0.24, ease: [0.25, 0.46, 0.45, 0.94] } }}
+      exit={{
+        opacity: 0,
+        y: 8,
+        transition: { duration: 0.24, ease: [0.25, 0.46, 0.45, 0.94] },
+      }}
       transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
       <div className="mb-2">
@@ -37,6 +41,20 @@ export function TourStartScreen() {
       </div>
 
       <p className="text-sans-md text-tertiary pr-6">{tour.description}</p>
+
+      {tour.author && (
+        <div className="mt-4 flex items-center gap-2">
+          <img
+            src={`/images/${tour.author.portrait}`}
+            alt={tour.author.name}
+            className="border-secondary h-8 w-8 rounded-full border object-cover"
+          />
+          <div className="text-sans-sm">
+            <div className="text-secondary">{tour.author.name}</div>
+            <div className="text-quaternary">{tour.author.title}</div>
+          </div>
+        </div>
+      )}
 
       <Button onClick={handleStart} className="mt-6 w-full" size="sm">
         <div className="flex w-full items-center justify-center gap-2">

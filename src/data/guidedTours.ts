@@ -60,6 +60,7 @@ export type VideoCaption = {
 export type StandardTour = {
   id: string
   title: string
+  author?: { portrait: string; name: string; title: string }
   description: string
   type: 'standard'
   steps: TourStep[]
@@ -68,6 +69,7 @@ export type StandardTour = {
 export type VideoTour = {
   id: string
   title: string
+  author?: { portrait: string; name: string; title: string }
   type: 'video'
   description: string
   videoUrl: string
@@ -226,6 +228,7 @@ export const guidedTours: GuidedTour[] = [
     type: 'video',
     description:
       'FAQ Friday #42: Bryan Cantrill walks through where AC-to-DC conversion happens in the rack, the Murata rectifiers, and the Oxide-designed power shelf controller.',
+    author: { portrait: 'bryan-portrait.jpg', name: 'Bryan Cantrill', title: 'CTO' },
     videoUrl: '/tours/faq-friday-power-shelf.mp4',
     duration: 115,
     captions: parseSRT(faqFridayPowerShelfSrt),
