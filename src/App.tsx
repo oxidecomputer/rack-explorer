@@ -135,7 +135,7 @@ function App() {
   return (
     <MotionConfig reducedMotion="user">
       <motion.div
-        className="fixed top-0 left-0 h-[100dvh] w-full"
+        className="fixed top-0 left-0 h-dvh w-full"
         initial={{ opacity: 0 }}
         animate={{ opacity: isSceneReady ? 1 : 0 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
@@ -143,7 +143,7 @@ function App() {
         <Scene />
       </motion.div>
 
-      <div className="pointer-events-none absolute inset-0 flex h-[100dvh] flex-col">
+      <div className="pointer-events-none absolute inset-0 flex h-dvh flex-col">
         {/* Blur overlay — behind sidebars */}
         <AnimatePresence>
           {isLandingOpen && (
