@@ -1,5 +1,5 @@
 import { useValue } from '@tldraw/state-react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, delay, motion } from 'motion/react'
 import { useEffect } from 'react'
 
 import {
@@ -45,9 +45,15 @@ const STANDARD_ENTRANCE = {
   transition: { duration: 0.25, ease: EASE_OUT_QUAD },
 }
 const WIGGLE = {
-  initial: { rotate: -6 },
+  initial: { rotate: -4 },
   animate: { rotate: 0 },
-  transition: { type: 'spring' as const, duration: 1.25, bounce: 0.75 },
+  transition: {
+    repeat: Infinity,
+    type: 'spring' as const,
+    duration: 2,
+    bounce: 0.8,
+    repeatDelay: 8,
+  },
 }
 const EXIT = { opacity: 0, y: 4, transition: { duration: 0.2, ease: EASE_OUT_QUAD } }
 
