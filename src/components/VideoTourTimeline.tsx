@@ -7,7 +7,9 @@ import { useCallback, useRef, useState } from 'react'
 import {
   activeVideoTour,
   activeVideoTourStepIndex,
+  cycleVideoTourPlaybackRate,
   videoTourCurrentTime,
+  videoTourPlaybackRate,
   videoTourPlaying,
 } from '../atoms'
 import type { VideoTour } from '../data/guidedTours'
@@ -38,6 +40,31 @@ function ProgressFill({ duration }: { duration: number }) {
   )
 }
 
+function TimelineButton({
+  onClick,
+  ariaLabel,
+  className,
+  children,
+}: {
+  onClick: () => void
+  ariaLabel?: string
+  className?: string
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={ariaLabel}
+      className={clsx(
+        'text-secondary hover:text-default flex h-7 items-center justify-center rounded border border-neutral-800/10 transition-colors hover:bg-neutral-800/30',
+        className,
+      )}
+    >
+      {children}
+    </button>
+  )
+}
+
 function TimeDisplay({ duration }: { duration: number }) {
   const currentTime = useValue(videoTourCurrentTime)
   return (
@@ -53,6 +80,7 @@ export function VideoTourTimeline({ onSeek }: { onSeek: (time: number) => void }
   const isPlaying = useValue(videoTourPlaying)
   const currentStepIndex = useValue(activeVideoTourStepIndex)
   const currentTime = useValue(videoTourCurrentTime)
+  const playbackRate = useValue(videoTourPlaybackRate)
   const [hoveredStep, setHoveredStep] = useState<number | null>(null)
   const [hoverX, setHoverX] = useState(0)
   const trackRef = useRef<HTMLDivElement>(null)
@@ -196,13 +224,22 @@ export function VideoTourTimeline({ onSeek }: { onSeek: (time: number) => void }
       </div>
 
       {/* Controls row */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => videoTourPlaying.set(!isPlaying)}
-          className="text-secondary hover:text-default flex h-7 w-7 items-center justify-center rounded border border-neutral-800/10 transition-colors hover:bg-neutral-800/30"
+      <div className="flex items-center gap-1.5">
+        <TimelineButton onClick={() => videoTourPlaying.set(!isPlaying)} className="w-8">
+          {isPlaying ? (
+            <Pause12Icon className="size-4" />
+          ) : (
+            <DirectionRightIcon className="size-4" />
+          )}
+        </TimelineButton>
+
+        <TimelineButton
+          onClick={cycleVideoTourPlaybackRate}
+          ariaLabel={`Playback speed: ${playbackRate}×. Click to change.`}
+          className="text-mono-xs px-2"
         >
-          {isPlaying ? <Pause12Icon /> : <DirectionRightIcon />}
-        </button>
+          {playbackRate}×
+        </TimelineButton>
 
         <TimeDisplay duration={tour.duration} />
 
