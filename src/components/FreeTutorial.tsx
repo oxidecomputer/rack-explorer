@@ -17,7 +17,7 @@ const STEPS: {
   position: string
 }[] = [
   {
-    body: 'The rack outliner. Click any item to focus on it. Use the Arrow Keys to step through siblings, Enter to drill down or Esc to go back up.',
+    body: 'The rack outliner. Click any item to focus on it. Use Arrow Up and Down to step through siblings, Enter to drill down or Esc to go back up.',
     position: 'left-72 top-20',
   },
   {
