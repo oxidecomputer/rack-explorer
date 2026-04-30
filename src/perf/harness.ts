@@ -224,7 +224,7 @@ export function downloadJson(filename: string, data: unknown) {
 }
 
 export function logReport(report: PerfReport) {
-  // eslint-disable-next-line no-console
+   
   console.log('[perf] report', report)
   const rows = report.scenarios.map((s) => ({
     scenario: s.name,
@@ -239,6 +239,6 @@ export function logReport(report: PerfReport) {
     tex: s.memory.textures,
     heapMB: s.memory.heapUsedMB?.toFixed(1) ?? 'n/a',
   }))
-  // eslint-disable-next-line no-console
+   
   console.table(rows)
 }

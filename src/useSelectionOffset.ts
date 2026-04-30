@@ -1,6 +1,6 @@
 import { useFrame } from '@react-three/fiber'
 import { useReducedMotion } from 'motion/react'
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 
 /**
@@ -16,13 +16,11 @@ export function useSelectionOffset(
 ) {
   const groupRef = useRef<THREE.Group>(null)
   const animPos = useRef(new THREE.Vector3())
-  const prevKey = useRef(resetKey)
   const reducedMotion = useReducedMotion()
 
-  if (prevKey.current !== resetKey) {
+  useEffect(() => {
     animPos.current.set(0, 0, 0)
-    prevKey.current = resetKey
-  }
+  }, [resetKey])
 
   useFrame((state, delta) => {
     if (!groupRef.current || !offset) return

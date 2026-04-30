@@ -17,7 +17,7 @@ export default tseslint.config(includeIgnoreFile(gitignorePath), {
     js.configs.recommended,
     tseslint.configs.recommended,
     jsxA11y.flatConfigs.recommended,
-    reactHooks.configs['recommended-latest'],
+    reactHooks.configs.flat['recommended-latest'],
     reactRefresh.configs.vite,
   ],
   languageOptions: {
@@ -32,7 +32,7 @@ export default tseslint.config(includeIgnoreFile(gitignorePath), {
         caughtErrorsIgnorePattern: '^_',
       },
     ],
-    eqeqeq: 'error',
+    eqeqeq: ['error', 'always', { null: 'ignore' }],
     'no-param-reassign': 'error',
     'no-return-assign': 'error',
   },

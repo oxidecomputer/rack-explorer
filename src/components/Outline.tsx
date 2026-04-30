@@ -112,7 +112,7 @@ function OutlineItem({
 }
 
 /** The top-level children (everything under oxide-rack) for use in breadcrumbs / nav */
-export const outlineItems = componentTree.children ?? []
+const outlineItems = componentTree.children ?? []
 
 export function Outline() {
   return (
