@@ -1,14 +1,28 @@
 import { NextArrow12Icon, PrevArrow12Icon } from '@oxide/design-system/icons/react'
 import { useValue } from '@tldraw/state-react'
 import { AnimatePresence, motion } from 'motion/react'
+import { useEffect, useRef } from 'react'
 
-import { activeTour, activeTourStep, activeTourStepIndex, goToTourStep } from '../atoms'
+import {
+  activeTour,
+  activeTourStep,
+  activeTourStepIndex,
+  goToNextTour,
+  goToTourStep,
+} from '../atoms'
 import type { TourStep } from '../data/guidedTours'
 
 export function GuidedTourPanel() {
   const tour = useValue(activeTour)
   const step = useValue(activeTourStep)
   const stepIndex = useValue(activeTourStepIndex)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Reset the mobile drawer's scroll position when the step changes — long
+  // descriptions otherwise stay scrolled to the previous step's bottom.
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0 })
+  }, [stepIndex])
 
   const standardStep = step && 'description' in step ? (step as TourStep) : null
 
@@ -26,7 +40,10 @@ export function GuidedTourPanel() {
 
   return (
     <div className="flex h-full grow flex-col">
-      <div className="max-1000:overflow-y-auto max-1000:pt-4 h-full grow pb-2">
+      <div
+        ref={scrollRef}
+        className="max-1000:overflow-y-auto max-1000:pt-4 h-full grow pb-2"
+      >
         <div className="max-1000:hidden text-mono-xs text-quaternary max-1000:pt-3 pb-2 uppercase">
           {tour.title}
         </div>
@@ -61,9 +78,8 @@ export function GuidedTourPanel() {
               <PrevArrow12Icon />
             </button>
             <button
-              onClick={() => goToTourStep(stepIndex + 1)}
-              disabled={isLast}
-              className="hover:bg-hover disabled:text-quaternary text-secondary flex h-6 w-6 items-center justify-center rounded transition-colors disabled:pointer-events-none"
+              onClick={() => (isLast ? goToNextTour() : goToTourStep(stepIndex + 1))}
+              className="hover:bg-hover text-secondary flex h-6 w-6 items-center justify-center rounded transition-colors"
             >
               <NextArrow12Icon />
             </button>

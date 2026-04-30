@@ -1,8 +1,4 @@
-import {
-  DirectionRightIcon,
-  NextArrow12Icon,
-  PrevArrow12Icon,
-} from '@oxide/design-system/icons/react'
+import { DirectionRightIcon } from '@oxide/design-system/icons/react'
 import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
 import { AnimatePresence, motion } from 'motion/react'
@@ -31,26 +27,6 @@ function getStepEnd(tour: VideoTour, stepIndex: number): number {
   return tour.duration
 }
 
-function ControlButton({
-  onClick,
-  disabled,
-  children,
-}: {
-  onClick: () => void
-  disabled?: boolean
-  children: React.ReactNode
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className="disabled:text-quaternary text-secondary flex h-6 w-6 items-center justify-center rounded border border-neutral-800/10 transition-colors hover:bg-neutral-800/30 disabled:pointer-events-none"
-    >
-      {children}
-    </button>
-  )
-}
-
 function ProgressFill({ duration }: { duration: number }) {
   const currentTime = useValue(videoTourCurrentTime)
   const progress = duration > 0 ? currentTime / duration : 0
@@ -65,37 +41,14 @@ function ProgressFill({ duration }: { duration: number }) {
 function TimeDisplay({ duration }: { duration: number }) {
   const currentTime = useValue(videoTourCurrentTime)
   return (
-    <div className="text-mono-xs text-secondary">
+    <div className="text-mono-xs text-secondary pr-3 text-nowrap">
       {formatTime(currentTime)}{' '}
       <span className="text-quaternary">/ {formatTime(duration)}</span>
     </div>
   )
 }
 
-function PrevControlButton({
-  onSkipPrev,
-  isFirst,
-}: {
-  onSkipPrev: () => void
-  isFirst: boolean
-}) {
-  const currentTime = useValue(videoTourCurrentTime)
-  return (
-    <ControlButton onClick={onSkipPrev} disabled={isFirst && currentTime < 1}>
-      <PrevArrow12Icon />
-    </ControlButton>
-  )
-}
-
-export function VideoTourTimeline({
-  onSeek,
-  onSkipPrev,
-  onSkipNext,
-}: {
-  onSeek: (time: number) => void
-  onSkipPrev: () => void
-  onSkipNext: () => void
-}) {
+export function VideoTourTimeline({ onSeek }: { onSeek: (time: number) => void }) {
   const tour = useValue(activeVideoTour)
   const isPlaying = useValue(videoTourPlaying)
   const currentStepIndex = useValue(activeVideoTourStepIndex)
@@ -157,9 +110,6 @@ export function VideoTourTimeline({
 
   if (!tour) return null
 
-  const isFirst = currentStepIndex === 0
-  const isLast = currentStepIndex === tour.steps.length - 1
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -178,7 +128,7 @@ export function VideoTourTimeline({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 4 }}
               transition={{ duration: 0.1 }}
-              className="pointer-events-none absolute -top-10 z-10 -translate-x-1/2 rounded bg-neutral-300 px-2.5 py-1"
+              className="1000:block pointer-events-none absolute -top-10 z-10 hidden -translate-x-1/2 rounded bg-neutral-300 px-2.5 py-1"
               style={{ left: hoverX }}
             >
               <span className="text-sans-sm text-default text-nowrap">
@@ -197,7 +147,7 @@ export function VideoTourTimeline({
           aria-valuemax={tour.duration}
           aria-valuenow={Math.round(currentTime)}
           tabIndex={0}
-          className="group relative flex h-1.5 cursor-pointer items-center focus-visible:outline focus-visible:outline-offset-2"
+          className="group 800:h-2 focus-visible:outline-accent-secondary relative flex h-3 cursor-pointer items-center rounded-sm focus-visible:outline focus-visible:outline-offset-2"
           onClick={handleTrackClick}
           onKeyDown={handleTrackKey}
           onMouseMove={handleTrackHover}
@@ -247,21 +197,16 @@ export function VideoTourTimeline({
 
       {/* Controls row */}
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-1">
-          <PrevControlButton onSkipPrev={onSkipPrev} isFirst={isFirst} />
-          <ControlButton onClick={() => videoTourPlaying.set(!isPlaying)}>
-            {isPlaying ? <Pause12Icon /> : <DirectionRightIcon />}
-          </ControlButton>
-          <ControlButton onClick={onSkipNext} disabled={isLast}>
-            <NextArrow12Icon />
-          </ControlButton>
-        </div>
+        <button
+          onClick={() => videoTourPlaying.set(!isPlaying)}
+          className="text-secondary hover:text-default flex h-7 w-7 items-center justify-center rounded border border-neutral-800/10 transition-colors hover:bg-neutral-800/30"
+        >
+          {isPlaying ? <Pause12Icon /> : <DirectionRightIcon />}
+        </button>
 
-        {/* Time display */}
         <TimeDisplay duration={tour.duration} />
 
-        {/* Current step label */}
-        <div className="text-sans-sm text-default ml-auto">
+        <div className="text-sans-sm text-default ml-auto truncate">
           {tour.steps[currentStepIndex]?.title}
         </div>
       </div>

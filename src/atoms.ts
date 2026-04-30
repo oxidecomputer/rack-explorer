@@ -100,11 +100,42 @@ export function goToTourStep(index: number) {
   }
 }
 
+/** Advance to the next tour, cycling back to the first when at the end. Lands
+ *  on the next tour's start screen so the user gets its intro before stepping
+ *  into the content. */
+export function goToNextTour() {
+  const current = activeTourId.get()
+  const idx = guidedTours.findIndex((t) => t.id === current)
+  const next = guidedTours[(idx + 1) % guidedTours.length]
+  startTour(next.id)
+  cycledFromPreviousTour.set(true)
+}
+
 // Video tour playback state
 export const videoTourPlaying = atom('videoTourPlaying', false)
 export const videoTourCurrentTime = atom('videoTourCurrentTime', 0)
+
+/** Last user-driven play/pause toggle. The center-of-screen flash watches this
+ *  and shows the matching icon for ~700ms. Bumped only by canvas clicks (not
+ *  by every play-state change) so auto-pauses don't trigger a flash. */
+export const playPauseFlash = atom<{ key: number; isPlaying: boolean } | null>(
+  'playPauseFlash',
+  null,
+)
+/** Toggle videoTourPlaying and trigger the flash overlay. */
+export function togglePlayWithFlash() {
+  const next = !videoTourPlaying.get()
+  videoTourPlaying.set(next)
+  playPauseFlash.set({ key: Date.now(), isPlaying: next })
+}
 /** Whether the tour start screen is showing (before the user begins the tour) */
 export const tourStartScreen = atom('tourStartScreen', true)
+
+/** True when the start screen is being shown as a result of advancing past the
+ *  previous tour's last step (rather than picking a tour from the sidebar or
+ *  landing). Used to surface a "Contact Sales" CTA below the start screen as a
+ *  subtle touchpoint at the natural break between tours. */
+export const cycledFromPreviousTour = atom('cycledFromPreviousTour', false)
 
 export const activeVideoTourStepIndex = computed('activeVideoTourStepIndex', () => {
   const tour = activeVideoTour.get()
@@ -129,6 +160,7 @@ export function startTour(tourId: string) {
   activeTourId.set(tourId)
   videoTourPlaying.set(false)
   tourStartScreen.set(true)
+  cycledFromPreviousTour.set(false)
 
   if (tour.type === 'video') {
     videoTourCurrentTime.set(0)

@@ -2,7 +2,6 @@ import {
   Close8Icon,
   Compass16Icon,
   NextArrow12Icon,
-  PrevArrow12Icon,
   Question16Icon,
   Show16Icon,
 } from '@oxide/design-system/icons/react'
@@ -17,6 +16,7 @@ import {
   activeVideoTour,
   activeVideoTourStepIndex,
   exitGuidedMode,
+  goToNextTour,
   goToTourStep,
   isVideoTour,
   landingOpen,
@@ -44,13 +44,35 @@ import { Outline } from './components/Outline'
 import { Bar, OutlineSkeleton, SpecificationsSkeleton } from './components/Skeletons'
 import { Specifications } from './components/Specifications'
 import { StepPips } from './components/StepPips'
+import { TourNavArrow } from './components/TourNavArrow'
 import { TourStartScreen } from './components/TourStartScreen'
+import { VideoCaptions } from './components/VideoCaptions'
+import { VideoPlayPauseFlash } from './components/VideoPlayPauseFlash'
 import { VideoTourPlayer } from './components/VideoTourPlayer'
 import { VideoTourTimeline } from './components/VideoTourTimeline'
 import { getNode, inheritInstanceIndex } from './data/componentTree'
-import { getFirstStandardTour } from './data/guidedTours'
+import { getFirstStandardTour, getTour } from './data/guidedTours'
 import { Scene } from './Scene'
 import { useKeyboardNavigation } from './useKeyboardNavigation'
+
+// Deep link: `?tour=<id>` jumps straight into the named tour, skipping the
+// landing modal. Runs at module load — before the first React render — so the
+// initial paint already reflects the tour state and the right sidebar doesn't
+// animate from "open" to "hidden". The param is stripped so a refresh doesn't
+// trap the user in it.
+{
+  const url = new URL(window.location.href)
+  const tourId = url.searchParams.get('tour')
+  if (tourId) {
+    const tour = getTour(tourId)
+    if (tour) {
+      startTour(tour.id)
+      landingOpen.set(false)
+    }
+    url.searchParams.delete('tour')
+    window.history.replaceState({}, '', url.pathname + url.search + url.hash)
+  }
+}
 
 function findPath(targetId: string | null): { id: string; label: string }[] | null {
   if (!targetId) return null
@@ -102,7 +124,11 @@ function App() {
 
   const handleVideoSkipNext = useCallback(() => {
     if (!currentVideoTour) return
-    const nextIndex = Math.min(currentVideoTour.steps.length - 1, currentVideoStepIndex + 1)
+    if (currentVideoStepIndex === currentVideoTour.steps.length - 1) {
+      goToNextTour()
+      return
+    }
+    const nextIndex = currentVideoStepIndex + 1
     seekVideo(currentVideoTour.steps[nextIndex].timestamp)
   }, [currentVideoTour, currentVideoStepIndex])
 
@@ -158,77 +184,79 @@ function App() {
         </AnimatePresence>
 
         <header className="pointer-events-auto relative z-30 flex w-full items-center justify-between px-4 pt-4">
-          <div className="flex w-64 flex-col">
-            <div className="text-raise text-mono-xs opacity-40">Oxide Computer Co.</div>
+          <div className="flex w-64 flex-col select-none">
+            <div className="text-raise text-mono-xs opacity-40">Oxide Computer Company</div>
             <div className="text-sans-sm text-default">3D Rack Explorer</div>
           </div>
-          <div className="text-secondary max-1000:hidden flex flex-1 items-center justify-center gap-2 select-none">
-            <button
-              disabled={!breadcrumbsEnabled}
-              onClick={() => {
-                selectedId.set('oxide-rack')
-              }}
-              className={clsx(
-                'text-mono-xs transition-colors',
-                breadcrumbsEnabled && 'hover:text-default',
-              )}
-            >
-              Oxide Rack
-            </button>
-            {breadcrumbPath &&
-              breadcrumbPath.length > 0 &&
-              breadcrumbPath[0].label !== 'Oxide Rack' && (
-                <>
-                  {breadcrumbPath.map((item, i) => {
-                    const isLast = i === breadcrumbPath.length - 1
-                    return (
-                      <span key={item.id} className="flex items-center gap-2">
-                        <span className="text-raise text-mono-xs opacity-20">/</span>
-                        <div
-                          className={clsx(
-                            'flex items-center gap-2',
-                            isLast
-                              ? 'flex items-center gap-2 rounded-md bg-neutral-800/30 px-1'
-                              : '',
-                          )}
-                        >
-                          <button
-                            disabled={!breadcrumbsEnabled || isLast}
-                            onClick={() => {
-                              selectedId.set(
-                                inheritInstanceIndex(selectedId.get(), item.id),
-                              )
-                            }}
+          {!isGuided && (
+            <div className="text-secondary max-1000:hidden flex flex-1 items-center justify-center gap-2 select-none">
+              <button
+                disabled={!breadcrumbsEnabled}
+                onClick={() => {
+                  selectedId.set('oxide-rack')
+                }}
+                className={clsx(
+                  'text-mono-xs transition-colors',
+                  breadcrumbsEnabled && 'hover:text-default',
+                )}
+              >
+                Oxide Rack
+              </button>
+              {breadcrumbPath &&
+                breadcrumbPath.length > 0 &&
+                breadcrumbPath[0].label !== 'Oxide Rack' && (
+                  <>
+                    {breadcrumbPath.map((item, i) => {
+                      const isLast = i === breadcrumbPath.length - 1
+                      return (
+                        <span key={item.id} className="flex items-center gap-2">
+                          <span className="text-raise text-mono-xs opacity-20">/</span>
+                          <div
                             className={clsx(
-                              'text-mono-xs transition-colors',
-                              isLast && 'text-default',
-                              breadcrumbsEnabled && !isLast && 'hover:text-default',
+                              'flex items-center gap-2',
+                              isLast
+                                ? 'flex items-center gap-2 rounded-md bg-neutral-800/30 px-1'
+                                : '',
                             )}
                           >
-                            {item.label}
-                          </button>
-                          {isLast && breadcrumbsEnabled && (
                             <button
+                              disabled={!breadcrumbsEnabled || isLast}
                               onClick={() => {
-                                const current = selectedId.get()
-                                const base = current.split(':')[0]
-                                const entry = getNode(base)
-                                const parentId = entry?.parent?.id ?? 'oxide-rack'
-                                selectedId.set(inheritInstanceIndex(current, parentId))
+                                selectedId.set(
+                                  inheritInstanceIndex(selectedId.get(), item.id),
+                                )
                               }}
-                              className="text-tertiary target-4 hover:text-default -ml-1 transition-colors"
-                              aria-label="Go up one level"
+                              className={clsx(
+                                'text-mono-xs transition-colors',
+                                isLast && 'text-default',
+                                breadcrumbsEnabled && !isLast && 'hover:text-default',
+                              )}
                             >
-                              <Close8Icon />
+                              {item.label}
                             </button>
-                          )}
-                        </div>
-                      </span>
-                    )
-                  })}
-                </>
-              )}
-          </div>
+                            {isLast && breadcrumbsEnabled && (
+                              <button
+                                onClick={() => {
+                                  const current = selectedId.get()
+                                  const base = current.split(':')[0]
+                                  const entry = getNode(base)
+                                  const parentId = entry?.parent?.id ?? 'oxide-rack'
+                                  selectedId.set(inheritInstanceIndex(current, parentId))
+                                }}
+                                className="text-tertiary target-4 hover:text-default -ml-1 transition-colors"
+                                aria-label="Go up one level"
+                              >
+                                <Close8Icon />
+                              </button>
+                            )}
+                          </div>
+                        </span>
+                      )
+                    })}
+                  </>
+                )}
+            </div>
+          )}
           <div className="flex w-64 items-center justify-end gap-2">
             <OptionsDropdown />
             {!isLandingOpen && !isGuided && (
@@ -299,6 +327,7 @@ function App() {
 
           {/* Center area between sidebars — tour controls live here */}
           <div className="relative min-h-0 min-w-0 grow">
+            {isVideo && !isStartScreen && <VideoPlayPauseFlash />}
             {/* Standard tour: pips + prev/next arrows */}
             {isStandardTour && currentTour && !isLandingOpen && !isStartScreen && (
               <>
@@ -306,37 +335,36 @@ function App() {
                   <StepPips />
                 </div>
 
-                {[
-                  {
-                    Icon: PrevArrow12Icon,
-                    pos: 'left-4',
-                    step: currentStepIndex - 1,
-                    disabled: currentStepIndex === 0,
-                  },
-                  {
-                    Icon: NextArrow12Icon,
-                    pos: specsOpen ? 'right-4' : 'right-0',
-                    step: currentStepIndex + 1,
-                    disabled:
-                      currentTour.type !== 'video' &&
-                      currentStepIndex === currentTour.steps.length - 1,
-                  },
-                ].map(({ Icon, pos, step, disabled }) => (
-                  <button
-                    key={pos}
-                    className={`target-16 max-1000:top-[calc(50%-100px)] pointer-events-auto absolute top-1/2 ${pos} z-30 -translate-y-1/2 rounded-md text-center hover:bg-neutral-800/30 hover:backdrop-blur-sm disabled:pointer-events-none disabled:opacity-30`}
-                    disabled={disabled}
-                    onClick={() => {
-                      goToTourStep(step)
-                      const pip = document.querySelector<HTMLElement>(
-                        `[data-step="${step}"]`,
-                      )
-                      pip?.focus()
-                    }}
-                  >
-                    <Icon className="m-1 size-6" />
-                  </button>
-                ))}
+                {(['prev', 'next'] as const).map((direction) => {
+                  const isAtEnd =
+                    direction === 'next' &&
+                    currentStepIndex === currentTour.steps.length - 1
+                  const step =
+                    direction === 'prev' ? currentStepIndex - 1 : currentStepIndex + 1
+                  const disabled = direction === 'prev' ? currentStepIndex === 0 : false
+                  return (
+                    <TourNavArrow
+                      key={direction}
+                      direction={direction}
+                      pos={direction === 'next' && !specsOpen ? 'right-0' : undefined}
+                      // On mobile, center inside the space above the specs
+                      // drawer (MOBILE_SPECS_PANEL_HEIGHT = 200 → shift -80px).
+                      className="max-1000:top-[calc(50%-100px)] top-1/2"
+                      disabled={disabled}
+                      onClick={() => {
+                        if (isAtEnd) {
+                          goToNextTour()
+                          return
+                        }
+                        goToTourStep(step)
+                        const pip = document.querySelector<HTMLElement>(
+                          `[data-step="${step}"]`,
+                        )
+                        pip?.focus()
+                      }}
+                    />
+                  )
+                })}
               </>
             )}
 
@@ -350,13 +378,27 @@ function App() {
                     <VideoTourPlayer />
                   </AnimatePresence>
                 </div>
+
+                {/* Center between the 150px video player at the top and the
+                    ~80px timeline at the bottom (offset shift = (150-80)/2). */}
+                <TourNavArrow
+                  direction="prev"
+                  className="max-1000:top-[calc(50%+35px)] top-1/2"
+                  disabled={currentVideoStepIndex === 0}
+                  onClick={handleVideoSkipPrev}
+                />
+                <TourNavArrow
+                  direction="next"
+                  className="max-1000:top-[calc(50%+35px)] top-1/2"
+                  onClick={handleVideoSkipNext}
+                />
+
+                <div className="absolute right-0 bottom-20 left-0 z-20 px-4">
+                  <VideoCaptions />
+                </div>
                 <div className="1000:pl-4 pointer-events-auto absolute right-0 bottom-0 left-0 z-20">
                   <div className="bg-default/80 rounded-lg px-4 py-3 backdrop-blur-md">
-                    <VideoTourTimeline
-                      onSeek={seekVideo}
-                      onSkipPrev={handleVideoSkipPrev}
-                      onSkipNext={handleVideoSkipNext}
-                    />
+                    <VideoTourTimeline onSeek={seekVideo} />
                   </div>
                 </div>
               </>
