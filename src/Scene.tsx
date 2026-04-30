@@ -463,10 +463,14 @@ function DebugStats({
   const scene = useThree((s) => s.scene)
 
   useEffect(() => {
+    // Disable per-frame auto-reset so we can read stats from the previous frame
+    // before manually resetting in useFrame. The renderer config must be mutated.
+    /* eslint-disable react-hooks/immutability */
     gl.info.autoReset = false
     return () => {
       gl.info.autoReset = true
     }
+    /* eslint-enable react-hooks/immutability */
   }, [gl])
 
   // Negative priority runs before the render/post-processing passes,
@@ -961,21 +965,20 @@ const SceneCanvas = ({ detectedConfig }: { detectedConfig: GPUConfig }) => {
   // Max DPR the GPU tier / override allows. Adaptive DPR scales in [1, maxDpr].
   const dprConfig = perfFlags.dprOverride ?? effectiveConfig.dpr
   const maxDpr = Array.isArray(dprConfig) ? dprConfig[1] : dprConfig
-  const [dpr, setDpr] = useState(maxDpr)
-  useEffect(() => {
-    setDpr(maxDpr)
-  }, [maxDpr])
-  // Manual resolution overrides pin DPR regardless of perf factor.
-  useEffect(() => {
-    if (dprSetting === 'high') setDpr(maxDpr)
-    else if (dprSetting === 'low') setDpr(1)
-  }, [dprSetting, maxDpr])
 
   // Adaptive AO quality: 'full' → 'off' as perf factor drops. Hysteresis
   // prevents flicker. Only takes effect when postSetting === 'auto' AND the
   // tier supports AO; otherwise the manual or tier-disabled value wins.
   const [adaptiveAO, setAdaptiveAO] = useState<'full' | 'low' | 'off'>('full')
   const [perfFactor, setPerfFactor] = useState(1)
+
+  // Derived DPR: manual overrides pin to maxDpr/1; 'auto' scales with perfFactor.
+  const dpr =
+    dprSetting === 'high'
+      ? maxDpr
+      : dprSetting === 'low'
+        ? 1
+        : Math.max(1, 1 + (maxDpr - 1) * perfFactor)
 
   // Promotion timer: factor sustained above PROMOTION_FACTOR_THRESHOLD for the
   // full duration → bump tier. The first-crossed timestamp lives in a ref so
@@ -1140,10 +1143,6 @@ const SceneCanvas = ({ detectedConfig }: { detectedConfig: GPUConfig }) => {
           bounds={(refreshrate) => (refreshrate > 90 ? [60, 100] : [40, 60])}
           onChange={({ factor }) => {
             setPerfFactor(factor)
-            // Adaptive DPR: only when 'auto'. 'high'/'low' pin via the effect above.
-            if (dprSetting === 'auto') {
-              setDpr(Math.max(1, 1 + (maxDpr - 1) * factor))
-            }
             // Adaptive AO: only when 'auto' (manual high/low bypasses adaptiveAO).
             // Hysteresis: drop below 0.6, restore above 0.9.
             if (postSetting === 'auto') {
