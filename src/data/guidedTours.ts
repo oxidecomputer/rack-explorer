@@ -178,7 +178,7 @@ export const guidedTours: GuidedTour[] = [
       {
         title: 'Storage',
         description:
-          'Ten hot-swappable NVMe U.2 bays per sled, with drives up to 30 TB. Across the rack, all 320 drives form a single shared pool managed by Crucible, which replicates each distributed disk across three different sleds and encrypts data in transit. Drives can be replaced while the sled is online; the control plane adopts new drives automatically.',
+          'Ten hot-swappable NVMe U.2 bays per sled, with drives up to 30 TB. Across the rack, all 320 drives form a single shared pool managed by Crucible, which replicates each distributed disk across three different sleds and is encrypts data at rest and in transit. Drives can be replaced while the sled is online; the control plane adopts new drives automatically.',
         selectedId: 'disks:31',
       },
       {
@@ -196,7 +196,7 @@ export const guidedTours: GuidedTour[] = [
       {
         title: 'Network Switch',
         description:
-          'Two Sidecar switches each provide 12.8 Tbit/s of switching capacity on Intel Tofino 2 ASICs, programmed in P4. Every sled has one physical link to each Sidecar, providing redundancy without operator-installed cabling. The switch operating system ships and updates as part of the rack.',
+          'Two Sidecar switches together provide 12.8 Tbit/s of switching capacity on Intel Tofino 2 ASICs, programmed in P4. Every sled has one physical link to each Sidecar, providing redundancy without operator-installed cabling. The switch operating system ships and updates as part of the rack.',
         selectedId: 'network-switch:0',
       },
       {
@@ -286,7 +286,7 @@ export const guidedTours: GuidedTour[] = [
           {
             label: '6× Murata MWOCP68-3600-D-RM',
             description:
-              '3600 W hot-swappable rectifiers. 1+1 redundant (≈21.6 kW) or 2+0 (≈30 kW) per shelf.',
+              '3600 W hot-swappable rectifiers. 1+1 redundant (≈21.6 kW) or 2+0 (≈30 kW).',
             position: [-0.1, 0.02, 0.32],
           },
         ],
