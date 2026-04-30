@@ -436,7 +436,7 @@ function App() {
           </motion.div>
         </div>
 
-        {!isLandingOpen && !isVideo && (
+        {!isLandingOpen && !isVideo && !(isGuided && isStartScreen) && (
           <motion.button
             initial={false}
             animate={{ x: specsOpen ? -6 : 0 }}
