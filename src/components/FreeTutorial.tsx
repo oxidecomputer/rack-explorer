@@ -1,6 +1,6 @@
 import { useValue } from '@tldraw/state-react'
-import { AnimatePresence, motion } from 'motion/react'
-import { useEffect } from 'react'
+import { AnimatePresence, motion, useAnimationControls } from 'motion/react'
+import { useEffect, useRef, useState } from 'react'
 
 import {
   advanceFreeTutorial,
@@ -32,7 +32,7 @@ const STEPS: {
 
 const EASE_OUT_QUAD = [0.25, 0.46, 0.45, 0.94] as const
 
-// Step 1 announces itself with a spring entrance and a bouncy wiggle; later
+// Step 1 announces itself with a spring entrance and a periodic shake; later
 // steps fade in quietly since the user already knows where to look.
 const FIRST_ENTRANCE = {
   initial: { opacity: 0, y: 12, scale: 0.92 },
@@ -44,23 +44,13 @@ const STANDARD_ENTRANCE = {
   animate: { opacity: 1, y: 0 },
   transition: { duration: 0.25, ease: EASE_OUT_QUAD },
 }
-const WIGGLE = {
-  initial: { rotate: -4 },
-  animate: { rotate: 0 },
-  transition: {
-    repeat: Infinity,
-    type: 'spring' as const,
-    duration: 2,
-    bounce: 0.8,
-    repeatDelay: 8,
-  },
-}
 const EXIT = { opacity: 0, y: 4, transition: { duration: 0.2, ease: EASE_OUT_QUAD } }
 
 export function FreeTutorial() {
   const stepIndex = useValue(freeTutorialStepIndex)
   const mode = useValue(navigationMode)
   const isLandingOpen = useValue(landingOpen)
+  const [isDirty, setIsDirty] = useState(false)
 
   const visible = stepIndex !== null && mode === 'free' && !isLandingOpen
   const step = stepIndex !== null ? STEPS[stepIndex] : null
@@ -76,6 +66,33 @@ export function FreeTutorial() {
     selectedId.set('compute-sled:16')
   }, [stepIndex])
 
+  const shakeControls = useAnimationControls()
+  const shakeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (!isFirst || isDirty || !visible) return
+
+    const shake = () => {
+      shakeControls.start({
+        x: [0, -4, 4, -3, 3, -1, 1, 0],
+        transition: { duration: 0.5, ease: 'easeInOut' },
+      })
+    }
+
+    const scheduleShake = () => {
+      shakeTimerRef.current = setTimeout(() => {
+        shake()
+        scheduleShake()
+      }, 4000)
+    }
+
+    scheduleShake()
+
+    return () => {
+      if (shakeTimerRef.current) clearTimeout(shakeTimerRef.current)
+    }
+  }, [isFirst, visible, shakeControls, isDirty])
+
   const entrance = isFirst ? FIRST_ENTRANCE : STANDARD_ENTRANCE
 
   return (
@@ -86,27 +103,30 @@ export function FreeTutorial() {
           className={`pointer-events-auto absolute z-30 ${step.position}`}
           {...entrance}
           exit={EXIT}
+          onPointerOver={() => {
+            if (isFirst && !isDirty) setIsDirty(true)
+          }}
         >
           <motion.div
-            className="bg-default relative w-64 rounded-md p-2"
-            {...(isFirst && WIGGLE)}
+            className="bg-accent relative w-64 rounded-md border border-current/5 p-2"
+            animate={isFirst ? shakeControls : undefined}
           >
-            <div className="text-sans-sm text-default p-1 pr-1.5">{step.body}</div>
-            <div className="border-secondary -mx-2 mt-2.5 mb-2 h-px border-t" />
+            <div className="text-sans-sm text-accent-secondary p-1 pr-1.5">{step.body}</div>
+            <div className="border-accent-quaternary -mx-2 mt-2.5 mb-2 h-px border-t" />
             <div className="flex items-center justify-between gap-4 px-0.5">
-              <div className="text-mono-xs text-raise grow">
+              <div className="text-mono-xs text-accent grow">
                 {(stepIndex ?? 0) + 1}{' '}
-                <span className="text-quaternary">/ {FREE_TUTORIAL_STEP_COUNT}</span>
+                <span className="text-accent-tertiary">/ {FREE_TUTORIAL_STEP_COUNT}</span>
               </div>
               <button
                 onClick={dismissFreeTutorial}
-                className="target-2 text-mono-xs text-tertiary hover:text-default transition-colors"
+                className="target-2 text-mono-xs text-accent-tertiary hover:text-accent-secondary transition-colors"
               >
                 Skip
               </button>
               <button
                 onClick={advanceFreeTutorial}
-                className="target-2 text-mono-xs text-default hover:text-raise transition-colors"
+                className="target-2 text-mono-xs text-accent hover:text-accent-secondary transition-colors"
               >
                 {isLast ? 'Got it' : 'Next'}
               </button>
