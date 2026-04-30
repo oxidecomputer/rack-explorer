@@ -12,8 +12,8 @@ export function WireframeCube({
   position,
   color = '#5D5E61',
 }: WireframeCubeProps) {
+  const [w, h, d] = size
   const geometry = useMemo(() => {
-    const [w, h, d] = size
     const x = w / 2
     const y = h / 2
     const z = d / 2
@@ -46,8 +46,7 @@ export function WireframeCube({
     const geo = new THREE.BufferGeometry()
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
     return geo
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, size)
+  }, [w, h, d])
 
   return (
     // raycast disabled — the default Line threshold (1 world unit) is huge
