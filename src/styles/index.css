@@ -5,6 +5,7 @@
 @import '@oxide/design-system/styles/dark.css';
 
 @import '@oxide/design-system/components/button.css' layer(components);
+@import '@oxide/design-system/components/spinner.css' layer(components);
 
 @import 'tailwindcss';
 
