@@ -184,8 +184,8 @@ function App() {
         </AnimatePresence>
 
         <header className="pointer-events-auto relative z-30 flex w-full items-center justify-between px-4 pt-4">
-          <div className="flex w-64 flex-col">
-            <div className="text-raise text-mono-xs opacity-40">Oxide Computer Co.</div>
+          <div className="flex w-64 flex-col select-none">
+            <div className="text-raise text-mono-xs opacity-40">Oxide Computer Company</div>
             <div className="text-sans-sm text-default">3D Rack Explorer</div>
           </div>
           {!isGuided && (
@@ -341,8 +341,7 @@ function App() {
                     currentStepIndex === currentTour.steps.length - 1
                   const step =
                     direction === 'prev' ? currentStepIndex - 1 : currentStepIndex + 1
-                  const disabled =
-                    direction === 'prev' ? currentStepIndex === 0 : false
+                  const disabled = direction === 'prev' ? currentStepIndex === 0 : false
                   return (
                     <TourNavArrow
                       key={direction}
