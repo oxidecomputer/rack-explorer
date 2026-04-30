@@ -183,6 +183,35 @@ fragments. Visually nearly imperceptible, materially cheaper.
 outline pass. The harness exposes it via `post=ao`, completing the 2×2 matrix
 of post-processing ablations.
 
+## Reverted: temporal AO amortization
+
+A patch monkey-patched N8AO's `effectShaderQuad` / `poissonBlurQuad` /
+`accumulationQuad` to noop on alternate frames, leaving the composite running
+every frame against the cached accumulation target. Theory: halve the AO
+compute cost; only the AO mask is one frame stale.
+
+Measured at dpr=4 on M4 Max (post=ao, 300 frames, mean gpuMs):
+
+| Scenario | temporal on | temporal off | Δ |
+| --- | --- | --- | --- |
+| idle-rack | 17.94 | 17.62 | −0.32 |
+| showcase-rack | 16.25 | 17.10 | +0.85 |
+| drilled-sled | 16.17 | 16.99 | +0.81 |
+| rapid-selection | 22.10 | 22.07 | −0.03 |
+| orbit-stress | 15.86 | 14.57 | −1.30 |
+
+Deltas are within noise floor and split in sign — no real signal. The reason:
+post-`halfRes`, the AO compute is small relative to the **normal pass** (full-
+res geometry repass, owned by `EffectComposer` via `enableNormalPass`) and the
+**composite quad** — neither of which the temporal patch touches. Halving an
+already-small slice yielded ~nothing. AO is also disabled on tier 0–1
+(`enableAO: tierLevel >= 2`), so the only candidate tiers are 2 and 3, both of
+which carry the same shape of cost breakdown.
+
+Lesson: stack ablations carefully. `halfRes` collapsed the budget that
+temporal was sized to amortize. Once `halfRes` shipped, temporal's premise no
+longer held, but we hadn't re-measured.
+
 ## Rejected: adaptive AO during user interaction
 
 Prototype that toggled AO off during `controlstart` and back on 200ms after
