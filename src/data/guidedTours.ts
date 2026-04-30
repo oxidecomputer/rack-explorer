@@ -1,4 +1,5 @@
-import faqFridayPowerShelfSrt from './captions/faq-friday-power-shelf.srt?raw'
+import faqFridayPowerShelfVtt from './captions/faq-friday-power-shelf.vtt?raw'
+import faqFridayPowerShelfVttUrl from './captions/faq-friday-power-shelf.vtt?url'
 
 type Vec3 = [number, number, number]
 
@@ -78,21 +79,23 @@ export type VideoTour = {
   steps: VideoTourStep[]
   /** Optional subtitle cues displayed on-scene during playback. */
   captions?: VideoCaption[]
+  /** WebVTT URL for the native <track> element (screen-reader / browser captions UI). */
+  captionsUrl?: string
 }
 
 export type GuidedTour = StandardTour | VideoTour
 
-/** Parse an SRT string into an array of caption cues. */
-export function parseSRT(text: string): VideoCaption[] {
+/** Parse an VTT string into an array of caption cues. */
+export function parseCaptions(text: string): VideoCaption[] {
   const captions: VideoCaption[] = []
-  const blocks = text.replace(/^﻿/, '').split(/\r?\n\r?\n/)
+  const blocks = text.replace(/^\uFEFF/, '').split(/\r?\n\r?\n/)
   for (const block of blocks) {
     const lines = block.split(/\r?\n/).filter((l) => l.length > 0)
     const tcIndex = lines.findIndex((l) => l.includes('-->'))
     if (tcIndex < 0) continue
     const [startStr, endStr] = lines[tcIndex].split('-->').map((s) => s.trim())
-    const start = parseSrtTime(startStr)
-    const end = parseSrtTime(endStr)
+    const start = parseCaptionsTime(startStr)
+    const end = parseCaptionsTime(endStr)
     if (!Number.isFinite(start) || !Number.isFinite(end)) continue
     const cueText = lines
       .slice(tcIndex + 1)
@@ -104,7 +107,7 @@ export function parseSRT(text: string): VideoCaption[] {
   return captions
 }
 
-function parseSrtTime(s: string): number {
+function parseCaptionsTime(s: string): number {
   const m = s.match(/^(\d+):(\d+):(\d+)[,.](\d+)$/)
   if (!m) return NaN
   const [, h, mm, ss, ms] = m
@@ -231,7 +234,8 @@ export const guidedTours: GuidedTour[] = [
     author: { portrait: 'bryan-portrait.jpg', name: 'Bryan Cantrill', title: 'CTO' },
     videoUrl: '/tours/faq-friday-power-shelf.mp4',
     duration: 115,
-    captions: parseSRT(faqFridayPowerShelfSrt),
+    captions: parseCaptions(faqFridayPowerShelfVtt),
+    captionsUrl: faqFridayPowerShelfVttUrl,
     steps: [
       {
         title: 'Where Are the Power Supplies?',

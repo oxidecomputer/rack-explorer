@@ -73,8 +73,6 @@ export function VideoTourPlayer({
       className="bg-default pointer-events-auto relative overflow-hidden rounded-md"
       style={{ width: 150, height: 150 }}
     >
-      {/* TODO: add <track kind="captions"> when narrated tours ship. */}
-      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <video
         ref={videoRef}
         src={tour.videoUrl}
@@ -86,7 +84,9 @@ export function VideoTourPlayer({
         onCanPlay={() => setIsLoading(false)}
         onPlaying={() => setIsLoading(false)}
         playsInline
-      />
+      >
+        <track kind="captions" src={tour.captionsUrl} srcLang="en" label="English" />
+      </video>
       <AnimatePresence>
         {isLoading && (
           <motion.div
