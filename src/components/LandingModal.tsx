@@ -1,4 +1,4 @@
-import { Compass16Icon, Show16Icon, Warning12Icon } from '@oxide/design-system/icons/react'
+import { Warning12Icon } from '@oxide/design-system/icons/react'
 import { useValue } from '@tldraw/state-react'
 import { motion } from 'motion/react'
 
