@@ -10,6 +10,7 @@ import {
   startTour,
 } from '../atoms'
 import { getFirstStandardTour } from '../data/guidedTours'
+import { ExplorerIcon, GuidedTourIcon } from './Icons'
 
 function OptionCard({
   icon,
@@ -82,7 +83,11 @@ export function LandingModal() {
         className="bg-default w-full max-w-lg rounded-lg p-6"
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 8, transition: { duration: 0.24, ease: [0.25, 0.46, 0.45, 0.94] } }}
+        exit={{
+          opacity: 0,
+          y: 8,
+          transition: { duration: 0.24, ease: [0.25, 0.46, 0.45, 0.94] },
+        }}
         transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
         <div className="mb-5 text-center">
@@ -93,14 +98,14 @@ export function LandingModal() {
         <div className="flex flex-col gap-2">
           <div className="max-1000:hidden">
             <OptionCard
-              icon={<Show16Icon className="size-6" />}
+              icon={<ExplorerIcon />}
               title="Explore the hardware"
               description="Take a closer look at Oxide's rack. Explore every sled, switch, and shelf at your own pace."
               onClick={() => dismiss('free')}
             />
           </div>
           <OptionCard
-            icon={<Compass16Icon className="size-6" />}
+            icon={<GuidedTourIcon />}
             title="Guided Tour & Help"
             description="Follow a step-by-step walkthrough. Learn how the system works or get instructions for common tasks."
             onClick={() => dismiss('guided')}

@@ -1,9 +1,9 @@
 import {
   Close8Icon,
-  Compass16Icon,
+  Images16Icon,
+  Monitoring16Icon,
   NextArrow12Icon,
   Question16Icon,
-  Show16Icon,
 } from '@oxide/design-system/icons/react'
 import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
@@ -315,7 +315,7 @@ function App() {
                 className="group text-accent hover:bg-accent-hover text-mono-xs bg-accent hover:bg-accent-secondary-hover flex w-full items-center justify-between rounded-md border border-current/5 px-2.5 py-2 transition-colors"
               >
                 <div className="flex items-center gap-2">
-                  {isGuided ? <Show16Icon /> : <Compass16Icon />}
+                  {isGuided ? <Images16Icon /> : <Monitoring16Icon />}
                   {isGuided ? 'Free Explore' : 'Guided tour'}
                 </div>
                 <div className="translate-x-0 transition-transform group-hover:translate-x-0.5">
