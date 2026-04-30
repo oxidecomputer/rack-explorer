@@ -101,7 +101,7 @@ function TourSection({ tour }: { tour: GuidedTour }) {
           )}
         />
         <span className={clsx('relative', isExpanded ? 'text-accent' : 'text-secondary')}>
-          <span className="flex items-center gap-1.5">
+          <span className="flex items-start gap-1.5">
             <span className={isExpanded ? 'text-accent-secondary' : 'text-tertiary'}>
               {tour.type === 'video' ? <Video16Icon /> : <Compass16Icon />}
             </span>

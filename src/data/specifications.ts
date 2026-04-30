@@ -7,25 +7,29 @@ export const specifications: Record<string, Specification[]> = {
   'oxide-rack': [
     { label: 'System Configuration', value: 'Up to 24 Sleds' },
     {
-      label: 'vCPU (2 per physical core)',
+      label: 'vCPU (Guest Available)',
       value: 'Up to 7,875',
     },
     {
-      label: 'Memory (DRAM)',
+      label: 'Memory (Guest Available)',
       value: 'Up to 30.6 TiB',
     },
     {
-      label: 'NVMe Block Storage',
+      label: 'NVMe Block Storage (Guest Available)',
       value: 'Up to 1.7 PiB',
     },
     { label: 'Network Bandwidth', value: '12.8 Tbit/s' },
-    { label: 'Compute Sleds (Total)', value: 'Up to 24' },
+    { label: 'Compute Sleds (Hardware Total)', value: 'Up to 24' },
     {
-      label: 'CPU Cores / Threads',
+      label: 'CPU Cores / Threads (Hardware Total)',
       value: 'Up to 4,608 / 9,216',
     },
     {
-      label: 'Storage',
+      label: 'DRAM (Hardware Total)',
+      value: 'Up to 36 TiB',
+    },
+    {
+      label: 'Storage (Hardware Total)',
       value: 'Up to 6.5 PiB',
     },
     { label: 'Network Switches', value: '2' },
@@ -48,7 +52,7 @@ export const specifications: Record<string, Specification[]> = {
     { label: 'Processor', value: '1 × AMD EPYC 9005 Series' },
     { label: 'Cores / Threads', value: 'Up to 192 / 384' },
     { label: 'Memory Capacity', value: '12 × DDR5 DIMM Slots' },
-    { label: 'Memory Configurations', value: '768 GiB, 1152 GiB, or 1.5 TiB' },
+    { label: 'Memory Configurations', value: '768 GiB, 1.152 TiB, or 1.5 TiB' },
     {
       label: 'Memory Frequency',
       value: '6400 MT/s',
@@ -76,7 +80,7 @@ export const specifications: Record<string, Specification[]> = {
   ],
   ram: [
     { label: 'Memory Capacity', value: '12 × DDR5 DIMM Slots' },
-    { label: 'Memory Configurations', value: '768 GiB, 1152 GiB, or 1.5 TiB' },
+    { label: 'Memory Configurations', value: '768 GiB, 1.152 TiB, or 1.5 TiB' },
     {
       label: 'Memory Frequency',
       value: '6400 MT/s',
@@ -85,7 +89,7 @@ export const specifications: Record<string, Specification[]> = {
   'network-switch': [
     { label: 'ASIC', value: 'Intel Tofino 2' },
     { label: 'Switching Capacity', value: '6.4 Tbit/s' },
-    { label: 'Packets Per Second', value: 'Up to 6 Bpps (Billion Packet per Second)' },
+    { label: 'Packets Per Second', value: 'Up to 6 Bpps (Billion Packets per Second)' },
     { label: 'Packet Buffer', value: '64 MB' },
     { label: 'Uplink Ports', value: '32 × 40/100/200GBASE QSFP-56' },
     { label: 'Backplane Ports', value: '32 × 100GBASE-KR4' },

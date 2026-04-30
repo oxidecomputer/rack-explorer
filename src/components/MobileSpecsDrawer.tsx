@@ -4,7 +4,7 @@ import { isVideoTour, navigationMode, tourStartScreen } from '../atoms'
 import { GuidedTourPanel } from './GuidedTourPanel'
 import { Specifications } from './Specifications'
 
-export const MOBILE_SPECS_PANEL_HEIGHT = 160
+export const MOBILE_SPECS_PANEL_HEIGHT = 200
 
 export function MobileSpecsDrawer() {
   const isGuided = useValue(navigationMode) === 'guided'
