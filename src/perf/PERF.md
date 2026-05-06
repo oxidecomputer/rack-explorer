@@ -37,6 +37,7 @@ for DevTools poking. `download=1` also saves `perf-<timestamp>.json`.
 | `canvas=<px>` | Pin canvas to a fixed square size. |
 | `post=<mode>` | `none`, `outline`, `ao`, `outline+ao`. Isolates post-processing passes. |
 | `instancing=<mode>` | `instanced` (default) or `cloned` — unrolls instances into individual meshes. |
+| `perforations=<mode>` | `on` (default) or `off` — strips alpha-tested perforation GLBs (sled / switch / power-shelf) to isolate their fillrate cost. |
 
 ## How it measures
 
@@ -211,6 +212,76 @@ which carry the same shape of cost breakdown.
 Lesson: stack ablations carefully. `halfRes` collapsed the budget that
 temporal was sized to amortize. Once `halfRes` shipped, temporal's premise no
 longer held, but we hadn't re-measured.
+
+## Perforation ablation (May 2026)
+
+Question: do the alpha-tested perforation GLBs (sled / switch / power-shelf,
+`Perforations` material with `alphaMap` + `alphaTest=0.5` + `DoubleSide`) cost
+meaningful GPU time, given they're essentially everywhere in the rack views?
+
+Added `?perforations=off` to strip them at render time, ran `?perf=all` and
+`?perf=drilled-sled&dpr=4` both ways on M4 Max / Chrome 147.
+
+### Median: free.
+
+Default tier-3 config (DPR `[1,2]`, post=`outline+ao`):
+
+| Scenario | gpu p50 on | gpu p50 off | Δ |
+| --- | --- | --- | --- |
+| idle-rack | 9.19 | 9.11 | -0.08 |
+| showcase-rack | 9.18 | 9.13 | -0.05 |
+| drilled-sled | 8.91 | 8.88 | -0.03 |
+| rapid-selection | 10.07 | 9.66 | -0.41 |
+| orbit-stress | 9.10 | 9.11 | +0.01 |
+
+Confirmed at `dpr=4` for drilled-sled across two independent runs: medians
+clustered 41–42ms regardless of perforations. The perforation pass adds
+no measurable median GPU cost on this GPU.
+
+### Tail: ~40ms p99 spikes, reproducible.
+
+| Scenario | gpu p99 on | gpu p99 off | Δ |
+| --- | --- | --- | --- |
+| idle-rack (dpr default) | 17.60 | 10.85 | -6.75 |
+| drilled-sled (dpr default) | 17.51 | 10.36 | -7.15 |
+| rapid-selection (dpr default) | 21.33 | 18.49 | -2.84 |
+| drilled-sled (dpr=4, run 1) | 90.20 | 49.96 | -40.24 |
+| drilled-sled (dpr=4, run 2) | 90.28 | 49.81 | -40.47 |
+
+The two `dpr=4` p99 measurements landing at `90.20` / `90.28` confirm this
+is a deterministic stall, not measurement noise. Likely cause: Metal
+pipeline state change for the alpha-test pass, or a composite swap that
+re-touches alpha-test fragments. Manifests as occasional dropped frames
+during interaction — invisible at p50 dashboards, visible to a user.
+
+### Resource diff (rack-level scenarios, perforations on → off)
+
+- draw calls: 257 → 217 (**-40, -16%**)
+- programs: 27 → 23 (-4)
+- geometries: 107 → 99 (-8)
+- textures: 76 → 67 (-9; ~3 baked PBR maps per perforation GLB plus the
+  shared `perforations.jpg` from the texture cache)
+- triangles: 1.32M → 1.29M (-25k, -1.9%)
+
+The 40-draw-call delta is invisible on M4 Max but would matter on a
+tier-1 mobile/integrated GPU at 10–50µs per call (0.4–2ms total).
+
+### Verdict: keep them on by default, watch the tail.
+
+Perforations are visually load-bearing for hardware fidelity and cost
+nothing at the median. The p99 spike is the only real cost, and it's
+worth attention only if low-tier hardware reports stutter. Mitigations
+in priority order if it ever bites:
+
+1. Bake the perforation pattern into the cosmo-ext shell as a single
+   alphaMap'd material — eliminates the separate mesh + draw call +
+   pipeline state change without changing the visual.
+2. On detected tier 0–1 GPUs, swap the perforation mesh for a darker
+   non-perforated panel (visual fidelity loss, eliminates the alpha-test
+   path entirely).
+3. Move perforations to a dedicated render pass with explicit depth
+   pre-pass to stabilize alpha-test fragment cost. Most invasive; only
+   warranted if 1–2 don't suffice.
 
 ## Rejected: adaptive AO during user interaction
 

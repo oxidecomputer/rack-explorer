@@ -1,4 +1,4 @@
-import { useLoader, type Vector3 } from '@react-three/fiber'
+import { useLoader, useThree, type Vector3 } from '@react-three/fiber'
 import { computed } from '@tldraw/state'
 import { useValue } from '@tldraw/state-react'
 import { memo, useEffect, useMemo } from 'react'
@@ -11,7 +11,7 @@ import { downgradeMaterials } from '../perf/materialDowngrade'
 import { ensureBoundsTree } from '../perf/raycasting'
 import { useSelectionOffset } from '../useSelectionOffset'
 import { ModifiedSelect } from './Selection'
-import { applyExternalTextures } from './textureApply'
+import { applyExternalTextures, rewritePerforations } from './textureApply'
 
 interface SelectableGLBModelProps {
   id: string
@@ -35,8 +35,17 @@ export const SelectableGLBModel = memo(function SelectableGLBModel({
   const gltf = useLoader(GLTFLoader, path, (loader) => {
     loader.setDRACOLoader(dracoLoader)
   })
+  const gl = useThree((s) => s.gl)
   ensureBoundsTree(gltf.scene)
   const lowTier = useValue(lowTierRendering)
+
+  // Swap any perforation material on the loaded scene to the shared module-
+  // level material before sceneInfo clones it (clone shares material refs).
+  // Idempotent per gltf.scene.
+  useMemo(
+    () => rewritePerforations(gltf.scene, textures, gl),
+    [gltf.scene, textures, gl],
+  )
 
   // Re-clone whenever the source GLTF or low-tier setting changes. The clone
   // owns any new lambert materials we create during downgrade — they get

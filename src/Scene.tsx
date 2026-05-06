@@ -45,6 +45,7 @@ import {
   getNodeModels,
   inheritInstanceIndex,
   isDescendantOf,
+  type ModelConfig,
   resolveWaypoint,
 } from './data/componentTree'
 import { detectSoftwareRendering } from './gpuProbe'
@@ -52,6 +53,16 @@ import { eventsWithoutHover } from './perf/eventsWithoutHover'
 import { markInit, parsePerfFlags, type PerfFlags } from './perf/harness'
 
 const perfFlags = parsePerfFlags()
+
+// Perf ablation: when ?perforations=off, skip GLBs whose alpha-test geometry
+// (Perforations material) drives extra fragment cost.
+function isPerforationModel(model: ModelConfig): boolean {
+  return !!model.textures && 'Perforations' in model.textures
+}
+function filterPerforations(models: ModelConfig[]): ModelConfig[] {
+  if (perfFlags.perforations !== 'off') return models
+  return models.filter((m) => !isPerforationModel(m))
+}
 
 const PostProcessing = lazy(() =>
   import('./components/PostProcessing').then((m) => ({ default: m.PostProcessing })),
@@ -572,7 +583,12 @@ function SceneContent({
 
   // Collect descendant models for the active parent (e.g. cosmo-lod0 when inside compute-sled)
   const descendantModels = useMemo(
-    () => (viewingChildOfId ? getDescendantModels(viewingChildOfId) : []),
+    () =>
+      viewingChildOfId
+        ? getDescendantModels(viewingChildOfId).filter(
+            ({ model }) => !(perfFlags.perforations === 'off' && isPerforationModel(model)),
+          )
+        : [],
     [viewingChildOfId],
   )
 
@@ -702,7 +718,7 @@ function SceneContent({
 
           {/* Top-level components from tree */}
           {componentTree.children?.map((node) => {
-            const models = getNodeModels(node)
+            const models = filterPerforations(getNodeModels(node))
             if (models.length === 0) return null
 
             // Hide non-active siblings when focused (drilldown or isolation)
