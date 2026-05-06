@@ -1,5 +1,4 @@
 import faqFridayPowerShelfVtt from './captions/faq-friday-power-shelf.vtt?raw'
-import faqFridayPowerShelfVttUrl from './captions/faq-friday-power-shelf.vtt?url'
 
 type Vec3 = [number, number, number]
 
@@ -79,8 +78,6 @@ export type VideoTour = {
   steps: VideoTourStep[]
   /** Optional subtitle cues displayed on-scene during playback. */
   captions?: VideoCaption[]
-  /** WebVTT URL for the native <track> element (screen-reader / browser captions UI). */
-  captionsUrl?: string
 }
 
 export type GuidedTour = StandardTour | VideoTour
@@ -235,7 +232,6 @@ export const guidedTours: GuidedTour[] = [
     videoUrl: '/tours/faq-friday-power-shelf.mp4',
     duration: 115,
     captions: parseCaptions(faqFridayPowerShelfVtt),
-    captionsUrl: faqFridayPowerShelfVttUrl,
     steps: [
       {
         title: 'Where Are the Power Supplies?',
