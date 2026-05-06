@@ -45,8 +45,8 @@ import {
   getNodeModels,
   inheritInstanceIndex,
   isDescendantOf,
-  type ModelConfig,
   resolveWaypoint,
+  type ModelConfig,
 } from './data/componentTree'
 import { detectSoftwareRendering } from './gpuProbe'
 import { eventsWithoutHover } from './perf/eventsWithoutHover'
@@ -1148,11 +1148,11 @@ const SceneCanvas = ({ detectedConfig }: { detectedConfig: GPUConfig }) => {
           lowTier={lowTier}
         />
         <PerformanceMonitor
-          ms={250}
-          iterations={5}
+          ms={500}
+          iterations={10}
           threshold={0.75}
           factor={1}
-          bounds={(refreshrate) => (refreshrate > 90 ? [60, 100] : [40, 60])}
+          bounds={(refreshrate) => (refreshrate > 90 ? [60, 100] : [30, 60])}
           onChange={({ factor }) => {
             setPerfFactor(factor)
             // Adaptive AO: only when 'auto' (manual high/low bypasses adaptiveAO).
