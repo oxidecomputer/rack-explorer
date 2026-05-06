@@ -283,6 +283,40 @@ in priority order if it ever bites:
    pre-pass to stabilize alpha-test fragment cost. Most invasive; only
    warranted if 1–2 don't suffice.
 
+**Update (May 2026):** the p99 stall was closed by a much simpler fix —
+switching `SHARED_PERF_MATERIAL` to Lambert. See *Perforation material →
+Lambert* below. None of the three mitigations above were needed.
+
+## Perforation material → Lambert (May 2026)
+
+`SHARED_PERF_MATERIAL` switched from `MeshStandardMaterial` to
+`MeshLambertMaterial`. The surface is fully diffuse black
+(`color=0x000000, metalness=0, roughness=1`), so PBR's IBL/specular
+contribution to it is negligible — Lambert just skips the GGX path
+on every alpha-test fragment and renders identically.
+
+Re-ran `?perf=drilled-sled&dpr=4` on M4 Max, perforations on:
+
+| | Standard | Lambert | Δ |
+| --- | --- | --- | --- |
+| gpuMs p50 | 42.12 | 35.77 | **-6.35 (-15%)** |
+| gpuMs p95 | 48.60 | 37.76 | -10.83 (-22%) |
+| gpuMs p99 | **90.28** | **38.08** | **-52.20 (-58%)** |
+| frameMs p99 | 55.90 | 24.40 | -31.50 (-56%) |
+| draw calls | 234 | 222 | -12 |
+| programs | 28 | 26 | -2 |
+
+The 90ms p99 spike documented in the perforation ablation section is
+gone — p99 now sits ~0.3ms above p95, indistinguishable from frame noise.
+The original hypothesis was a Metal pipeline state change for the
+alpha-test pass; removing PBR's uniform set, env-map binding, and unused
+texture slots apparently collapsed enough of that state diff to
+eliminate the stall. Median GPU also down ~15%, which suggests the
+StandardMaterial GGX evaluation was non-trivial even on a tier-3 GPU
+once you multiply it by the alpha-test fragment count.
+
+Net: closes the *watch the tail* item from the perforation ablation.
+
 ## Rejected: adaptive AO during user interaction
 
 Prototype that toggled AO off during `controlstart` and back on 200ms after
