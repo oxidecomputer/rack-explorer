@@ -59,12 +59,11 @@ function releaseTexture(path: string) {
 //   - one shader program across all perforation GLBs (vs ~4 before)
 //   - the GLB's baked color/normal/orm maps freed (the surface is just black
 //     with an alpha cutout — those maps contributed nothing visually)
-// DoubleSide is required: the perforation panels' geometry is single-sided
-// with normals that aren't reliably outward-facing across the GLBs.
-export const SHARED_PERF_MATERIAL = new THREE.MeshStandardMaterial({
+// Lambert (not Standard) because the surface is fully diffuse black: PBR's
+// IBL/specular contribution to a roughness=1, metalness=0, color=black surface
+// is negligible, and Lambert skips the GGX path on every alpha-test fragment.
+export const SHARED_PERF_MATERIAL = new THREE.MeshLambertMaterial({
   color: 0x000000,
-  roughness: 1,
-  metalness: 0,
   side: THREE.BackSide,
   alphaTest: 0.7,
 })
