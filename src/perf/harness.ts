@@ -9,6 +9,8 @@
 //   ?canvas=<px|full>      — square canvas size (e.g. 256, 512, 1024) or full
 //   ?post=<mode>           — none | outline | outline+ao
 //   ?instancing=<mode>     — instanced (default) | cloned (for ablation)
+//   ?perforations=<mode>   — on (default) | off — strips alpha-tested perforation
+//                            geometry to measure its overdraw cost
 //   ?download=1            — auto-download results JSON when the run finishes
 
 export type ScenarioName =
@@ -28,6 +30,7 @@ export const ALL_SCENARIOS: ScenarioName[] = [
 
 export type PostMode = 'none' | 'outline' | 'ao' | 'outline+ao'
 export type InstancingMode = 'instanced' | 'cloned'
+export type PerforationsMode = 'on' | 'off'
 
 export interface PerfFlags {
   enabled: boolean
@@ -38,6 +41,7 @@ export interface PerfFlags {
   canvasSize: number | 'full'
   postOverride: PostMode | null
   instancing: InstancingMode
+  perforations: PerforationsMode
   download: boolean
 }
 
@@ -79,6 +83,9 @@ export function parsePerfFlags(search: string = window.location.search): PerfFla
   const instancingRaw = params.get('instancing')
   const instancing: InstancingMode = instancingRaw === 'cloned' ? 'cloned' : 'instanced'
 
+  const perforationsRaw = params.get('perforations')
+  const perforations: PerforationsMode = perforationsRaw === 'off' ? 'off' : 'on'
+
   const download = params.get('download') === '1'
 
   return {
@@ -90,6 +97,7 @@ export function parsePerfFlags(search: string = window.location.search): PerfFla
     canvasSize,
     postOverride,
     instancing,
+    perforations,
     download,
   }
 }
@@ -133,6 +141,7 @@ export interface ScenarioResult {
     canvas: number | 'full'
     post: PostMode | null
     instancing: InstancingMode
+    perforations: PerforationsMode
   }
   framesMeasured: number
   frameMs: { median: number; p95: number; p99: number; mean: number }

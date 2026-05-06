@@ -19,7 +19,7 @@ import { downgradeMaterial, downgradeMaterials } from '../perf/materialDowngrade
 import { ensureBoundsTree } from '../perf/raycasting'
 import { useSelectionOffset } from '../useSelectionOffset'
 import { ModifiedSelect } from './Selection'
-import { applyExternalTextures } from './textureApply'
+import { applyExternalTextures, rewritePerforations } from './textureApply'
 
 extend({ InstancedMesh2 })
 
@@ -64,6 +64,14 @@ export const InstancedGLBModel = memo(function InstancedGLBModel({
   })
   ensureBoundsTree(gltf.scene)
   const lowTier = useValue(lowTierRendering)
+
+  // Swap any perforation material on the loaded scene to the shared module-
+  // level material before meshesInfo and the overlay clone capture it.
+  // Idempotent per gltf.scene.
+  useMemo(
+    () => rewritePerforations(gltf.scene, textures, gl),
+    [gltf.scene, textures, gl],
+  )
 
   // Extract all meshes from the GLB. For InstancedMesh (from EXT_mesh_gpu_instancing),
   // expand per-instance matrices so each sub-instance gets rendered at its baked transform.
