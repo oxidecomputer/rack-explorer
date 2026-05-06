@@ -54,13 +54,14 @@ import { markInit, parsePerfFlags, type PerfFlags } from './perf/harness'
 
 const perfFlags = parsePerfFlags()
 
-// Perf ablation: when ?perforations=off, skip GLBs whose alpha-test geometry
-// (Perforations material) drives extra fragment cost.
+// Perf ablation: when `skip` is true (URL flag or runtime adaptive degradation),
+// strip GLBs whose alpha-test geometry (Perforations material) drives extra
+// fragment cost.
 function isPerforationModel(model: ModelConfig): boolean {
   return !!model.textures && 'Perforations' in model.textures
 }
-function filterPerforations(models: ModelConfig[]): ModelConfig[] {
-  if (perfFlags.perforations !== 'off') return models
+function filterPerforations(models: ModelConfig[], skip: boolean): ModelConfig[] {
+  if (!skip) return models
   return models.filter((m) => !isPerforationModel(m))
 }
 
@@ -541,6 +542,7 @@ function SceneContent({
   gpuTier,
   perfFactor,
   lowTier,
+  skipPerforations,
 }: {
   aoQuality: AOQuality
   postMode: PerfFlags['postOverride']
@@ -548,6 +550,7 @@ function SceneContent({
   gpuTier: number | undefined
   perfFactor: number
   lowTier: boolean
+  skipPerforations: boolean
 }) {
   const cameraControlsRef = useRef<CameraControls>(null)
   const currentSelectedId = useValue(selectedId)
@@ -586,10 +589,10 @@ function SceneContent({
     () =>
       viewingChildOfId
         ? getDescendantModels(viewingChildOfId).filter(
-            ({ model }) => !(perfFlags.perforations === 'off' && isPerforationModel(model)),
+            ({ model }) => !(skipPerforations && isPerforationModel(model)),
           )
         : [],
-    [viewingChildOfId],
+    [viewingChildOfId, skipPerforations],
   )
 
   // Stable instance arrays for instanced components (avoids re-render cycles in ModifiedSelect)
@@ -718,7 +721,7 @@ function SceneContent({
 
           {/* Top-level components from tree */}
           {componentTree.children?.map((node) => {
-            const models = filterPerforations(getNodeModels(node))
+            const models = filterPerforations(getNodeModels(node), skipPerforations)
             if (models.length === 0) return null
 
             // Hide non-active siblings when focused (drilldown or isolation)
@@ -980,6 +983,13 @@ const SceneCanvas = ({ detectedConfig }: { detectedConfig: GPUConfig }) => {
   // prevents flicker. Only takes effect when postSetting === 'auto' AND the
   // tier supports AO; otherwise the manual or tier-disabled value wins.
   const [adaptiveAO, setAdaptiveAO] = useState<'full' | 'low' | 'off'>('full')
+  // Adaptive perforations: last-resort drop after AO has been turned off and
+  // DPR has scaled down. Tighter thresholds than AO so this only fires once
+  // earlier degradations have run their course. Gated on full auto quality —
+  // if the user pinned post or DPR to high, we respect that and don't strip
+  // perforations either. The cost we shed is the alpha-test fragment work +
+  // a Metal pipeline state change (~40ms p99 spikes per PERF.md).
+  const [adaptivePerforations, setAdaptivePerforations] = useState<'on' | 'off'>('on')
   const [perfFactor, setPerfFactor] = useState(1)
 
   // Derived DPR: manual overrides pin to maxDpr/1; 'auto' scales with perfFactor.
@@ -1066,6 +1076,11 @@ const SceneCanvas = ({ detectedConfig }: { detectedConfig: GPUConfig }) => {
           ? adaptiveAO
           : 'off'
 
+  // Strip perforation GLBs when the URL flag forces them off, or when the
+  // adaptive ladder has decided we need to shed them.
+  const skipPerforations =
+    perfFlags.perforations === 'off' || adaptivePerforations === 'off'
+
   // Initial camera pose before the first fit lands. CameraFitter will dolly
   // to the bbox-derived distance on the first frame the rack model is loaded.
   const initialWaypoint = resolveWaypoint('oxide-rack')
@@ -1146,6 +1161,7 @@ const SceneCanvas = ({ detectedConfig }: { detectedConfig: GPUConfig }) => {
           gpuTier={effectiveConfig.tier}
           perfFactor={perfFactor}
           lowTier={lowTier}
+          skipPerforations={skipPerforations}
         />
         <PerformanceMonitor
           ms={250}
@@ -1160,6 +1176,14 @@ const SceneCanvas = ({ detectedConfig }: { detectedConfig: GPUConfig }) => {
             if (postSetting === 'auto') {
               if (factor < 0.6) setAdaptiveAO('off')
               else if (factor > 0.9) setAdaptiveAO('full')
+            }
+            // Adaptive perforations: kicks in only after AO and DPR have done
+            // their work (both 'auto') and we're still struggling. Tighter
+            // thresholds than AO; restore window is wider so we don't flicker
+            // when the GPU recovers just past the disable point.
+            if (postSetting === 'auto' && dprSetting === 'auto') {
+              if (factor < 0.4) setAdaptivePerforations('off')
+              else if (factor > 0.7) setAdaptivePerforations('on')
             }
           }}
         />
