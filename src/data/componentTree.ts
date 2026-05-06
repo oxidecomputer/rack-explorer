@@ -110,11 +110,17 @@ export const componentTree: ComponentNode = {
       instances: generateSledPositions(),
       defaultInstance: 16,
       selectionOffset: selectionOffset,
-      model: {
-        path: './models/cosmo/lod1/cosmo-ext-1-texture.glb',
-        textures: { Cosmo_Front_Perf: './models/cosmo/lod1/cosmo-perf-512x256.jpg' },
-        showModelInChildView: true,
-      },
+      model: [
+        {
+          path: './models/cosmo/lod1/cosmo-ext-1.glb',
+          showModelInChildView: true,
+        },
+        {
+          path: './models/cosmo/lod1/cosmo-perforations-1.glb',
+          textures: { Perforations: './models/perforations.jpg' },
+          showModelInChildView: true,
+        },
+      ],
       children: [
         {
           id: 'compute-inner',
@@ -201,6 +207,11 @@ export const componentTree: ComponentNode = {
         {
           path: './models/sidecar/lod1/sidecar-cover-1.glb',
         },
+        {
+          path: './models/sidecar/lod1/sidecar-perfs.glb',
+          textures: { Perforations: './models/perforations.jpg' },
+          showModelInChildView: true,
+        },
       ],
       children: [
         {
@@ -220,7 +231,13 @@ export const componentTree: ComponentNode = {
         [0, 1.1623, 0.095],
       ],
       selectionOffset: selectionOffset,
-      model: { path: './models/power-shelf/power-shelf-1.glb' },
+      model: [
+        { path: './models/power-shelf/power-shelf-1.glb' },
+        {
+          path: './models/power-shelf/power-shelf-perfs-1.glb',
+          textures: { Perforations: './models/perforations.jpg' },
+        },
+      ],
     },
     {
       id: 'patch-panel',
