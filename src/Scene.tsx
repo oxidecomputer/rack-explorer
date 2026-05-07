@@ -581,7 +581,7 @@ function SceneContent({
     [currentSelectedId],
   )
 
-  // Collect descendant models for the active parent (e.g. cosmo-lod0 when inside compute-sled)
+  // Collect descendant models for the active parent (e.g. cosmo interior when inside compute-sled)
   const descendantModels = useMemo(
     () =>
       viewingChildOfId
