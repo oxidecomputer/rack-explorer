@@ -122,7 +122,7 @@ export const guidedTours: GuidedTour[] = [
       {
         title: 'A Rack-Scale Computer',
         description:
-          'The Oxide rack is a single integrated computer designed at rack scale, with hardware and software co-designed and the rack itself as the unit of purchase. A populated rack contains up to 32 compute sleds, two Sidecar network switches, two power shelves, and a fiber patch panel, all interconnected by a single cabled backplane.',
+          'The Oxide rack is a single integrated computer designed at rack scale, with hardware and software co-designed and the rack itself as the unit of purchase. A populated rack contains up to 32 compute sleds, two network switches, two power shelves, and a fiber patch panel, all interconnected by a single cabled backplane.',
         selectedId: 'oxide-rack',
       },
       {
@@ -144,7 +144,7 @@ export const guidedTours: GuidedTour[] = [
           },
           {
             label: 'NVMe Bays',
-            description: '10 front-accessible U.2 SSDs.',
+            description: '10 front-accessible NVMe U.2 SSDs.',
             position: [-0.08, 0, 0.35],
           },
           {
@@ -157,7 +157,7 @@ export const guidedTours: GuidedTour[] = [
       {
         title: 'Airflow Shroud',
         description:
-          'A molded shroud channels air from the rear fans across the hottest components, primarily the CPU and DIMMs. It was designed together with the sled and lifts off without tools when a technician services the sled.',
+          'A molded shroud channels air from the rear fans across the hottest components, primarily the CPU and memory. It was designed together with the sled and lifts off without tools when a technician services the sled.',
         selectedId: 'airflow-shroud:31',
       },
       {
@@ -169,19 +169,19 @@ export const guidedTours: GuidedTour[] = [
       {
         title: 'Memory',
         description:
-          'Twelve DDR5 DIMM slots flank the CPU, supporting up to 1.5 TiB at 6400 MT/s, with ECC throughout. Memory training is performed by Oxide-controlled firmware as part of the host boot sequence.',
+          'Twelve DDR5 ECC DIMM slots flank the CPU, supporting up to 1.5 TiB at 6400 MT/s. Memory training is performed by Oxide-controlled firmware as part of the host boot sequence.',
         selectedId: 'ram:31',
       },
       {
         title: 'Storage',
         description:
-          'Ten hot-swappable NVMe U.2 bays per sled, with drives up to 30 TB. Across the rack, all 320 drives form a single shared pool managed by Crucible, which replicates each distributed disk across three different sleds and is encrypts data at rest and in transit. Drives can be replaced while the sled is online; the control plane adopts new drives automatically.',
+          'Ten hot-swappable NVMe U.2 bays per sled, with drives up to 30 TB. Across the rack, all 320 drives form a single shared pool of distributed virtual disks, with each disk replicated across three different sleds and encrypted at rest and in transit. Drives can be replaced while the sled is online; the control plane adopts new drives automatically.',
         selectedId: 'disks:31',
       },
       {
         title: 'Cooling',
         description:
-          "Rear-mounted fans pull air front-to-back across the shroud. Fan control is handled by the sled's service processor running Hubris, integrated with the rack's firmware update path. Maximum thermal output for the full rack is 122,832 BTU/hr.",
+          "Rear-mounted fans pull air front-to-back across the shroud. Fan control is handled by the sled's purpose-built service processor, integrated with the rack's firmware update path.",
         selectedId: 'fans:31',
       },
       {
@@ -193,13 +193,13 @@ export const guidedTours: GuidedTour[] = [
       {
         title: 'Network Switch',
         description:
-          'Two Sidecar switches together provide 12.8 Tbit/s of switching capacity on Intel Tofino 2 ASICs, programmed in P4. Every sled has one physical link to each Sidecar, providing redundancy without operator-installed cabling. The switch operating system ships and updates as part of the rack.',
+          'Two Oxide network switches together provide 12.8 Tbit/s of switching capacity on Intel Tofino 2 ASICs, programmed in P4. Every sled has one physical link to each switch, providing redundancy without operator-installed cabling. The switch operating system ships and updates as part of the rack.',
         selectedId: 'network-switch:0',
       },
       {
         title: 'Inside the Switch',
         description:
-          'A Sidecar has no host CPU of its own. The Tofino is connected over an external PCIe cable to an adjacent sled (a "Scrimlet") that runs Dendrite, the user-space switch control plane. Two front RJ-45 technician ports provide a management entry point for initial setup and support.',
+          "The switch has no host CPU of its own; the Tofino is driven by Oxide's own network operating system running on an adjacent sled. Two front RJ-45 technician ports provide a management entry point for initial setup and support.",
         selectedId: 'switch-inner:0',
       },
       {
@@ -211,7 +211,7 @@ export const guidedTours: GuidedTour[] = [
       {
         title: 'Fiber Patch Panel',
         description:
-          'All fiber uplinks terminate at a single panel at the top of the rack, with 32 front QSFP cages per Sidecar supporting 40, 100, or 200 GbE optics. Consolidating uplinks at the top of the rack allows a failed transceiver to be reseated from the front.',
+          'All fiber uplinks terminate at a single panel at the top of the rack, with 32 front QSFP cages per switch supporting 40, 100, or 200 GbE optics. Consolidating uplinks at the top of the rack allows a failed transceiver to be reseated from the front.',
         selectedId: 'patch-panel',
       },
       {
