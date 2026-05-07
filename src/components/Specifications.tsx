@@ -10,8 +10,11 @@ export const Specifications = () => {
   const baseId = currentSelectedId.split(':')[0]
   const entry = getNode(baseId)
 
-  // Walk from self up through ancestors to find the nearest node with specs
-  const candidates = entry ? [entry.node, ...entry.ancestors].map((n) => n.id) : []
+  // Walk from self up through ancestors to find the nearest node with specs.
+  // entry.ancestors is root-first, so reverse it to walk parent-first.
+  const candidates = entry
+    ? [entry.node, ...[...entry.ancestors].reverse()].map((n) => n.id)
+    : []
   const nearestSpecId = candidates.find((id) => specifications[id]) ?? 'oxide-rack'
   const specs = specifications[nearestSpecId] ?? specifications['oxide-rack']
 
