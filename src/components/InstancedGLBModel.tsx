@@ -9,6 +9,7 @@ import {
 import { InstancedMesh2 } from '@three.ez/instanced-mesh'
 import { computed } from '@tldraw/state'
 import { useValue } from '@tldraw/state-react'
+import { useReducedMotion } from 'motion/react'
 import { memo, useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
@@ -176,6 +177,7 @@ export const InstancedGLBModel = memo(function InstancedGLBModel({
     [gltf.animations],
   )
   const gateOpen = useValue(selectionAnimGateOpen)
+  const reducedMotion = useReducedMotion()
 
   const playingRef = useRef(false)
   // The first time we see a *given* mixer, treat any active selection as a
@@ -242,11 +244,12 @@ export const InstancedGLBModel = memo(function InstancedGLBModel({
       return
     }
 
-    if (isNewMixer) {
+    if (isNewMixer || reducedMotion) {
       // Fresh mixer with an active selection (initial mount, drilldown
-      // return, or strict-mode synthetic remount). Snap bones to the end
-      // pose so the handle reads as unlocked, leave the gate open so the
-      // offset stays at its extended target.
+      // return, or strict-mode synthetic remount), or user has reduced
+      // motion enabled. Snap bones to the end pose so the handle reads
+      // as unlocked, leave the gate open so the offset stays at its
+      // extended target.
       const maxDuration = Math.max(...selectionClips.map((c) => c.duration))
       for (const clip of selectionClips) {
         const action = mixer.clipAction(clip)
@@ -279,7 +282,7 @@ export const InstancedGLBModel = memo(function InstancedGLBModel({
     // clamped end pose (handle = unlocked) would render for one frame before
     // the next useFrame's mixer.update advances from rest.
     mixer.update(0)
-  }, [selectedInstance, selectionClips])
+  }, [selectedInstance, selectionClips, reducedMotion])
 
   useFrame((state, delta) => {
     if (!mixerRef.current || !playingRef.current) return
