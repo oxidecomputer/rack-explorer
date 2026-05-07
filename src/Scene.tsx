@@ -17,6 +17,8 @@ import {
   activeTourStep,
   debugMode,
   detectedTier,
+  environmentIntensity,
+  fitFractionMultiplier,
   hdriRotationX,
   hdriRotationY,
   hdriRotationZ,
@@ -28,6 +30,7 @@ import {
   sceneReady,
   selectedId,
   showcaseMode,
+  showcaseRotationSpeed,
   softwareRenderingDetected,
   specificationsOpen,
   togglePlayWithFlash,
@@ -86,15 +89,17 @@ function HDRIEnvironment() {
   const rotX = useValue(hdriRotationX)
   const rotY = useValue(hdriRotationY)
   const rotZ = useValue(hdriRotationZ)
+  const intensity = useValue(environmentIntensity)
   const invalidate = useThree((s) => s.invalidate)
+  console.log(rotX)
   const rotation = useMemo(() => new THREE.Euler(rotX, rotY, rotZ), [rotX, rotY, rotZ])
   useEffect(() => {
     invalidate()
-  }, [rotX, rotY, rotZ, invalidate])
+  }, [rotX, rotY, rotZ, intensity, invalidate])
   return (
     <Environment
       files="./common/hdri.jpg"
-      environmentIntensity={2}
+      environmentIntensity={intensity}
       environmentRotation={rotation}
     />
   )
@@ -152,10 +157,11 @@ function ShowcaseRotation({
   cameraControlsRef: React.RefObject<CameraControls | null>
 }) {
   const isShowcase = useValue(showcaseMode)
+  const speed = useValue(showcaseRotationSpeed)
 
   useFrame((_state, delta) => {
     if (!isShowcase || !cameraControlsRef.current) return
-    cameraControlsRef.current.rotate(delta * 0.15, 0, false)
+    cameraControlsRef.current.rotate(delta * speed, 0, false)
   })
 
   return null
@@ -350,6 +356,7 @@ function CameraFitter({
   const isStartScreen = useValue(tourStartScreen)
   const tourStep = useValue(activeTourStep)
   const stepWaypoint = navMode === 'guided' ? (tourStep?.waypoint ?? null) : null
+  const fitFractionMult = useValue(fitFractionMultiplier)
   const reducedMotion = useReducedMotion()
   const isFirstFitRef = useRef(true)
   const lastFitKeyRef = useRef('')
@@ -357,7 +364,7 @@ function CameraFitter({
 
   useEffect(() => {
     invalidate()
-  }, [sel, navMode, isVideo, isStartScreen, stepWaypoint, invalidate])
+  }, [sel, navMode, isVideo, isStartScreen, stepWaypoint, fitFractionMult, invalidate])
 
   useFrame(({ scene, size }) => {
     if (!controlsRef.current) return
@@ -367,7 +374,7 @@ function CameraFitter({
     const wpKey = stepWaypoint
       ? `${stepWaypoint.direction.join(',')}|${stepWaypoint.target.join(',')}|${stepWaypoint.scale?.join(',') ?? ''}|${stepWaypoint.fitFraction ?? ''}`
       : ''
-    const fitKey = `${sel}|${navMode}|${size.width}|${size.height}|${panelVisible}|${wpKey}`
+    const fitKey = `${sel}|${navMode}|${size.width}|${size.height}|${panelVisible}|${wpKey}|${fitFractionMult}`
     if (fitKey === lastFitKeyRef.current) return
 
     // Step-level waypoint overrides the selected component's default. When the
@@ -400,12 +407,13 @@ function CameraFitter({
     const verticalFitScale = panelVisible
       ? (size.height - MOBILE_SPECS_PANEL_HEIGHT) / size.height
       : 1
+    const baseFitFraction = waypoint.fitFraction ?? DEFAULT_FIT_FRACTION
     const position = computeFitPosition(
       box,
       waypoint.direction,
       waypoint.target,
       aspect,
-      waypoint.fitFraction,
+      baseFitFraction * fitFractionMult,
       verticalFitScale,
     )
 
@@ -420,12 +428,13 @@ function CameraFitter({
     // user can never dolly out past the rack's overview shot.
     let maxDistance = fitDistance
     if (RACK_BOX && _rackWaypoint) {
+      const rackBaseFitFraction = _rackWaypoint.fitFraction ?? DEFAULT_FIT_FRACTION
       const rackPos = computeFitPosition(
         RACK_BOX,
         waypoint.direction,
         waypoint.target,
         aspect,
-        _rackWaypoint.fitFraction,
+        rackBaseFitFraction * fitFractionMult,
         verticalFitScale,
       )
       maxDistance = Math.max(

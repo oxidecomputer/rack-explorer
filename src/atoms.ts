@@ -20,9 +20,14 @@ export const showcaseMode = atom('showcaseMode', false)
 export const debugMode = atom('debugMode', false)
 
 // Debug-mode tweakables (only visible/effective when debugMode is on)
-export const hdriRotationX = atom('hdriRotationX', 0)
-export const hdriRotationY = atom('hdriRotationY', 0)
+export const hdriRotationX = atom('hdriRotationX', 0.44)
+export const hdriRotationY = atom('hdriRotationY', 0.44)
 export const hdriRotationZ = atom('hdriRotationZ', 0)
+export const environmentIntensity = atom('environmentIntensity', 2)
+export const showcaseRotationSpeed = atom('showcaseRotationSpeed', 0.15)
+/** Multiplier applied to whatever fit fraction the waypoint resolves to
+ *  (per-waypoint or DEFAULT_FIT_FRACTION). 1 = no change. */
+export const fitFractionMultiplier = atom('fitFractionMultiplier', 1)
 
 /** Three-level quality scale: 'auto' lets tier detection (and adaptive perf,
  *  for post-processing and DPR) drive the effective value; 'high'/'low' is a

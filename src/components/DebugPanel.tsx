@@ -3,7 +3,15 @@ import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Pane } from 'tweakpane'
 
-import { debugMode, hdriRotationX, hdriRotationY, hdriRotationZ } from '../atoms'
+import {
+  debugMode,
+  environmentIntensity,
+  fitFractionMultiplier,
+  hdriRotationX,
+  hdriRotationY,
+  hdriRotationZ,
+  showcaseRotationSpeed,
+} from '../atoms'
 
 const RAD_TO_DEG = 180 / Math.PI
 const DEG_TO_RAD = Math.PI / 180
@@ -16,21 +24,53 @@ export function DebugPanel() {
     if (!isDebug || !containerRef.current) return
     const pane = new Pane({ container: containerRef.current, title: 'Debug' })
 
-    const env = pane.addFolder({ title: 'HDRI Rotation' })
     const params = {
-      x: hdriRotationX.get() * RAD_TO_DEG,
-      y: hdriRotationY.get() * RAD_TO_DEG,
-      z: hdriRotationZ.get() * RAD_TO_DEG,
+      hdriX: hdriRotationX.get() * RAD_TO_DEG,
+      hdriY: hdriRotationY.get() * RAD_TO_DEG,
+      hdriZ: hdriRotationZ.get() * RAD_TO_DEG,
+      envIntensity: environmentIntensity.get(),
+      fitMult: fitFractionMultiplier.get(),
+      rotSpeed: showcaseRotationSpeed.get(),
     }
-    env
-      .addBinding(params, 'x', { label: 'X°', min: -180, max: 180, step: 1 })
+
+    const hdri = pane.addFolder({ title: 'hdri rotation' })
+    hdri
+      .addBinding(params, 'hdriX', { label: 'x°', min: -180, max: 180, step: 1 })
       .on('change', (ev) => hdriRotationX.set(ev.value * DEG_TO_RAD))
-    env
-      .addBinding(params, 'y', { label: 'Y°', min: 0, max: 360, step: 1 })
+    hdri
+      .addBinding(params, 'hdriY', { label: 'y°', min: 0, max: 360, step: 1 })
       .on('change', (ev) => hdriRotationY.set(ev.value * DEG_TO_RAD))
-    env
-      .addBinding(params, 'z', { label: 'Z°', min: -180, max: 180, step: 1 })
+    hdri
+      .addBinding(params, 'hdriZ', { label: 'z°', min: -180, max: 180, step: 1 })
       .on('change', (ev) => hdriRotationZ.set(ev.value * DEG_TO_RAD))
+
+    const lighting = pane.addFolder({ title: 'lighting' })
+    lighting
+      .addBinding(params, 'envIntensity', {
+        label: 'env intensity',
+        min: 0,
+        max: 6,
+        step: 0.05,
+      })
+      .on('change', (ev) => environmentIntensity.set(ev.value))
+
+    const camera = pane.addFolder({ title: 'camera' })
+    camera
+      .addBinding(params, 'fitMult', {
+        label: 'fit ×',
+        min: 0.5,
+        max: 2,
+        step: 0.01,
+      })
+      .on('change', (ev) => fitFractionMultiplier.set(ev.value))
+    camera
+      .addBinding(params, 'rotSpeed', {
+        label: 'rot speed',
+        min: 0,
+        max: 1,
+        step: 0.01,
+      })
+      .on('change', (ev) => showcaseRotationSpeed.set(ev.value))
 
     return () => {
       pane.dispose()
