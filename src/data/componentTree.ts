@@ -21,6 +21,8 @@ export type ModelConfig = {
   textures?: Record<string, string>
   /** When true, this model remains visible when viewing the node's children */
   showModelInChildView?: boolean
+  /** Multiplier on GLB animation playback rate (default 1). 2 = twice as fast. */
+  animationSpeed?: number
 }
 
 export type ComponentNode = {
@@ -113,6 +115,7 @@ export const componentTree: ComponentNode = {
       model: [
         {
           path: './models/cosmo/lod1/exterior.glb',
+          animationSpeed: 2,
           showModelInChildView: true,
         },
         {

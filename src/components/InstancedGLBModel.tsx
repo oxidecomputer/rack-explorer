@@ -1,5 +1,6 @@
 import {
   extend,
+  useFrame,
   useLoader,
   useThree,
   type ThreeElement,
@@ -12,7 +13,12 @@ import { memo, useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 
-import { lowTierRendering, navigationMode, selectedId } from '../atoms'
+import {
+  lowTierRendering,
+  navigationMode,
+  selectedId,
+  selectionAnimGateOpen,
+} from '../atoms'
 import { isDescendantOf } from '../data/componentTree'
 import { dracoLoader } from '../loaders'
 import { downgradeMaterial, downgradeMaterials } from '../perf/materialDowngrade'
@@ -40,6 +46,8 @@ interface InstancedGLBModelProps {
   selectionOffset?: [number, number, number]
   /** Map of material name → texture path to apply. */
   textures?: Record<string, string>
+  /** Multiplier on the AnimationMixer's timeScale (default 1). */
+  animationSpeed?: number
 }
 
 const DRAG_THRESHOLD = 5
@@ -56,6 +64,7 @@ export const InstancedGLBModel = memo(function InstancedGLBModel({
   instances,
   selectionOffset,
   textures,
+  animationSpeed = 1,
 }: InstancedGLBModelProps) {
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null)
   const gl = useThree((s) => s.gl)
@@ -157,6 +166,126 @@ export const InstancedGLBModel = memo(function InstancedGLBModel({
       for (const m of overlayInfo.created) m.dispose()
     }
   }, [overlayInfo])
+
+  // GLB animations replayed on the overlay clone when its sled is selected.
+  // Lock-* clips are reserved for the (future) deselect sequence. The gate is
+  // a shared atom so siblings (perforations) wait for the clip-bearing mesh
+  // (exterior) before sliding out together.
+  const selectionClips = useMemo(
+    () => gltf.animations.filter((c) => !c.name.startsWith('Lock-')),
+    [gltf.animations],
+  )
+  const gateOpen = useValue(selectionAnimGateOpen)
+
+  const playingRef = useRef(false)
+  // The first time we see a *given* mixer, treat any active selection as a
+  // post-anim state and snap bones to the clamped end pose. Tracking per
+  // mixer (rather than once per component lifetime) is what makes this work
+  // across strict-mode synthetic remounts: the mixer cleanup runs
+  // `stopAllAction` which restores bones to rest pose via three.js's
+  // `binding.restoreOriginalState`, so the second mount needs to re-establish
+  // the end pose on the new mixer instance.
+  const lastConfiguredMixerRef = useRef<THREE.AnimationMixer | null>(null)
+  const startWithSelection = useRef(selectedInstance != null).current
+  // Actions currently in flight for the active selection. The 'finished'
+  // listener (registered once per mixer instance, not per selection) consults
+  // this so that switching sleds mid-animation doesn't lose track of the
+  // pending completion.
+  const pendingActionsRef = useRef<Set<THREE.AnimationAction>>(new Set())
+
+  // Latest animationSpeed, kept in a ref so the mixer-creation effect can seed
+  // a freshly recreated mixer (e.g. after a lowTier toggle rebuilds
+  // overlayInfo.scene) without listing animationSpeed as a dep — which would
+  // tear down and recreate the mixer every time the speed knob moves.
+  const animationSpeedRef = useRef(animationSpeed)
+  animationSpeedRef.current = animationSpeed
+
+  const mixerRef = useRef<THREE.AnimationMixer | null>(null)
+  useEffect(() => {
+    if (selectionClips.length === 0) return
+    const mixer = new THREE.AnimationMixer(overlayInfo.scene)
+    mixer.timeScale = animationSpeedRef.current
+    mixerRef.current = mixer
+    const onFinished = (e: { action: THREE.AnimationAction }) => {
+      const pending = pendingActionsRef.current
+      if (!pending.delete(e.action)) return
+      if (pending.size === 0) {
+        playingRef.current = false
+        selectionAnimGateOpen.set(true)
+      }
+    }
+    mixer.addEventListener('finished', onFinished as never)
+    return () => {
+      mixer.removeEventListener('finished', onFinished as never)
+      mixer.stopAllAction()
+      mixerRef.current = null
+    }
+  }, [overlayInfo.scene, selectionClips])
+
+  useEffect(() => {
+    if (mixerRef.current) mixerRef.current.timeScale = animationSpeed
+  }, [animationSpeed])
+
+  useEffect(() => {
+    if (selectionClips.length === 0) return
+    const mixer = mixerRef.current
+    if (!mixer) return
+
+    const isNewMixer = lastConfiguredMixerRef.current !== mixer
+    lastConfiguredMixerRef.current = mixer
+
+    if (!selectedInstance) {
+      mixer.stopAllAction()
+      pendingActionsRef.current.clear()
+      playingRef.current = false
+      selectionAnimGateOpen.set(true)
+      return
+    }
+
+    if (isNewMixer) {
+      // Fresh mixer with an active selection (initial mount, drilldown
+      // return, or strict-mode synthetic remount). Snap bones to the end
+      // pose so the handle reads as unlocked, leave the gate open so the
+      // offset stays at its extended target.
+      const maxDuration = Math.max(...selectionClips.map((c) => c.duration))
+      for (const clip of selectionClips) {
+        const action = mixer.clipAction(clip)
+        action.reset()
+        action.setLoop(THREE.LoopOnce, 1)
+        action.clampWhenFinished = true
+        action.play()
+      }
+      mixer.setTime(maxDuration)
+      playingRef.current = false
+      pendingActionsRef.current.clear()
+      selectionAnimGateOpen.set(true)
+      return
+    }
+
+    selectionAnimGateOpen.set(false)
+    playingRef.current = true
+    mixer.stopAllAction()
+    const pending = pendingActionsRef.current
+    pending.clear()
+    for (const clip of selectionClips) {
+      const action = mixer.clipAction(clip)
+      action.reset()
+      action.setLoop(THREE.LoopOnce, 1)
+      action.clampWhenFinished = true
+      action.play()
+      pending.add(action)
+    }
+    // Snap bones to time=0 synchronously. Without this, the previous run's
+    // clamped end pose (handle = unlocked) would render for one frame before
+    // the next useFrame's mixer.update advances from rest.
+    mixer.update(0)
+  }, [selectedInstance, selectionClips])
+
+  useFrame((state, delta) => {
+    if (!mixerRef.current || !playingRef.current) return
+    mixerRef.current.update(delta)
+    state.invalidate()
+  })
 
   // Apply external textures to materials on both the instanced render path
   // (`meshes[].material`) and the selection-outline overlay scene. After a
@@ -261,8 +390,9 @@ export const InstancedGLBModel = memo(function InstancedGLBModel({
   }, [instancedMeshes])
 
   const selectedGroupRef = useSelectionOffset(
-    selectedIndex >= 0,
+    selectedIndex >= 0 && gateOpen,
     selectionOffset,
+    startWithSelection,
     selectedIndex,
   )
 
