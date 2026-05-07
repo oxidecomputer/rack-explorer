@@ -143,7 +143,7 @@ export function OptionsDropdown() {
               onChange={(v) => showcaseMode.set(v)}
             />
             <ToggleRow
-              label="Debug Stats"
+              label="Debug Mode"
               checked={isDebugMode}
               onChange={(v) => debugMode.set(v)}
             />
