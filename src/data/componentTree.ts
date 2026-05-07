@@ -152,7 +152,7 @@ export const componentTree: ComponentNode = {
             },
             {
               id: 'ram',
-              label: 'RAM',
+              label: 'DRAM',
               waypoint: {
                 direction: [0.6, 1.5, 0.6],
                 target: [0, 0, 0],

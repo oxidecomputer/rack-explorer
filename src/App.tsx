@@ -186,7 +186,7 @@ function App() {
         <header className="pointer-events-auto relative z-30 flex w-full items-center justify-between px-4 pt-4">
           <div className="flex w-64 flex-col select-none">
             <div className="text-raise text-mono-xs opacity-40">Oxide Computer Company</div>
-            <div className="text-sans-sm text-default">3D Rack Explorer</div>
+            <div className="text-sans-sm text-default">3D Explorer</div>
           </div>
           {!isGuided && (
             <div className="text-secondary max-1000:hidden flex flex-1 items-center justify-center gap-2 select-none">

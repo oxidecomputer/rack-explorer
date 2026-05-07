@@ -91,7 +91,7 @@ export function LandingModal() {
         transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
         <div className="mb-5 text-center">
-          <div className="text-mono-sm text-tertiary mb-1">Oxide Rack Explorer</div>
+          <div className="text-mono-sm text-tertiary mb-1">Oxide 3D Explorer</div>
           <h1 className="text-sans-2xl text-raise">What would you like to see?</h1>
         </div>
 
@@ -100,7 +100,7 @@ export function LandingModal() {
             <OptionCard
               icon={<ExplorerIcon />}
               title="Explore the hardware"
-              description="Take a closer look at Oxide's rack. Explore every sled, switch, and shelf at your own pace."
+              description="Take a closer look at Oxide's cloud computer. Explore every sled, switch, and shelf at your own pace."
               onClick={() => dismiss('free')}
             />
           </div>
