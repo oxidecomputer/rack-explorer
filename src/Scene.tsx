@@ -91,7 +91,6 @@ function HDRIEnvironment() {
   const rotZ = useValue(hdriRotationZ)
   const intensity = useValue(environmentIntensity)
   const invalidate = useThree((s) => s.invalidate)
-  console.log(rotX)
   const rotation = useMemo(() => new THREE.Euler(rotX, rotY, rotZ), [rotX, rotY, rotZ])
   useEffect(() => {
     invalidate()
