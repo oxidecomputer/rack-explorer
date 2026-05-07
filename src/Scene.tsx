@@ -178,7 +178,7 @@ function CameraOffset() {
   const prevAppliedOffsetY = useRef(0)
   const invalidate = useThree((s) => s.invalidate)
 
-  useFrame(({ camera, size }) => {
+  useFrame(({ camera, size }, delta) => {
     const isMobile = size.width < 1000
     const sidebarVisible = specsOpen && !isVideo && !(isGuided && isStartScreen)
     const targetX = isMobile || sidebarVisible ? 0 : 128
@@ -188,15 +188,18 @@ function CameraOffset() {
     const diffX = targetX - currentOffsetX.current
     const diffY = targetY - currentOffsetY.current
 
+    // Frame-rate independent exponential decay; rate at 60fps ≈ 0.12.
+    const rate = 1 - Math.pow(0.0005, delta)
+
     if (reducedMotion || Math.abs(diffX) < 0.5) currentOffsetX.current = targetX
     else {
-      currentOffsetX.current += diffX * 0.12
+      currentOffsetX.current += diffX * rate
       invalidate()
     }
 
     if (reducedMotion || Math.abs(diffY) < 0.5) currentOffsetY.current = targetY
     else {
-      currentOffsetY.current += diffY * 0.12
+      currentOffsetY.current += diffY * rate
       invalidate()
     }
 
@@ -248,6 +251,8 @@ const _right = new THREE.Vector3()
 const _up = new THREE.Vector3()
 const _corner = new THREE.Vector3()
 const _newPos = new THREE.Vector3()
+const _curCamPos = new THREE.Vector3()
+const _curCamTgt = new THREE.Vector3()
 
 // Zoom-in cap: minimum camera-to-target distance in world units.
 const MIN_DOLLY_DISTANCE_TOP = 5
@@ -455,7 +460,27 @@ function CameraFitter({
 
     const animate = !isFirstFitRef.current && !reducedMotion
     isFirstFitRef.current = false
-    if (animate) controlsRef.current.normalizeRotations()
+    if (animate) {
+      // Scale fit duration with travel distance — small moves stay snappy,
+      // big drill-outs (e.g. CPU back to rack overview) get more time so
+      // they don't feel rushed. Uses the larger of camera-pos and target
+      // travel so a small camera move with a big target shift still reads.
+      controlsRef.current.getPosition(_curCamPos)
+      controlsRef.current.getTarget(_curCamTgt)
+      const posTravel = Math.hypot(
+        _curCamPos.x - position[0],
+        _curCamPos.y - position[1],
+        _curCamPos.z - position[2],
+      )
+      const tgtTravel = Math.hypot(
+        _curCamTgt.x - waypoint.target[0],
+        _curCamTgt.y - waypoint.target[1],
+        _curCamTgt.z - waypoint.target[2],
+      )
+      const travel = Math.max(posTravel, tgtTravel)
+      controlsRef.current.smoothTime = Math.max(0.2, Math.min(0.4, 0.2 + travel * 0.02))
+      controlsRef.current.normalizeRotations()
+    }
     controlsRef.current.setLookAt(...position, ...waypoint.target, animate)
     // camera-controls only writes camera.position inside its own update(),
     // which runs at priority -1 — *before* this useFrame at priority 0. So
