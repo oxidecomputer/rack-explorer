@@ -193,6 +193,7 @@ export const componentTree: ComponentNode = {
     {
       id: 'network-switch',
       label: 'Network Switch',
+      defaultInstance: 1,
       waypoint: { direction: [2, 1.5, 3.5], target: [0, 0, 0.5], fitFraction: 0.75 },
       instances: [
         [0, 0.99, 0.015],
@@ -225,6 +226,7 @@ export const componentTree: ComponentNode = {
     {
       id: 'power-shelf',
       label: 'Power Shelf',
+      defaultInstance: 1,
       waypoint: { direction: [1, 1.5, 3.675], target: [0, 0, 0.325] },
       instances: [
         [0, 1.115, 0.095],
@@ -424,13 +426,15 @@ export function inheritInstanceIndex(
   if (!targetAncestor) return targetBaseId
 
   // Inherit the index only when both selections share the same instanced
-  // ancestor; otherwise default to the first instance so the resulting id
-  // still matches the rendered (cloned) selection scene's userData.id.
+  // ancestor; otherwise fall back to the target's defaultInstance so the
+  // resulting id still matches the rendered (cloned) selection scene's
+  // userData.id.
   const currentBase = currentSelectedId.split(':')[0]
   const currentAncestor = findInstancedAncestorId(currentBase)
   if (currentAncestor === targetAncestor) {
     return `${targetBaseId}:${indexStr}`
   }
 
-  return `${targetBaseId}:0`
+  const defaultIdx = flatMap.get(targetAncestor)?.node.defaultInstance ?? 0
+  return `${targetBaseId}:${defaultIdx}`
 }
