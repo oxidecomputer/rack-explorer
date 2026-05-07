@@ -114,15 +114,14 @@ function parseCaptionsTime(s: string): number {
 export const guidedTours: GuidedTour[] = [
   {
     id: 'overview',
-    title: 'The Oxide Rack',
-    description:
-      'A top-to-bottom tour of the Oxide rack: a fully integrated rack-scale computer.',
+    title: 'The Cloud Computer',
+    description: 'A top-to-bottom tour of our fully integrated rack-scale computer.',
     type: 'standard',
     steps: [
       {
         title: 'A Rack-Scale Computer',
         description:
-          'The Oxide rack is a single integrated computer designed at rack scale, with hardware and software co-designed and the rack itself as the unit of purchase. A populated rack contains up to 32 compute sleds, two network switches, two power shelves, and a fiber patch panel, all interconnected by a single cabled backplane.',
+          'A single integrated computer designed at rack scale, with hardware and software co-designed and the rack itself as the unit of purchase. A populated rack contains up to 32 compute sleds, two network switches, two power shelves, and a fiber patch panel, all interconnected by a single cabled backplane.',
         selectedId: 'oxide-rack',
       },
       {
