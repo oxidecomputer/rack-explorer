@@ -839,6 +839,7 @@ function SceneContent({
                       instances={instancesById[node.id]}
                       selectionOffset={node.selectionOffset}
                       textures={model.textures}
+                      animationSpeed={model.animationSpeed}
                     />
                   ))}
                 </group>

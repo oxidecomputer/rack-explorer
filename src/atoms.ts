@@ -5,6 +5,12 @@ import { getVideoTourStepAtTime, guidedTours, type VideoTour } from './data/guid
 export const selectedId = atom('selectedId', 'oxide-rack')
 export const hoveredId = atom<string | null>('hoveredId', null)
 
+/** Open when the current selection's preamble animation (e.g. cosmo handle) has
+ *  finished, or there is none. Sibling models (perforations layered over the
+ *  exterior) gate their slide-out on this so they stay in lockstep with the
+ *  clip-bearing mesh. */
+export const selectionAnimGateOpen = atom('selectionAnimGateOpen', true)
+
 type NavigationMode = 'free' | 'guided'
 export const navigationMode = atom<NavigationMode>('navigationMode', 'free')
 
