@@ -19,6 +19,11 @@ export const mobileOutlineOpen = atom('mobileOutlineOpen', false)
 export const showcaseMode = atom('showcaseMode', false)
 export const debugMode = atom('debugMode', false)
 
+// Debug-mode tweakables (only visible/effective when debugMode is on)
+export const hdriRotationX = atom('hdriRotationX', 0)
+export const hdriRotationY = atom('hdriRotationY', 0)
+export const hdriRotationZ = atom('hdriRotationZ', 0)
+
 /** Three-level quality scale: 'auto' lets tier detection (and adaptive perf,
  *  for post-processing and DPR) drive the effective value; 'high'/'low' is a
  *  manual override that adaptive perf must respect. */

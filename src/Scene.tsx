@@ -17,6 +17,9 @@ import {
   activeTourStep,
   debugMode,
   detectedTier,
+  hdriRotationX,
+  hdriRotationY,
+  hdriRotationZ,
   isVideoTour,
   lowTierRendering,
   navigationMode,
@@ -30,6 +33,7 @@ import {
   togglePlayWithFlash,
   tourStartScreen,
 } from './atoms'
+import { DebugPanel } from './components/DebugPanel'
 import { InstancedGLBModel } from './components/InstancedGLBModel'
 import { MOBILE_SPECS_PANEL_HEIGHT } from './components/MobileSpecsDrawer'
 import { SelectableGLBModel } from './components/SelectableGLBModel'
@@ -77,6 +81,24 @@ const PerfHarness = lazy(() =>
 )
 
 const { ACTION } = CameraControlsImpl
+
+function HDRIEnvironment() {
+  const rotX = useValue(hdriRotationX)
+  const rotY = useValue(hdriRotationY)
+  const rotZ = useValue(hdriRotationZ)
+  const invalidate = useThree((s) => s.invalidate)
+  const rotation = useMemo(() => new THREE.Euler(rotX, rotY, rotZ), [rotX, rotY, rotZ])
+  useEffect(() => {
+    invalidate()
+  }, [rotX, rotY, rotZ, invalidate])
+  return (
+    <Environment
+      files="./common/hdri.jpg"
+      environmentIntensity={2}
+      environmentRotation={rotation}
+    />
+  )
+}
 
 function RackShadow() {
   const meshRef = useRef<THREE.Mesh>(null)
@@ -620,7 +642,7 @@ function SceneContent({
           <directionalLight intensity={0.4} position={[-6, 3, -4]} />
         </>
       ) : (
-        <Environment files="./common/hdri.jpg" environmentIntensity={2} />
+        <HDRIEnvironment />
       )}
       {!lowTier && (
         <Grid
@@ -1165,6 +1187,7 @@ const SceneCanvas = ({ detectedConfig }: { detectedConfig: GPUConfig }) => {
         />
       </Canvas>
       <DebugOverlay />
+      <DebugPanel />
     </>
   )
 }
