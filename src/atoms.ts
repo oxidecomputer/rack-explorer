@@ -25,6 +25,13 @@ export const mobileOutlineOpen = atom('mobileOutlineOpen', false)
 export const showcaseMode = atom('showcaseMode', false)
 export const debugMode = atom('debugMode', false)
 
+/** Bumped to request a high-DPR transparent-BG export of the canvas. The
+ *  in-canvas CanvasExporter component watches this and runs the export. */
+export const canvasExportRequest = atom('canvasExportRequest', 0)
+export function requestCanvasExport() {
+  canvasExportRequest.update((v) => v + 1)
+}
+
 // Debug-mode tweakables (only visible/effective when debugMode is on)
 export const hdriRotationX = atom('hdriRotationX', 0.44)
 export const hdriRotationY = atom('hdriRotationY', 0.44)
