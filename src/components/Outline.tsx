@@ -1,10 +1,12 @@
 import {
   Action16Icon,
+  Compability16Icon,
   Cpu16Icon,
   LoadBalancer16Icon,
   Networking16Icon,
   Ram16Icon,
   Servers16Icon,
+  Ssd16Icon,
 } from '@oxide/design-system/icons/react'
 import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
@@ -16,20 +18,28 @@ import {
   inheritInstanceIndex,
   type ComponentNode,
 } from '../data/componentTree'
+import {
+  Airflow16Icon,
+  CosmoInner16Icon,
+  Fans16Icon,
+  NetworkConnectors16Icon,
+  Rack16Icon,
+  SidecarInner16Icon,
+} from './Icons'
 
 /** Map component IDs to icons for the outline */
 const iconMap: Record<string, ReactNode> = {
-  'oxide-rack': null /*todo: add icons */,
+  'oxide-rack': <Rack16Icon />,
   'compute-sled': <Servers16Icon />,
-  'compute-inner': null,
-  'switch-inner': null,
-  disks: null,
+  'compute-inner': <CosmoInner16Icon />,
+  'switch-inner': <SidecarInner16Icon />,
+  disks: <Ssd16Icon />,
   cpu: <Cpu16Icon />,
   ram: <Ram16Icon />,
-  fans: null,
-  'power-connectors': null,
-  'network-connectors': null,
-  'airflow-shroud': null,
+  fans: <Fans16Icon />,
+  'power-connector': <Compability16Icon />,
+  'network-connectors': <NetworkConnectors16Icon />,
+  'airflow-shroud': <Airflow16Icon />,
   'network-switch': <Networking16Icon />,
   'power-shelf': <Action16Icon />,
   'patch-panel': <LoadBalancer16Icon />,
