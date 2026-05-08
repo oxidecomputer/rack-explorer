@@ -164,11 +164,20 @@ export const componentTree: ComponentNode = {
               model: { path: './models/cosmo/lod1/memory.glb' },
             },
             {
-              id: 'connectors',
-              label: 'Connectors',
+              id: 'power-connector',
+              label: 'Power Connector',
               waypoint: {
                 direction: [1, 0.75, -0.65],
-                target: [0, 0, -0.35],
+                target: [0.0975, 0, -0.35],
+                scale: [0.26, 0.08, 0.06],
+              },
+            },
+            {
+              id: 'network-connectors',
+              label: 'Network Connectors',
+              waypoint: {
+                direction: [1, 0.75, -0.65],
+                target: [-0.0325, 0, -0.35],
                 scale: [0.26, 0.08, 0.06],
               },
             },

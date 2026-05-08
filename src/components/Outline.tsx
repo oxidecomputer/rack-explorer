@@ -1,14 +1,10 @@
 import {
   Action16Icon,
   Cpu16Icon,
-  Gateway16Icon,
-  Images16Icon,
-  Instances16Icon,
   LoadBalancer16Icon,
   Networking16Icon,
   Ram16Icon,
   Servers16Icon,
-  Ssd16Icon,
 } from '@oxide/design-system/icons/react'
 import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
@@ -23,16 +19,17 @@ import {
 
 /** Map component IDs to icons for the outline */
 const iconMap: Record<string, ReactNode> = {
-  'oxide-rack': <Servers16Icon />,
+  'oxide-rack': null /*todo: add icons */,
   'compute-sled': <Servers16Icon />,
-  'compute-inner': <Ssd16Icon />,
-  'switch-inner': <Ssd16Icon />,
-  disks: <Action16Icon />,
+  'compute-inner': null,
+  'switch-inner': null,
+  disks: null,
   cpu: <Cpu16Icon />,
   ram: <Ram16Icon />,
-  fans: <Instances16Icon />,
-  connectors: <Images16Icon />,
-  'airflow-shroud': <Gateway16Icon />,
+  fans: null,
+  'power-connectors': null,
+  'network-connectors': null,
+  'airflow-shroud': null,
   'network-switch': <Networking16Icon />,
   'power-shelf': <Action16Icon />,
   'patch-panel': <LoadBalancer16Icon />,
