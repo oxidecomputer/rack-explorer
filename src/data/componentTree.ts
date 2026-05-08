@@ -139,8 +139,8 @@ export const componentTree: ComponentNode = {
               label: 'Disks',
               waypoint: {
                 direction: [1.25, 0.5, 0.925],
-                target: [0, 0, 0.325],
-                scale: [0.26, 0.08, 0.3],
+                target: [0, 0, 0.35],
+                scale: [0.26, 0.1, 0.075],
               },
             },
             {
