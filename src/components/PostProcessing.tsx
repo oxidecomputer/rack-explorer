@@ -48,19 +48,19 @@ export const PostProcessing = ({
       />,
     )
   }
-  // if (enableOutline) {
-  //   effects.push(
-  //     <Outline
-  //       key="outline"
-  //       ref={outlineRef}
-  //       edgeStrength={2.5}
-  //       blendFunction={BlendFunction.ALPHA}
-  //       visibleEdgeColor={4773271}
-  //       hiddenEdgeColor={4773271}
-  //       resolutionScale={0.5}
-  //     />,
-  //   )
-  // }
+  if (enableOutline) {
+    effects.push(
+      <Outline
+        key="outline"
+        ref={outlineRef}
+        edgeStrength={2.5}
+        blendFunction={BlendFunction.ALPHA}
+        visibleEdgeColor={4773271}
+        hiddenEdgeColor={4773271}
+        resolutionScale={0.5}
+      />,
+    )
+  }
 
   return (
     <EffectComposer
