@@ -12,6 +12,7 @@ import {
   hdriRotationZ,
   requestCanvasExport,
   showcaseRotationSpeed,
+  showHitboxes,
 } from '../atoms'
 
 const RAD_TO_DEG = 180 / Math.PI
@@ -32,6 +33,7 @@ export function DebugPanel() {
       envIntensity: environmentIntensity.get(),
       fitMult: fitFractionMultiplier.get(),
       rotSpeed: showcaseRotationSpeed.get(),
+      showHitboxes: showHitboxes.get(),
     }
 
     const hdri = pane.addFolder({ title: 'hdri rotation' })
@@ -72,6 +74,11 @@ export function DebugPanel() {
         step: 0.01,
       })
       .on('change', (ev) => showcaseRotationSpeed.set(ev.value))
+
+    const overlays = pane.addFolder({ title: 'overlays' })
+    overlays
+      .addBinding(params, 'showHitboxes', { label: 'hitboxes' })
+      .on('change', (ev) => showHitboxes.set(ev.value))
 
     const exportFolder = pane.addFolder({ title: 'export' })
     exportFolder
