@@ -5,7 +5,7 @@ import { memo, useEffect, useMemo } from 'react'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 
-import { lowTierRendering, selectedId } from '../atoms'
+import { lowTierRendering, outlineId, selectedId } from '../atoms'
 import { dracoLoader } from '../loaders'
 import { downgradeMaterials } from '../perf/materialDowngrade'
 import { ensureBoundsTree } from '../perf/raycasting'
@@ -94,12 +94,21 @@ export const SelectableGLBModel = memo(function SelectableGLBModel({
       }),
     [id],
   )
-  const enabled = useValue(isSelected)
+  const isOutlined = useMemo(
+    () =>
+      computed('outline-' + id, () => {
+        const sel = outlineId.get()
+        return sel === id || sel.split(':')[0] === id
+      }),
+    [id],
+  )
+  const selected = useValue(isSelected)
+  const outlined = useValue(isOutlined)
 
-  const offsetGroupRef = useSelectionOffset(enabled, selectionOffset)
+  const offsetGroupRef = useSelectionOffset(selected, selectionOffset)
 
   return (
-    <ModifiedSelect enabled={enabled}>
+    <ModifiedSelect enabled={outlined}>
       <group position={position}>
         <group ref={offsetGroupRef}>
           <primitive object={scene} />

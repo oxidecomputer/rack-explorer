@@ -139,8 +139,8 @@ export const componentTree: ComponentNode = {
               label: 'Disks',
               waypoint: {
                 direction: [1.25, 0.5, 0.925],
-                target: [0, 0, 0.325],
-                scale: [0.26, 0.08, 0.3],
+                target: [0, 0, 0.35],
+                scale: [0.26, 0.1, 0.075],
               },
             },
             {
@@ -167,18 +167,20 @@ export const componentTree: ComponentNode = {
               id: 'power-connector',
               label: 'Power Connector',
               waypoint: {
-                direction: [1, 0.75, -0.65],
-                target: [0.0975, 0, -0.35],
-                scale: [0.26, 0.08, 0.06],
+                direction: [1, 0.75, -1.25],
+                target: [0.085, -0.03, -0.35],
+                scale: [0.05, 0.04, 0.06],
+                fitFraction: 0.2,
               },
             },
             {
               id: 'network-connectors',
               label: 'Network Connectors',
               waypoint: {
-                direction: [1, 0.75, -0.65],
-                target: [-0.0325, 0, -0.35],
-                scale: [0.26, 0.08, 0.06],
+                direction: [1, 0.75, -1],
+                target: [-0.0325, -0.03, -0.35],
+                scale: [0.15, 0.04, 0.06],
+                fitFraction: 0.35,
               },
             },
             {
@@ -395,6 +397,42 @@ export function getDescendantModels(
   const result: Array<{ node: ComponentNode; model: ModelConfig }> = []
   function walk(node: ComponentNode) {
     for (const model of getNodeModels(node)) result.push({ node, model })
+    for (const child of node.children ?? []) walk(child)
+  }
+  for (const child of entry.node.children ?? []) walk(child)
+  return result
+}
+
+/** Walk up from `selectedId` and return the closest ancestor (including self)
+ *  that has a model attached. Preserves the instance suffix. Used for the
+ *  outline: when the focus is a waypoint volume on a node without its own
+ *  mesh (e.g. `disks`, `power-connector`), the outline falls back to the
+ *  closest ancestor that has a renderable model. */
+export function findClosestModelAncestorId(selectedId: string): string {
+  const [baseId, indexStr] = selectedId.split(':')
+  const entry = flatMap.get(baseId)
+  if (!entry) return selectedId
+
+  const chain: ComponentNode[] = [entry.node, ...[...entry.ancestors].reverse()]
+  for (const node of chain) {
+    if (getNodeModels(node).length > 0) {
+      return indexStr != null ? `${node.id}:${indexStr}` : node.id
+    }
+  }
+  return selectedId
+}
+
+/** Collect descendants of `nodeId` that have a waypoint with `scale` but no
+ *  model — these get invisible click-target boxes derived from the waypoint
+ *  so they can still be picked from the scene. */
+export function getDescendantHitboxes(nodeId: string): ComponentNode[] {
+  const entry = flatMap.get(nodeId)
+  if (!entry) return []
+  const result: ComponentNode[] = []
+  function walk(node: ComponentNode) {
+    if (getNodeModels(node).length === 0 && node.waypoint?.scale) {
+      result.push(node)
+    }
     for (const child of node.children ?? []) walk(child)
   }
   for (const child of entry.node.children ?? []) walk(child)
