@@ -1,4 +1,4 @@
-import { atom as createAtom, computed, type Atom, type AtomOptions } from '@tldraw/state'
+import { computed, atom as createAtom, type Atom, type AtomOptions } from '@tldraw/state'
 
 import { findClosestModelAncestorId } from './data/componentTree'
 import { getVideoTourStepAtTime, guidedTours, type VideoTour } from './data/guidedTours'
@@ -71,7 +71,7 @@ export function requestCanvasExport() {
 export const hdriRotationX = atom('hdriRotationX', 0.44)
 export const hdriRotationY = atom('hdriRotationY', 0.44)
 export const hdriRotationZ = atom('hdriRotationZ', 0)
-export const environmentIntensity = atom('environmentIntensity', 2)
+export const environmentIntensity = atom('environmentIntensity', 2.5)
 export const showcaseRotationSpeed = atom('showcaseRotationSpeed', 0.15)
 /** Multiplier applied to whatever fit fraction the waypoint resolves to
  *  (per-waypoint or DEFAULT_FIT_FRACTION). 1 = no change. */
