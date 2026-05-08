@@ -2,6 +2,8 @@ import { EffectComposer, N8AO, Outline } from '@react-three/postprocessing'
 import { BlendFunction, type OutlineEffect } from 'postprocessing'
 import { useEffect, useRef, type ReactElement } from 'react'
 
+import { sharedComposerRef } from './CanvasExporter'
+
 export type AOQuality = 'full' | 'low' | 'off'
 
 export const PostProcessing = ({
@@ -18,8 +20,9 @@ export const PostProcessing = ({
     if (outlineRef.current && !patched.current) {
       // Skip the depth pass — it re-renders the entire scene to distinguish
       // visible vs hidden edges, but we use the same color for both.
-      const depthPass = (outlineRef.current as unknown as { depthPass?: { render: () => void } })
-        .depthPass
+      const depthPass = (
+        outlineRef.current as unknown as { depthPass?: { render: () => void } }
+      ).depthPass
       if (depthPass) {
         depthPass.render = () => {}
       }
@@ -45,22 +48,32 @@ export const PostProcessing = ({
       />,
     )
   }
-  if (enableOutline) {
-    effects.push(
-      <Outline
-        key="outline"
-        ref={outlineRef}
-        edgeStrength={2.5}
-        blendFunction={BlendFunction.ALPHA}
-        visibleEdgeColor={4773271}
-        hiddenEdgeColor={4773271}
-        resolutionScale={0.5}
-      />,
-    )
-  }
+  // if (enableOutline) {
+  //   effects.push(
+  //     <Outline
+  //       key="outline"
+  //       ref={outlineRef}
+  //       edgeStrength={2.5}
+  //       blendFunction={BlendFunction.ALPHA}
+  //       visibleEdgeColor={4773271}
+  //       hiddenEdgeColor={4773271}
+  //       resolutionScale={0.5}
+  //     />,
+  //   )
+  // }
 
   return (
-    <EffectComposer enableNormalPass={aoEnabled} autoClear={false}>
+    <EffectComposer
+      // useImperativeHandle inside EffectComposer fires this callback whenever
+      // the underlying composer is recreated (e.g. when enableNormalPass flips
+      // because AO is toggled). CanvasExporter reads sharedComposerRef.current
+      // when an export is requested.
+      ref={(composer) => {
+        sharedComposerRef.current = composer
+      }}
+      enableNormalPass={aoEnabled}
+      autoClear={false}
+    >
       {effects}
     </EffectComposer>
   )
