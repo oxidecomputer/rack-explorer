@@ -187,7 +187,7 @@ export const guidedTours: GuidedTour[] = [
         title: 'The Cabled Backplane',
         description:
           'When a sled is seated, it blind-mates into DC power, two redundant network links, and the management network simultaneously. The external cabling for the rack consists of the AC inputs on the power shelves and the fiber uplinks at the patch panel.',
-        selectedId: 'connectors:31',
+        selectedId: 'network-connectors:31',
       },
       {
         title: 'Network Switch',
