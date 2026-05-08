@@ -317,6 +317,43 @@ once you multiply it by the alpha-test fragment count.
 
 Net: closes the *watch the tail* item from the perforation ablation.
 
+## Per-instance frustum culling re-enabled (May 2026)
+
+`InstancedMesh2.perObjectFrustumCulled` flipped from `false` to `true` in
+`src/components/InstancedGLBModel.tsx`. The original `false` setting
+short-circuited per-instance BVH culling entirely; the bet was that at
+rack-overview the whole batch is in frustum so culling never engages
+and would only add traversal cost. Worth re-testing because during
+close camera work (drilled-sled, rapid-selection) 31 of 32 sleds are
+outside the frustum and could be skipped.
+
+Re-ran `?perf=all` on M4 Max / Chrome 148, default tier-3 config
+(DPR `[1,2]`, post=`outline+ao`):
+
+| Scenario | gpu p50 off→on | gpu p95 | gpu p99 | mean |
+| --- | --- | --- | --- | --- |
+| idle-rack | 9.11 → 9.13 | 10.08 → 9.53 | 12.78 → 15.21 | 9.31 → 9.31 |
+| showcase-rack | 9.06 → 9.01 | 9.55 → 9.54 | 9.84 → 9.70 | 9.10 → 8.96 |
+| drilled-sled | 8.93 → 8.94 | 9.28 → 9.30 | 13.98 → **10.29** | 8.86 → 8.84 |
+| rapid-selection | 9.70 → 9.53 | 18.34 → **16.64** | 19.38 → **17.10** | 11.49 → **10.38** |
+| orbit-stress | 9.05 → 9.01 | 9.63 → 9.64 | 10.27 → 10.02 | 9.00 → 8.95 |
+
+Median is a wash on M4 Max, as expected: whole-rack scenarios have
+everything in frustum so there's nothing to cull, and M4 Max has fillrate
+to spare for close-up scenarios. Tail improves where it should:
+drilled-sled p99 −3.7ms, rapid-selection p95 −1.7ms / p99 −2.3ms / mean
+−1.1ms. Triangle count during rapid-selection drops 28% (1.08M → 771k) —
+that's the actual signal. The lone p99 regression (idle-rack +2.4ms) is
+one frame in 300 with p50 and p95 flat; tail noise, not real cost.
+
+CPU unchanged across all scenarios (BVH-traversal overhead invisible).
+Draw calls unchanged (still one per InstancedMesh2 batch) — the saving
+is in skipped vertex shading on culled instances, not in fewer calls.
+
+Net: free win on M4 Max, more meaningful on tier-1 GPUs where vertex
+shading isn't free. The 28% triangle reduction during selection should
+translate proportionally on weaker hardware.
+
 ## Rejected: adaptive AO during user interaction
 
 Prototype that toggled AO off during `controlstart` and back on 200ms after
