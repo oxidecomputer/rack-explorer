@@ -1,4 +1,4 @@
-import { atom as createAtom, computed, type Atom, type AtomOptions } from '@tldraw/state'
+import { computed, atom as createAtom, type Atom, type AtomOptions } from '@tldraw/state'
 
 import { findClosestModelAncestorId } from './data/componentTree'
 import { getVideoTourStepAtTime, guidedTours, type VideoTour } from './data/guidedTours'
@@ -60,6 +60,10 @@ export const debugMode = atom('debugMode', false)
  *  (e.g. disks, power-connector) as visible wireframes. */
 export const showHitboxes = atom('showHitboxes', false)
 
+/** Debug-only: render the HDRI as the scene background so its rotation/
+ *  intensity are visible directly, not just via reflections on the rack. */
+export const showHdriBackground = atom('showHdriBackground', false)
+
 /** Bumped to request a high-DPR transparent-BG export of the canvas. The
  *  in-canvas CanvasExporter component watches this and runs the export. */
 export const canvasExportRequest = atom('canvasExportRequest', 0)
@@ -71,11 +75,15 @@ export function requestCanvasExport() {
 export const hdriRotationX = atom('hdriRotationX', 0.44)
 export const hdriRotationY = atom('hdriRotationY', 0.44)
 export const hdriRotationZ = atom('hdriRotationZ', 0)
-export const environmentIntensity = atom('environmentIntensity', 2)
+export const environmentIntensity = atom('environmentIntensity', 2.25)
 export const showcaseRotationSpeed = atom('showcaseRotationSpeed', 0.15)
 /** Multiplier applied to whatever fit fraction the waypoint resolves to
  *  (per-waypoint or DEFAULT_FIT_FRACTION). 1 = no change. */
 export const fitFractionMultiplier = atom('fitFractionMultiplier', 1)
+
+/** Multiplier applied to the camera's max dolly distance (zoom-out cap). 1 =
+ *  no change; >1 lets the user dolly past the rack-overview framing. */
+export const maxZoomMultiplier = atom('maxZoomMultiplier', 1)
 
 /** Three-level quality scale: 'auto' lets tier detection (and adaptive perf,
  *  for post-processing and DPR) drive the effective value; 'high'/'low' is a
