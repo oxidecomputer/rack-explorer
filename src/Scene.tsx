@@ -24,6 +24,7 @@ import {
   hdriRotationZ,
   isVideoTour,
   lowTierRendering,
+  maxZoomMultiplier,
   navigationMode,
   postProcessingSetting,
   resolutionSetting,
@@ -31,6 +32,7 @@ import {
   selectedId,
   showcaseMode,
   showcaseRotationSpeed,
+  showHdriBackground,
   softwareRenderingDetected,
   specificationsOpen,
   togglePlayWithFlash,
@@ -93,16 +95,20 @@ function HDRIEnvironment() {
   const rotY = useValue(hdriRotationY)
   const rotZ = useValue(hdriRotationZ)
   const intensity = useValue(environmentIntensity)
+  const showBackground = useValue(showHdriBackground)
   const invalidate = useThree((s) => s.invalidate)
   const rotation = useMemo(() => new THREE.Euler(rotX, rotY, rotZ), [rotX, rotY, rotZ])
   useEffect(() => {
     invalidate()
-  }, [rotX, rotY, rotZ, intensity, invalidate])
+  }, [rotX, rotY, rotZ, intensity, showBackground, invalidate])
   return (
     <Environment
       files="./common/hdri.jpg"
       environmentIntensity={intensity}
       environmentRotation={rotation}
+      background={showBackground}
+      backgroundRotation={rotation}
+      backgroundIntensity={intensity}
     />
   )
 }
@@ -364,6 +370,7 @@ function CameraFitter({
   const tourStep = useValue(activeTourStep)
   const stepWaypoint = navMode === 'guided' ? (tourStep?.waypoint ?? null) : null
   const fitFractionMult = useValue(fitFractionMultiplier)
+  const maxZoomMult = useValue(maxZoomMultiplier)
   const reducedMotion = useReducedMotion()
   const isFirstFitRef = useRef(true)
   const lastFitKeyRef = useRef('')
@@ -371,7 +378,16 @@ function CameraFitter({
 
   useEffect(() => {
     invalidate()
-  }, [sel, navMode, isVideo, isStartScreen, stepWaypoint, fitFractionMult, invalidate])
+  }, [
+    sel,
+    navMode,
+    isVideo,
+    isStartScreen,
+    stepWaypoint,
+    fitFractionMult,
+    maxZoomMult,
+    invalidate,
+  ])
 
   useFrame(({ scene, size }) => {
     if (!controlsRef.current) return
@@ -381,7 +397,7 @@ function CameraFitter({
     const wpKey = stepWaypoint
       ? `${stepWaypoint.direction.join(',')}|${stepWaypoint.target.join(',')}|${stepWaypoint.scale?.join(',') ?? ''}|${stepWaypoint.fitFraction ?? ''}`
       : ''
-    const fitKey = `${sel}|${navMode}|${size.width}|${size.height}|${panelVisible}|${wpKey}|${fitFractionMult}`
+    const fitKey = `${sel}|${navMode}|${size.width}|${size.height}|${panelVisible}|${wpKey}|${fitFractionMult}|${maxZoomMult}`
     if (fitKey === lastFitKeyRef.current) return
 
     // Step-level waypoint overrides the selected component's default. When the
@@ -459,7 +475,7 @@ function CameraFitter({
     )
     const minDolly = drilledIn ? MIN_DOLLY_DISTANCE_DRILLED : MIN_DOLLY_DISTANCE_TOP
     controlsRef.current.minDistance = Math.min(fitDistance, minDolly)
-    controlsRef.current.maxDistance = maxDistance
+    controlsRef.current.maxDistance = maxDistance * maxZoomMult
 
     const animate = !isFirstFitRef.current && !reducedMotion
     isFirstFitRef.current = false
