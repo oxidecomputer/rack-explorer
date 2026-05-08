@@ -78,10 +78,7 @@ export const InstancedGLBModel = memo(function InstancedGLBModel({
   // Swap any perforation material on the loaded scene to the shared module-
   // level material before meshesInfo and the overlay clone capture it.
   // Idempotent per gltf.scene.
-  useMemo(
-    () => rewritePerforations(gltf.scene, textures, gl),
-    [gltf.scene, textures, gl],
-  )
+  useMemo(() => rewritePerforations(gltf.scene, textures, gl), [gltf.scene, textures, gl])
 
   // Extract all meshes from the GLB. For InstancedMesh (from EXT_mesh_gpu_instancing),
   // expand per-instance matrices so each sub-instance gets rendered at its baked transform.
@@ -326,7 +323,7 @@ export const InstancedGLBModel = memo(function InstancedGLBModel({
         createEntities: true,
         renderer: gl,
       })
-      im.perObjectFrustumCulled = false
+      im.perObjectFrustumCulled = true
       im.addInstances(totalCapacity, (entity, flatIdx) => {
         const sledIdx = Math.floor(flatIdx / subCount)
         const subIdx = flatIdx % subCount
@@ -371,10 +368,7 @@ export const InstancedGLBModel = memo(function InstancedGLBModel({
   } | null>(null)
 
   useEffect(() => {
-    if (
-      pendingDisposeRef.current &&
-      pendingDisposeRef.current.ims === instancedMeshes
-    ) {
+    if (pendingDisposeRef.current && pendingDisposeRef.current.ims === instancedMeshes) {
       pendingDisposeRef.current.cancelled = true
       pendingDisposeRef.current = null
     }
