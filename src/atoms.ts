@@ -1,9 +1,17 @@
 import { atom, computed } from '@tldraw/state'
 
+import { findClosestModelAncestorId } from './data/componentTree'
 import { getVideoTourStepAtTime, guidedTours, type VideoTour } from './data/guidedTours'
 
 export const selectedId = atom('selectedId', 'oxide-rack')
 export const hoveredId = atom<string | null>('hoveredId', null)
+
+/** Drives the 3D selection outline. Falls back to the closest ancestor with a
+ *  model when the current selection has none (e.g. `disks` → `compute-inner`),
+ *  so the outline still has something visible to draw around. */
+export const outlineId = computed('outlineId', () =>
+  findClosestModelAncestorId(selectedId.get()),
+)
 
 /** Open when the current selection's preamble animation (e.g. cosmo handle) has
  *  finished, or there is none. Sibling models (perforations layered over the
