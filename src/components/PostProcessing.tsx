@@ -1,10 +1,21 @@
 import { EffectComposer, N8AO, Outline } from '@react-three/postprocessing'
-import { BlendFunction, type OutlineEffect } from 'postprocessing'
+import {
+  BlendFunction,
+  type EffectComposer as PPEffectComposer,
+  type OutlineEffect,
+} from 'postprocessing'
 import { useEffect, useRef, type ReactElement } from 'react'
 
 import { sharedComposerRef } from './CanvasExporter'
 
 export type AOQuality = 'full' | 'low' | 'off'
+
+// Stable identity — passing an inline arrow would force EffectComposer's
+// internal useImperativeHandle to tear down and re-attach on every re-render
+// of PostProcessing.
+const setSharedComposer = (composer: PPEffectComposer | null) => {
+  sharedComposerRef.current = composer
+}
 
 export const PostProcessing = ({
   aoQuality,
@@ -64,13 +75,7 @@ export const PostProcessing = ({
 
   return (
     <EffectComposer
-      // useImperativeHandle inside EffectComposer fires this callback whenever
-      // the underlying composer is recreated (e.g. when enableNormalPass flips
-      // because AO is toggled). CanvasExporter reads sharedComposerRef.current
-      // when an export is requested.
-      ref={(composer) => {
-        sharedComposerRef.current = composer
-      }}
+      ref={setSharedComposer}
       enableNormalPass={aoEnabled}
       autoClear={false}
     >
