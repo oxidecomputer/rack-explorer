@@ -64,7 +64,7 @@ function releaseTexture(path: string) {
 // is negligible, and Lambert skips the GGX path on every alpha-test fragment.
 export const SHARED_PERF_MATERIAL = new THREE.MeshLambertMaterial({
   color: 0x000000,
-  side: THREE.BackSide,
+  side: THREE.FrontSide,
   alphaTest: 0.7,
 })
 SHARED_PERF_MATERIAL.name = 'SharedPerforations'
