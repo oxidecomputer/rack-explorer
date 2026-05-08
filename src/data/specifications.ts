@@ -106,6 +106,34 @@ export const specifications: Record<string, Specification[]> = {
   'network-connectors': [
     { label: 'Per-Sled Connectivity', value: '2 × 100GbE' },
     { label: 'Backplane Media', value: '100GBASE-KR4 (cabled backplane)' },
+    { label: 'Mating', value: 'Blindmate to cabled backplane' },
+    {
+      label: 'Signals Carried',
+      value: [
+        'Data: one link to each Sidecar switch',
+        'Management network (separate physical link to SP)',
+        'Presence and power-control auxiliaries',
+      ],
+    },
+  ],
+  'power-connector': [
+    { label: 'Mating', value: 'Blindmate to cabled backplane' },
+    { label: 'Bus Voltage', value: '54.5 V DC' },
+    { label: 'Source', value: 'Rack DC busbar (fed by power shelves)' },
+  ],
+  fans: [
+    { label: 'Configuration', value: 'Per-sled, rear-mounted' },
+    { label: 'Airflow Direction', value: 'Front-to-back' },
+    { label: 'Control', value: 'Sled service processor' },
+    { label: 'Service Access', value: 'Front of rack (cold aisle)' },
+    { label: 'Rack Thermal Output', value: 'Up to 122,832 BTU/hr' },
+  ],
+  'airflow-shroud': [
+    {
+      label: 'Function',
+      value: 'Channels intake air across CPU and DIMMs to rear fans',
+    },
+    { label: 'Removal', value: 'Tool-less; lifts off when sled is pulled' },
   ],
   'patch-panel': [
     { label: 'Per-Switch Uplinks', value: '32 × QSFP-56 (40/100/200GBASE)' },
@@ -120,6 +148,8 @@ export const specifications: Record<string, Specification[]> = {
       label: 'Typical / Max Output Power',
       value: '2400W / 3600W per power supply',
     },
+    { label: 'DC Output', value: 'Up to 18 kW per shelf at 54.5 V to rack busbar' },
+    { label: 'Rectifiers', value: '6 hot-swappable per shelf' },
     {
       label: 'Input Voltage (AC)',
       value: ['3 Phase Delta: 208–240V', '3 Phase WYE: 380–480V'],
