@@ -10,8 +10,10 @@ import {
   hdriRotationX,
   hdriRotationY,
   hdriRotationZ,
+  maxZoomMultiplier,
   requestCanvasExport,
   showcaseRotationSpeed,
+  showHdriBackground,
   showHitboxes,
 } from '../atoms'
 
@@ -32,8 +34,10 @@ export function DebugPanel() {
       hdriZ: hdriRotationZ.get() * RAD_TO_DEG,
       envIntensity: environmentIntensity.get(),
       fitMult: fitFractionMultiplier.get(),
+      maxZoom: maxZoomMultiplier.get(),
       rotSpeed: showcaseRotationSpeed.get(),
       showHitboxes: showHitboxes.get(),
+      showHdriBg: showHdriBackground.get(),
     }
 
     const hdri = pane.addFolder({ title: 'hdri rotation' })
@@ -46,6 +50,9 @@ export function DebugPanel() {
     hdri
       .addBinding(params, 'hdriZ', { label: 'z°', min: -180, max: 180, step: 1 })
       .on('change', (ev) => hdriRotationZ.set(ev.value * DEG_TO_RAD))
+    hdri
+      .addBinding(params, 'showHdriBg', { label: 'show bg' })
+      .on('change', (ev) => showHdriBackground.set(ev.value))
 
     const lighting = pane.addFolder({ title: 'lighting' })
     lighting
@@ -66,6 +73,14 @@ export function DebugPanel() {
         step: 0.01,
       })
       .on('change', (ev) => fitFractionMultiplier.set(ev.value))
+    camera
+      .addBinding(params, 'maxZoom', {
+        label: 'max zoom ×',
+        min: 1,
+        max: 10,
+        step: 0.1,
+      })
+      .on('change', (ev) => maxZoomMultiplier.set(ev.value))
     camera
       .addBinding(params, 'rotSpeed', {
         label: 'rot speed',

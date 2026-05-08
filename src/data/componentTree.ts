@@ -141,6 +141,7 @@ export const componentTree: ComponentNode = {
                 direction: [1.25, 0.5, 0.925],
                 target: [0, 0, 0.35],
                 scale: [0.26, 0.1, 0.075],
+                fitFraction: 0.35,
               },
             },
             {
