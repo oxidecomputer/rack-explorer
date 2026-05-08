@@ -38,6 +38,7 @@ import {
 } from './atoms'
 import { CanvasExporter } from './components/CanvasExporter'
 import { DebugPanel } from './components/DebugPanel'
+import { Hitbox } from './components/Hitbox'
 import { InstancedGLBModel } from './components/InstancedGLBModel'
 import { MOBILE_SPECS_PANEL_HEIGHT } from './components/MobileSpecsDrawer'
 import { SelectableGLBModel } from './components/SelectableGLBModel'
@@ -46,6 +47,7 @@ import { TourAnnotations } from './components/TourAnnotations'
 import { WireframeCube } from './components/WireframeCube'
 import {
   componentTree,
+  getDescendantHitboxes,
   getDescendantModels,
   getInstanceContext,
   getInstances,
@@ -648,6 +650,12 @@ function SceneContent({
     [viewingChildOfId],
   )
 
+  // Click-target volumes for descendants without a model (e.g. disks).
+  const descendantHitboxes = useMemo(
+    () => (viewingChildOfId ? getDescendantHitboxes(viewingChildOfId) : []),
+    [viewingChildOfId],
+  )
+
   // Stable instance arrays for instanced components (avoids re-render cycles in ModifiedSelect)
   const instancesById = useMemo(() => {
     const map: Record<string, ReturnType<typeof getInstances>> = {}
@@ -830,6 +838,14 @@ function SceneContent({
                         selectionOffset={d.selectionOffset}
                       />
                     ))}
+                  {descendantHitboxes.map((d) => (
+                    <Hitbox
+                      key={`${d.id}-hitbox`}
+                      id={d.id}
+                      target={d.waypoint!.target}
+                      scale={d.waypoint!.scale!}
+                    />
+                  ))}
                 </group>
               )
             }

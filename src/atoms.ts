@@ -1,9 +1,40 @@
-import { atom, computed } from '@tldraw/state'
+import { atom as createAtom, computed, type Atom, type AtomOptions } from '@tldraw/state'
 
+import { findClosestModelAncestorId } from './data/componentTree'
 import { getVideoTourStepAtTime, guidedTours, type VideoTour } from './data/guidedTours'
+
+// Preserve atom identity across HMR re-evaluation. This module is non-
+// refreshable (no React components), so an edit to it — or to any non-
+// refreshable upstream dep like componentTree.ts — causes Vite to re-import it
+// and reset every atom to its default. Caching by name on import.meta.hot.data
+// hands back the same instance, so atom values (landingOpen, sceneReady,
+// selectedId, etc.) survive the reload.
+const atomCache: Map<string, Atom<unknown, unknown>> | null = import.meta.hot
+  ? (import.meta.hot.data.atomCache ??= new Map())
+  : null
+
+function atom<Value, Diff = unknown>(
+  name: string,
+  initialValue: Value,
+  options?: AtomOptions<Value, Diff>,
+): Atom<Value, Diff> {
+  if (!atomCache) return createAtom(name, initialValue, options)
+  const cached = atomCache.get(name)
+  if (cached) return cached as Atom<Value, Diff>
+  const a = createAtom(name, initialValue, options)
+  atomCache.set(name, a as Atom<unknown, unknown>)
+  return a
+}
 
 export const selectedId = atom('selectedId', 'oxide-rack')
 export const hoveredId = atom<string | null>('hoveredId', null)
+
+/** Drives the 3D selection outline. Falls back to the closest ancestor with a
+ *  model when the current selection has none (e.g. `disks` → `compute-inner`),
+ *  so the outline still has something visible to draw around. */
+export const outlineId = computed('outlineId', () =>
+  findClosestModelAncestorId(selectedId.get()),
+)
 
 /** Open when the current selection's preamble animation (e.g. cosmo handle) has
  *  finished, or there is none. Sibling models (perforations layered over the
@@ -24,6 +55,10 @@ export const mobileOutlineOpen = atom('mobileOutlineOpen', false)
 // Options
 export const showcaseMode = atom('showcaseMode', false)
 export const debugMode = atom('debugMode', false)
+
+/** Debug-only: render the click-hitbox volumes for waypoint-only nodes
+ *  (e.g. disks, power-connector) as visible wireframes. */
+export const showHitboxes = atom('showHitboxes', false)
 
 /** Bumped to request a high-DPR transparent-BG export of the canvas. The
  *  in-canvas CanvasExporter component watches this and runs the export. */
