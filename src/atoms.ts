@@ -1,7 +1,30 @@
-import { atom, computed } from '@tldraw/state'
+import { atom as createAtom, computed, type Atom, type AtomOptions } from '@tldraw/state'
 
 import { findClosestModelAncestorId } from './data/componentTree'
 import { getVideoTourStepAtTime, guidedTours, type VideoTour } from './data/guidedTours'
+
+// Preserve atom identity across HMR re-evaluation. This module is non-
+// refreshable (no React components), so an edit to it — or to any non-
+// refreshable upstream dep like componentTree.ts — causes Vite to re-import it
+// and reset every atom to its default. Caching by name on import.meta.hot.data
+// hands back the same instance, so atom values (landingOpen, sceneReady,
+// selectedId, etc.) survive the reload.
+const atomCache: Map<string, Atom<unknown, unknown>> | null = import.meta.hot
+  ? (import.meta.hot.data.atomCache ??= new Map())
+  : null
+
+function atom<Value, Diff = unknown>(
+  name: string,
+  initialValue: Value,
+  options?: AtomOptions<Value, Diff>,
+): Atom<Value, Diff> {
+  if (!atomCache) return createAtom(name, initialValue, options)
+  const cached = atomCache.get(name)
+  if (cached) return cached as Atom<Value, Diff>
+  const a = createAtom(name, initialValue, options)
+  atomCache.set(name, a as Atom<unknown, unknown>)
+  return a
+}
 
 export const selectedId = atom('selectedId', 'oxide-rack')
 export const hoveredId = atom<string | null>('hoveredId', null)
