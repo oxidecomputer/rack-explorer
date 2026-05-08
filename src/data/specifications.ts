@@ -61,7 +61,7 @@ export const specifications: Record<string, Specification[]> = {
     { label: 'Storage Configurations', value: '10 × Up to 30 TB Gen 4 NVMe' },
     { label: 'Network Connectivity', value: '2 × 100GbE' },
   ],
-  'disk-group': [
+  disks: [
     { label: 'Storage Capacity', value: '10 × U.2/U.3 NVMe 2.5-inch (15mm) Bays' },
     { label: 'Storage Configurations', value: '10 × Up to 30 TB Gen 4 NVMe' },
   ],
@@ -93,6 +93,27 @@ export const specifications: Record<string, Specification[]> = {
     { label: 'Packet Buffer', value: '64 MB' },
     { label: 'Uplink Ports', value: '32 × 40/100/200GBASE QSFP-56' },
     { label: 'Backplane Ports', value: '32 × 100GBASE-KR4' },
+    {
+      label: 'Supported Optics',
+      value: [
+        '40GBASE-LR4',
+        '100GBASE-CWDM4 / FR1 / LR4',
+        '100GBASE-SR-BiDi / SR4',
+        '200GBASE-FR4',
+      ],
+    },
+  ],
+  'network-connectors': [
+    { label: 'Per-Sled Connectivity', value: '2 × 100GbE' },
+    { label: 'Backplane Media', value: '100GBASE-KR4 (cabled backplane)' },
+  ],
+  'patch-panel': [
+    { label: 'Per-Switch Uplinks', value: '32 × QSFP-56 (40/100/200GBASE)' },
+    {
+      label: 'Fiber Types',
+      value: ['OS2 Single-Mode', 'OM3 / OM4 / OM5 Multi-Mode'],
+    },
+    { label: 'Connector Types', value: 'LC (Lucent), MPO-8, MPO-12' },
   ],
   'power-shelf': [
     {
