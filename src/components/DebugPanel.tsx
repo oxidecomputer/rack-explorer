@@ -10,6 +10,7 @@ import {
   hdriRotationX,
   hdriRotationY,
   hdriRotationZ,
+  requestCanvasExport,
   showcaseRotationSpeed,
 } from '../atoms'
 
@@ -71,6 +72,11 @@ export function DebugPanel() {
         step: 0.01,
       })
       .on('change', (ev) => showcaseRotationSpeed.set(ev.value))
+
+    const exportFolder = pane.addFolder({ title: 'export' })
+    exportFolder
+      .addButton({ title: 'save canvas (4×, transparent)' })
+      .on('click', () => requestCanvasExport())
 
     return () => {
       pane.dispose()

@@ -36,6 +36,7 @@ import {
   togglePlayWithFlash,
   tourStartScreen,
 } from './atoms'
+import { CanvasExporter } from './components/CanvasExporter'
 import { DebugPanel } from './components/DebugPanel'
 import { InstancedGLBModel } from './components/InstancedGLBModel'
 import { MOBILE_SPECS_PANEL_HEIGHT } from './components/MobileSpecsDrawer'
@@ -907,6 +908,7 @@ function SceneContent({
       <CameraFitter controlsRef={cameraControlsRef} />
       <CameraOffset />
       <DebugStats aoQuality={aoQuality} gpuTier={gpuTier} perfFactor={perfFactor} />
+      <CanvasExporter />
       {perfFlags.enabled && (
         <>
           <FirstRenderMarker />
