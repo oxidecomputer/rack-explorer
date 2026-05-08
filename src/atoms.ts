@@ -33,6 +33,10 @@ export const mobileOutlineOpen = atom('mobileOutlineOpen', false)
 export const showcaseMode = atom('showcaseMode', false)
 export const debugMode = atom('debugMode', false)
 
+/** Debug-only: render the click-hitbox volumes for waypoint-only nodes
+ *  (e.g. disks, power-connector) as visible wireframes. */
+export const showHitboxes = atom('showHitboxes', false)
+
 /** Bumped to request a high-DPR transparent-BG export of the canvas. The
  *  in-canvas CanvasExporter component watches this and runs the export. */
 export const canvasExportRequest = atom('canvasExportRequest', 0)

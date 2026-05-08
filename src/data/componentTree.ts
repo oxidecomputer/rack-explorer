@@ -167,18 +167,20 @@ export const componentTree: ComponentNode = {
               id: 'power-connector',
               label: 'Power Connector',
               waypoint: {
-                direction: [1, 0.75, -0.65],
-                target: [0.0975, 0, -0.35],
-                scale: [0.26, 0.08, 0.06],
+                direction: [1, 0.75, -1.25],
+                target: [0.085, -0.03, -0.35],
+                scale: [0.05, 0.04, 0.06],
+                fitFraction: 0.2,
               },
             },
             {
               id: 'network-connectors',
               label: 'Network Connectors',
               waypoint: {
-                direction: [1, 0.75, -0.65],
-                target: [-0.0325, 0, -0.35],
-                scale: [0.26, 0.08, 0.06],
+                direction: [1, 0.75, -1],
+                target: [-0.0325, -0.03, -0.35],
+                scale: [0.15, 0.04, 0.06],
+                fitFraction: 0.35,
               },
             },
             {
@@ -418,6 +420,23 @@ export function findClosestModelAncestorId(selectedId: string): string {
     }
   }
   return selectedId
+}
+
+/** Collect descendants of `nodeId` that have a waypoint with `scale` but no
+ *  model — these get invisible click-target boxes derived from the waypoint
+ *  so they can still be picked from the scene. */
+export function getDescendantHitboxes(nodeId: string): ComponentNode[] {
+  const entry = flatMap.get(nodeId)
+  if (!entry) return []
+  const result: ComponentNode[] = []
+  function walk(node: ComponentNode) {
+    if (getNodeModels(node).length === 0 && node.waypoint?.scale) {
+      result.push(node)
+    }
+    for (const child of node.children ?? []) walk(child)
+  }
+  for (const child of entry.node.children ?? []) walk(child)
+  return result
 }
 
 /** Check if a given baseId is a descendant of a specific ancestor id */
