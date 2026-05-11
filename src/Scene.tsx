@@ -926,7 +926,7 @@ function SceneContent({
         maxPolarAngle={Math.PI / 2}
         mouseButtons={{
           left: ACTION.ROTATE,
-          middle: ACTION.NONE,
+          middle: ACTION.DOLLY,
           right: ACTION.TRUCK,
           wheel: ACTION.DOLLY,
         }}
