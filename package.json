@@ -27,7 +27,7 @@
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "remeda": "^2.34.0",
-    "tailwindcss": "^4.2.4",
+    "tailwindcss": "^4.3.0",
     "three": "^0.184.0",
     "three-mesh-bvh": "^0.9.9",
     "tweakpane": "^4.0.5"
