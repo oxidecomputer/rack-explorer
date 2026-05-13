@@ -61,7 +61,7 @@ export const specifications: Record<string, Specification[]> = {
     { label: 'Storage Configurations', value: '10 × Up to 30 TB Gen 4 NVMe' },
     { label: 'Network Connectivity', value: '2 × 100GbE' },
   ],
-  'disk-group': [
+  disks: [
     { label: 'Storage Capacity', value: '10 × U.2/U.3 NVMe 2.5-inch (15mm) Bays' },
     { label: 'Storage Configurations', value: '10 × Up to 30 TB Gen 4 NVMe' },
   ],
@@ -93,12 +93,63 @@ export const specifications: Record<string, Specification[]> = {
     { label: 'Packet Buffer', value: '64 MB' },
     { label: 'Uplink Ports', value: '32 × 40/100/200GBASE QSFP-56' },
     { label: 'Backplane Ports', value: '32 × 100GBASE-KR4' },
+    {
+      label: 'Supported Optics',
+      value: [
+        '40GBASE-LR4',
+        '100GBASE-CWDM4 / FR1 / LR4',
+        '100GBASE-SR-BiDi / SR4',
+        '200GBASE-FR4',
+      ],
+    },
+  ],
+  'network-connectors': [
+    { label: 'Per-Sled Connectivity', value: '2 × 100GbE' },
+    { label: 'Backplane Media', value: '100GBASE-KR4 (cabled backplane)' },
+    { label: 'Mating', value: 'Blindmate to cabled backplane' },
+    {
+      label: 'Signals Carried',
+      value: [
+        'Data: one link to each Sidecar switch',
+        'Management network (separate physical link to SP)',
+        'Presence and power-control auxiliaries',
+      ],
+    },
+  ],
+  'power-connector': [
+    { label: 'Mating', value: 'Blindmate to cabled backplane' },
+    { label: 'Bus Voltage', value: '54.5 V DC' },
+    { label: 'Source', value: 'Rack DC busbar (fed by power shelves)' },
+  ],
+  fans: [
+    { label: 'Configuration', value: 'Per-sled, rear-mounted' },
+    { label: 'Airflow Direction', value: 'Front-to-back' },
+    { label: 'Control', value: 'Sled service processor' },
+    { label: 'Service Access', value: 'Front of rack (cold aisle)' },
+    { label: 'Rack Thermal Output', value: 'Up to 122,832 BTU/hr' },
+  ],
+  'airflow-shroud': [
+    {
+      label: 'Function',
+      value: 'Channels intake air across CPU and DIMMs to rear fans',
+    },
+    { label: 'Removal', value: 'Tool-less; lifts off when sled is pulled' },
+  ],
+  'patch-panel': [
+    { label: 'Per-Switch Uplinks', value: '32 × QSFP-56 (40/100/200GBASE)' },
+    {
+      label: 'Fiber Types',
+      value: ['OS2 Single-Mode', 'OM3 / OM4 / OM5 Multi-Mode'],
+    },
+    { label: 'Connector Types', value: 'LC (Lucent), MPO-8, MPO-12' },
   ],
   'power-shelf': [
     {
       label: 'Typical / Max Output Power',
       value: '2400W / 3600W per power supply',
     },
+    { label: 'DC Output', value: 'Up to 18 kW per shelf at 54.5 V to rack busbar' },
+    { label: 'Rectifiers', value: '6 hot-swappable per shelf' },
     {
       label: 'Input Voltage (AC)',
       value: ['3 Phase Delta: 208–240V', '3 Phase WYE: 380–480V'],
