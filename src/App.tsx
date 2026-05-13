@@ -160,6 +160,7 @@ function App() {
 
   return (
     <MotionConfig reducedMotion="user">
+      <h1 className="sr-only">Oxide Cloud Computer 3D Explorer</h1>
       <motion.div
         className="fixed top-0 left-0 h-dvh w-full"
         initial={{ opacity: 0 }}
