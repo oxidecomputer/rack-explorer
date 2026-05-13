@@ -46,7 +46,7 @@ export function TourStartScreen() {
           <div className="text-mono-sm text-tertiary mb-1">
             {isVideo ? 'Video Tour' : 'Guided Tour'}
           </div>
-          <h1 className="text-sans-2xl text-raise">{tour.title}</h1>
+          <h2 className="text-sans-2xl text-raise">{tour.title}</h2>
         </div>
 
         <p className="text-sans-md text-tertiary pr-6">{tour.description}</p>
