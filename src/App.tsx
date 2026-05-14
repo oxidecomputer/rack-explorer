@@ -20,6 +20,7 @@ import {
   goToTourStep,
   isVideoTour,
   landingOpen,
+  lowTierRendering,
   mobileOutlineOpen,
   navigationMode,
   restartFreeTutorial,
@@ -115,6 +116,7 @@ function App() {
   const isVideo = useValue(isVideoTour)
   const isStartScreen = useValue(tourStartScreen)
   const isStandardTour = isGuided && !isVideo
+  const isLowTier = useValue(lowTierRendering)
 
   const handleVideoSkipPrev = useCallback(() => {
     if (!currentVideoTour) return
@@ -175,7 +177,10 @@ function App() {
         <AnimatePresence>
           {isLandingOpen && (
             <motion.div
-              className="pointer-events-none absolute inset-0 backdrop-blur-xl"
+              className={clsx(
+                'pointer-events-none absolute inset-0',
+                isLowTier ? 'bg-default/70' : 'backdrop-blur-xl',
+              )}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -446,7 +451,10 @@ function App() {
             </Card>
             <ContactSales
               loading={isLandingOpen}
-              className="hover:bg-hover/80 block w-64 rounded-md border border-neutral-900/10 bg-transparent p-2.5 backdrop-blur-md transition-colors"
+              className={clsx(
+                'hover:bg-hover/80 block w-64 rounded-md border border-neutral-900/10 p-2.5 transition-colors',
+                isLowTier ? 'bg-default/95' : 'bg-default/70 backdrop-blur-md',
+              )}
             />
           </motion.div>
         </div>
