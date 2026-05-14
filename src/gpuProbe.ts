@@ -1,3 +1,11 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, you can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Copyright Oxide Computer Company
+ */
+
 /** Detects whether the browser will render WebGL via software (SwiftShader,
  *  llvmpipe, …). Returns true when no hardware-accelerated context is available.
  *
