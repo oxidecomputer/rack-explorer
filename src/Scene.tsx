@@ -1202,6 +1202,13 @@ const SceneCanvas = ({ detectedConfig }: { detectedConfig: GPUConfig }) => {
           powerPreference: 'high-performance',
           antialias: !tierAtMount,
           precision: tierAtMount ? 'mediump' : 'highp',
+          // Older mobile GPUs (Mali on Pixel-class devices via Firefox/GeckoView)
+          // hand back a 16-bit depth buffer when antialias is off — at the
+          // current 1:100 near/far ratio that's not enough to separate coplanar
+          // chassis features and produces severe z-fighting. Log depth fixes the
+          // precision at the cost of an extra gl_FragDepth write per fragment;
+          // only pay it on tier-1, which is already on Lambert + low DPR.
+          logarithmicDepthBuffer: tierAtMount,
         }}
         dpr={dpr}
         linear
