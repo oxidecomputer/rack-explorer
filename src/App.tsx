@@ -184,10 +184,16 @@ function App() {
         </AnimatePresence>
 
         <header className="pointer-events-auto relative z-30 flex w-full items-center justify-between px-4 pt-4">
-          <div className="flex w-64 flex-col select-none">
-            <div className="text-raise text-mono-xs opacity-40">Oxide Computer Company</div>
+          <a
+            className="group flex w-64 flex-col select-none"
+            href="https://oxide.computer"
+            target="_blank"
+          >
+            <div className="text-raise text-mono-xs group-hover:text-raise group-hover:link-with-underline opacity-40">
+              Oxide Computer Company
+            </div>
             <div className="text-sans-sm text-default">3D Explorer</div>
-          </div>
+          </a>
           {!isGuided && (
             <div className="text-secondary max-1000:hidden flex flex-1 items-center justify-center gap-2 select-none">
               <button
