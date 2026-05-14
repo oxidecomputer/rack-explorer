@@ -1188,8 +1188,14 @@ const SceneCanvas = ({ detectedConfig }: { detectedConfig: GPUConfig }) => {
         camera={{
           position: initialPosition,
           fov: FIXED_FOV,
-          near: 1,
-          far: 100,
+          // Bounds chosen to match the actual usable camera-to-target range:
+          // min ≈ MIN_DOLLY_DISTANCE_DRILLED (1.5m, with bbox margin) and max
+          // ≈ the rack-overview fit distance (~13m) plus headroom for drilled
+          // targets that sit offset from the rack center. Tighter than the
+          // previous 1:100 to reduce depth-buffer precision exhaustion on
+          // older mobile GPUs where the depth attachment may be 16-bit.
+          near: 0.5,
+          far: 25,
         }}
         events={eventsWithoutHover}
         performance={{ current: 1, min: 0.5, max: 1, debounce: 200 }}
