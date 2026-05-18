@@ -23,7 +23,7 @@
     "@tldraw/state-react": "^5.0.0",
     "@types/three": "^0.184.1",
     "clsx": "^2.1.1",
-    "motion": "^12.38.0",
+    "motion": "^12.39.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "remeda": "^2.34.0",
