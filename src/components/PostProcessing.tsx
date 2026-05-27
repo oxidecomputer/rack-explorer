@@ -82,11 +82,7 @@ export const PostProcessing = ({
   }
 
   return (
-    <EffectComposer
-      ref={setSharedComposer}
-      enableNormalPass={aoEnabled}
-      autoClear={false}
-    >
+    <EffectComposer ref={setSharedComposer} enableNormalPass={aoEnabled} autoClear={false}>
       {effects}
     </EffectComposer>
   )

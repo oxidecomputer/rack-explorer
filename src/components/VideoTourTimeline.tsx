@@ -177,6 +177,9 @@ export function VideoTourTimeline({ onSeek }: { onSeek: (time: number) => void }
         {/* Track background with step segments */}
         <div
           ref={trackRef}
+          // The track is an intentional custom slider with hover preview, step
+          // segments, and keyboard handling — not replaceable with input type=range.
+          // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
           role="slider"
           aria-label="Seek video tour"
           aria-valuemin={0}

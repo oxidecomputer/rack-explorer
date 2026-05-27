@@ -50,10 +50,7 @@ export const SelectableGLBModel = memo(function SelectableGLBModel({
   // Swap any perforation material on the loaded scene to the shared module-
   // level material before sceneInfo clones it (clone shares material refs).
   // Idempotent per gltf.scene.
-  useMemo(
-    () => rewritePerforations(gltf.scene, textures, gl),
-    [gltf.scene, textures, gl],
-  )
+  useMemo(() => rewritePerforations(gltf.scene, textures, gl), [gltf.scene, textures, gl])
 
   // Re-clone whenever the source GLTF or low-tier setting changes. The clone
   // owns any new lambert materials we create during downgrade — they get

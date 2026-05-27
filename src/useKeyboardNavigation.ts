@@ -70,10 +70,7 @@ export function useKeyboardNavigation() {
     function handleKeyDown(e: KeyboardEvent) {
       const target = e.target as HTMLElement | null
       if (target?.matches('input, textarea, select, [contenteditable]')) return
-      if (
-        target?.matches('button, a') &&
-        (e.key === 'Enter' || e.key === ' ')
-      ) {
+      if (target?.matches('button, a') && (e.key === 'Enter' || e.key === ' ')) {
         return
       }
 
