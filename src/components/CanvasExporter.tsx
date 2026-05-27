@@ -8,18 +8,13 @@
 
 import { useThree } from '@react-three/fiber'
 import { useValue } from '@tldraw/state-react'
-import { EffectComposer as PPEffectComposer } from 'postprocessing'
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 
 import { canvasExportRequest } from '../atoms'
+import { sharedComposerRef } from './composerRef'
 
 const EXPORT_SCALE = 4
-
-/** PostProcessing.tsx writes its EffectComposer ref here on mount and clears it
- *  on unmount, so the exporter can drive the same composer that's currently
- *  rendering the scene. Null when post-processing is disabled. */
-export const sharedComposerRef: { current: PPEffectComposer | null } = { current: null }
 
 function downloadPNG(pixels: Uint8Array, width: number, height: number, filename: string) {
   // WebGL pixel rows run bottom-up; flip into a top-down ImageData buffer.

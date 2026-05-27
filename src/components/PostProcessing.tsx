@@ -14,7 +14,7 @@ import {
 } from 'postprocessing'
 import { useEffect, useRef, type ReactElement } from 'react'
 
-import { sharedComposerRef } from './CanvasExporter'
+import { sharedComposerRef } from './composerRef'
 
 export type AOQuality = 'full' | 'low' | 'off'
 
