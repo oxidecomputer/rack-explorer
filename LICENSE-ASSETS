@@ -1,0 +1,43 @@
+ASSETS LICENSE AND NOTICE
+
+This repository contains two separately-licensed components:
+
+  Source code (*.ts, *.tsx, *.css, *.html, etc.): Mozilla Public License 2.0
+  3D models and binary assets:                      CC BY-NC-ND 4.0 (see below)
+
+────────────────────────────────────────────────────────────────────────────────
+CREATIVE COMMONS ATTRIBUTION-NONCOMMERCIAL-NODERIVATIVES 4.0 INTERNATIONAL
+────────────────────────────────────────────────────────────────────────────────
+
+The 3D model files, textures, images, audio, and video in this repository are
+Copyright Oxide Computer Company and licensed under the Creative Commons
+Attribution-NonCommercial-NoDerivatives 4.0 International License.
+
+To view a copy of this license, visit:
+https://creativecommons.org/licenses/by-nc-nd/4.0/
+
+Covered asset paths:
+
+  - models/
+  - public/models/
+  - public/common/
+  - public/images/
+  - public/tours/
+
+────────────────────────────────────────────────────────────────────────────────
+TRADEMARK NOTICE
+────────────────────────────────────────────────────────────────────────────────
+
+The Oxide name, the Oxide logo, and the 3D model designs of Oxide hardware
+(rack, sleds, and components) are trademarks or trade dress of Oxide Computer
+Company. The CC BY-NC-ND 4.0 license does not grant any rights in these marks.
+These assets may not be used in any manner that suggests endorsement,
+sponsorship, or affiliation with Oxide Computer Company, or that misrepresents
+the origin or ownership of Oxide hardware designs.
+
+Some models depict components manufactured by third parties (including
+third-party power supplies and fiber patch panel equipment). All third-party
+trademarks, trade names, and trade dress are the property of their respective
+owners. These models are Oxide Computer Company's own artistic representations
+created for accurate technical depiction and are not official product
+visualizations endorsed by or affiliated with those manufacturers.

@@ -1,4 +1,10 @@
 #!/bin/bash
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, you can obtain one at https://mozilla.org/MPL/2.0/.
+#
+# Copyright Oxide Computer Company
+
 # Optimizes GLB models in models/ and exports to public/models/.
 # Non-GLB assets (textures, etc.) are copied as-is.
 # Requires: npx @gltf-transform/cli
