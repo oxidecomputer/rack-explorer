@@ -7,7 +7,7 @@
       "dependencies": {
         "@ctrl/tinycolor": "^4.2.0",
         "@oxide/design-system": "^6.2.1",
-        "@pmndrs/detect-gpu": "^6.0.4",
+        "@pmndrs/detect-gpu": "^6.0.6",
         "@react-three/drei": "^10.7.7",
         "@react-three/fiber": "^9.6.1",
         "@react-three/postprocessing": "^3.0.4",
@@ -187,7 +187,7 @@
 
     "@oxlint/binding-win32-x64-msvc": ["@oxlint/binding-win32-x64-msvc@1.63.0", "", { "os": "win32", "cpu": "x64" }, "sha512-QeN/WELOfsXMeYwxvfgQrl6CbVftYUCZsGXHjXQd5Trccm8+i4gmtxaOui4xbJQaiDlviF8F3yLSBloQUeFsfA=="],
 
-    "@pmndrs/detect-gpu": ["@pmndrs/detect-gpu@6.0.4", "", {}, "sha512-qFUXis4kuE2sycum8svSoeJ7gSHJLeVjy18TmhMpSx/M+q24KA+KZ7WUbyFSr/EvnyYLddLUJjCaVDYRrcS4Iw=="],
+    "@pmndrs/detect-gpu": ["@pmndrs/detect-gpu@6.0.6", "", {}, "sha512-PAYLpkukPequY2AVBLcKwdNVjjBLG4SZGGdGkNwYTQ033574IwTSidwIQihb3DMx7m6bDXDQj8eD/X4Ox6Ms4Q=="],
 
     "@radix-ui/primitive": ["@radix-ui/primitive@1.1.3", "", {}, "sha512-JTF99U/6XIjCBo0wqkU5sK10glYe27MRRsfwoiq5zzOEZLHU3A3KCMa5X/azekYRCJ0HlwI0crAXS/5dEHTzDg=="],
 
