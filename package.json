@@ -14,7 +14,7 @@
   "dependencies": {
     "@ctrl/tinycolor": "^4.2.0",
     "@oxide/design-system": "^6.4.0",
-    "@pmndrs/detect-gpu": "^6.0.4",
+    "@pmndrs/detect-gpu": "^6.0.6",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
     "@react-three/postprocessing": "^3.0.4",
@@ -35,14 +35,14 @@
   },
   "devDependencies": {
     "@tweakpane/core": "^2.0.5",
-    "@types/node": "^25.6.2",
+    "@types/node": "^25.9.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.1",
+    "@vitejs/plugin-react": "^6.0.2",
     "baseline-browser-mapping": "^2.10.27",
     "oxfmt": "^0.52.0",
     "oxlint": "^1.63.0",
     "typescript": "~6.0.3",
-    "vite": "^8.0.11"
+    "vite": "^8.0.14"
   }
 }
