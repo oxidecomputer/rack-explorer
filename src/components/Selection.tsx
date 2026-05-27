@@ -40,7 +40,7 @@ export function ModifiedSelect({ enabled = false, children, ...props }: SelectAp
         api.select((state) => state.filter((selected) => !toRemove.has(selected)))
       }
     }
-  }, [enabled, api])  
+  }, [enabled, api])
   return (
     <group ref={group} {...props}>
       {children}

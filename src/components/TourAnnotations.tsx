@@ -58,10 +58,7 @@ export function TourAnnotations() {
   const step = useValue(activeTourStep)
   const currentSelectedId = useValue(selectedId)
 
-  const offset = useMemo(
-    () => getElementPosition(currentSelectedId),
-    [currentSelectedId],
-  )
+  const offset = useMemo(() => getElementPosition(currentSelectedId), [currentSelectedId])
 
   if (!step?.annotations?.length) return null
 

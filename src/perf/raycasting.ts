@@ -7,20 +7,22 @@
  */
 
 import * as THREE from 'three'
-import {
-  acceleratedRaycast,
-  computeBoundsTree,
-  disposeBoundsTree,
-} from 'three-mesh-bvh'
+import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from 'three-mesh-bvh'
 
 // Patch Three.js prototypes once at module load. Geometries with a `boundsTree`
 // will use BVH-accelerated raycasting (O(log N) vs O(N)). Meshes whose
 // geometries have no `boundsTree` fall back to default behavior — so this is
 // safe to apply globally.
-;(THREE.BufferGeometry.prototype as unknown as { computeBoundsTree: typeof computeBoundsTree }).computeBoundsTree =
-  computeBoundsTree
-;(THREE.BufferGeometry.prototype as unknown as { disposeBoundsTree: typeof disposeBoundsTree }).disposeBoundsTree =
-  disposeBoundsTree
+;(
+  THREE.BufferGeometry.prototype as unknown as {
+    computeBoundsTree: typeof computeBoundsTree
+  }
+).computeBoundsTree = computeBoundsTree
+;(
+  THREE.BufferGeometry.prototype as unknown as {
+    disposeBoundsTree: typeof disposeBoundsTree
+  }
+).disposeBoundsTree = disposeBoundsTree
 ;(THREE.Mesh.prototype as unknown as { raycast: typeof acceleratedRaycast }).raycast =
   acceleratedRaycast
 

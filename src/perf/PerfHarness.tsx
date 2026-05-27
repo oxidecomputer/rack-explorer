@@ -206,7 +206,11 @@ export function PerfHarness({
 
   // Run BEFORE the R3F render so we can start CPU+GPU timers.
   useFrame(() => {
-    if (!flags.enabled || runRef.current.phase === 'pending' || runRef.current.phase === 'done') {
+    if (
+      !flags.enabled ||
+      runRef.current.phase === 'pending' ||
+      runRef.current.phase === 'done'
+    ) {
       return
     }
     const now = performance.now()
@@ -233,7 +237,11 @@ export function PerfHarness({
   // Run AFTER the R3F render (and EffectComposer pass, which sits at priority 1
   // in react-three/postprocessing) to capture the full frame cost.
   useFrame(() => {
-    if (!flags.enabled || runRef.current.phase === 'pending' || runRef.current.phase === 'done') {
+    if (
+      !flags.enabled ||
+      runRef.current.phase === 'pending' ||
+      runRef.current.phase === 'done'
+    ) {
       return
     }
     timerRef.current?.end()
@@ -322,4 +330,3 @@ function readGpuInfo(gl: WebGL2RenderingContext | WebGLRenderingContext): {
     renderer: gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) as string,
   }
 }
-

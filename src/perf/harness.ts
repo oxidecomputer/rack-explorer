@@ -192,7 +192,12 @@ export function percentile(sorted: number[], p: number): number {
   return sorted[idx]
 }
 
-export function summarize(values: number[]): { median: number; p95: number; p99: number; mean: number } {
+export function summarize(values: number[]): {
+  median: number
+  p95: number
+  p99: number
+  mean: number
+} {
   if (values.length === 0) return { median: NaN, p95: NaN, p99: NaN, mean: NaN }
   const sorted = [...values].sort((a, b) => a - b)
   const mean = values.reduce((s, v) => s + v, 0) / values.length
@@ -210,7 +215,9 @@ export function summarize(values: number[]): { median: number; p95: number; p99:
 
 export const initMetrics: InitMetrics = {
   navigationStart:
-    typeof performance !== 'undefined' && performance.timeOrigin ? performance.timeOrigin : 0,
+    typeof performance !== 'undefined' && performance.timeOrigin
+      ? performance.timeOrigin
+      : 0,
   gpuTierStartMs: null,
   gpuTierEndMs: null,
   canvasCreatedMs: null,
@@ -241,7 +248,6 @@ export function downloadJson(filename: string, data: unknown) {
 }
 
 export function logReport(report: PerfReport) {
-   
   console.log('[perf] report', report)
   const rows = report.scenarios.map((s) => ({
     scenario: s.name,
@@ -256,6 +262,6 @@ export function logReport(report: PerfReport) {
     tex: s.memory.textures,
     heapMB: s.memory.heapUsedMB?.toFixed(1) ?? 'n/a',
   }))
-   
+
   console.table(rows)
 }

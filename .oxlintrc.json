@@ -19,10 +19,7 @@
         "caughtErrorsIgnorePattern": "^_"
       }
     ],
-    "react/only-export-components": [
-      "error",
-      { "allowConstantExport": true }
-    ]
+    "react/only-export-components": ["error", { "allowConstantExport": true }]
   },
   "ignorePatterns": ["dist", "node_modules", "public"]
 }

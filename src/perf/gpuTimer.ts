@@ -32,7 +32,12 @@ export class GPUTimer {
 
   constructor(rawGl: AnyGL) {
     // Only WebGL2 path — this project uses a WebGL2 context.
-    if (!(typeof WebGL2RenderingContext !== 'undefined' && rawGl instanceof WebGL2RenderingContext)) {
+    if (
+      !(
+        typeof WebGL2RenderingContext !== 'undefined' &&
+        rawGl instanceof WebGL2RenderingContext
+      )
+    ) {
       return
     }
     this.gl = rawGl

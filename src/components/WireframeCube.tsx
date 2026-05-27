@@ -15,11 +15,7 @@ interface WireframeCubeProps {
   color?: string
 }
 
-export function WireframeCube({
-  size,
-  position,
-  color = '#5D5E61',
-}: WireframeCubeProps) {
+export function WireframeCube({ size, position, color = '#5D5E61' }: WireframeCubeProps) {
   const [w, h, d] = size
   const geometry = useMemo(() => {
     const x = w / 2
@@ -38,9 +34,30 @@ export function WireframeCube({
     ]
 
     const edgeIndices = [
-      0, 1, 1, 2, 2, 3, 3, 0, // back face
-      4, 5, 5, 6, 6, 7, 7, 4, // front face
-      0, 4, 1, 5, 2, 6, 3, 7, // connecting edges
+      0,
+      1,
+      1,
+      2,
+      2,
+      3,
+      3,
+      0, // back face
+      4,
+      5,
+      5,
+      6,
+      6,
+      7,
+      7,
+      4, // front face
+      0,
+      4,
+      1,
+      5,
+      2,
+      6,
+      3,
+      7, // connecting edges
     ]
 
     const positions = new Float32Array(edgeIndices.length * 3)
