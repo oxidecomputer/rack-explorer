@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@ctrl/tinycolor": "^4.2.0",
-    "@oxide/design-system": "^6.2.1",
+    "@oxide/design-system": "^6.4.0",
     "@pmndrs/detect-gpu": "^6.0.6",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
