@@ -35,7 +35,7 @@ export function MobileOutlineOverlay() {
           transition={overlayTransition}
         >
           <motion.div
-            className="absolute inset-0 bg-black/40 backdrop-blur-md"
+            className="absolute inset-0 bg-black/60"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

@@ -100,7 +100,7 @@ export function LandingModal() {
       >
         <div className="mb-5 text-center">
           <div className="text-mono-sm text-tertiary mb-1">Oxide 3D Explorer</div>
-          <h1 className="text-sans-2xl text-raise">What would you like to see?</h1>
+          <h2 className="text-sans-2xl text-raise">What would you like to see?</h2>
         </div>
 
         <div className="flex flex-col gap-2">

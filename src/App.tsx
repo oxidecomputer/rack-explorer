@@ -28,6 +28,7 @@ import {
   goToTourStep,
   isVideoTour,
   landingOpen,
+  lowTierRendering,
   mobileOutlineOpen,
   navigationMode,
   restartFreeTutorial,
@@ -123,6 +124,7 @@ function App() {
   const isVideo = useValue(isVideoTour)
   const isStartScreen = useValue(tourStartScreen)
   const isStandardTour = isGuided && !isVideo
+  const isLowTier = useValue(lowTierRendering)
 
   const handleVideoSkipPrev = useCallback(() => {
     if (!currentVideoTour) return
@@ -168,6 +170,7 @@ function App() {
 
   return (
     <MotionConfig reducedMotion="user">
+      <h1 className="sr-only">Oxide Cloud Computer 3D Explorer</h1>
       <motion.div
         className="fixed top-0 left-0 h-dvh w-full"
         initial={{ opacity: 0 }}
@@ -182,7 +185,10 @@ function App() {
         <AnimatePresence>
           {isLandingOpen && (
             <motion.div
-              className="pointer-events-none absolute inset-0 backdrop-blur-xl"
+              className={clsx(
+                'pointer-events-none absolute inset-0',
+                isLowTier ? 'bg-default/70' : 'backdrop-blur-xl',
+              )}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -192,10 +198,16 @@ function App() {
         </AnimatePresence>
 
         <header className="pointer-events-auto relative z-30 flex w-full items-center justify-between px-4 pt-4">
-          <div className="flex w-64 flex-col select-none">
-            <div className="text-raise text-mono-xs opacity-40">Oxide Computer Company</div>
+          <a
+            className="group flex w-64 flex-col select-none"
+            href="https://oxide.computer"
+            target="_blank"
+          >
+            <div className="text-raise text-mono-xs group-hover:text-raise group-hover:link-with-underline opacity-40">
+              Oxide Computer Company
+            </div>
             <div className="text-sans-sm text-default">3D Explorer</div>
-          </div>
+          </a>
           {!isGuided && (
             <div className="text-secondary max-1000:hidden flex flex-1 items-center justify-center gap-2 select-none">
               <button
@@ -447,7 +459,10 @@ function App() {
             </Card>
             <ContactSales
               loading={isLandingOpen}
-              className="hover:bg-hover/80 block w-64 rounded-md border border-neutral-900/10 bg-transparent p-2.5 backdrop-blur-md transition-colors"
+              className={clsx(
+                'hover:bg-hover/80 block w-64 rounded-md border border-neutral-900/10 p-2.5 transition-colors',
+                isLowTier ? 'bg-default/95' : 'bg-default/70 backdrop-blur-md',
+              )}
             />
           </motion.div>
         </div>
