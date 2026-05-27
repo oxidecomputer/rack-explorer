@@ -323,6 +323,7 @@ function App() {
                 <Outline />
               )}
             </Card>
+            <CookiePopup />
             {!isLandingOpen && (
               <button
                 onClick={() => {
@@ -462,7 +463,7 @@ function App() {
               loading={isLandingOpen}
               className={clsx(
                 'hover:bg-hover/80 block w-64 rounded-md border border-neutral-900/10 p-2.5 transition-colors',
-                isLowTier ? 'bg-default/95' : 'bg-default/70 backdrop-blur-md',
+                isLowTier ? 'bg-default/60' : 'bg-default/25 backdrop-blur-md',
               )}
             />
           </motion.div>
@@ -495,8 +496,6 @@ function App() {
           )}
         </AnimatePresence>
       </div>
-
-      <CookiePopup />
     </MotionConfig>
   )
 }

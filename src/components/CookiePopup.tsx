@@ -8,7 +8,7 @@
 
 import { Button } from '@oxide/design-system/ui'
 import { useEffect, useRef, useState } from 'react'
-
+import clsx from 'clsx'
 import { DREAMDATA_COOKIED_SNIPPET, DREAMDATA_COOKIELESS_SNIPPET } from '../util/dreamdata'
 import {
   acceptTracking,
@@ -16,6 +16,8 @@ import {
   hasTrackingChoice,
   rejectTracking,
 } from '../util/tracking'
+import { useValue } from '@tldraw/state-react'
+import { lowTierRendering } from '../atoms'
 
 function appendInlineScript(id: string, contents: string) {
   if (document.getElementById(id)) return
@@ -53,7 +55,7 @@ function initTrackers() {
   appendInlineScript('init-dreamdata', DREAMDATA_COOKIED_SNIPPET)
 }
 
-const tinyButton = 'h-7 px-2.5! py-1!'
+const tinyButton = 'h-6 px-2! text-mono-xs py-1!'
 
 // Only render in production builds. Dev/preview do not load trackers.
 export function CookiePopup() {
@@ -64,6 +66,7 @@ export function CookiePopup() {
 function CookiePopupInner() {
   const [runTrackers, setRunTrackers] = useState(hasAcceptedTracking())
   const trackingInitialized = useRef(false)
+  const isLowTier = useValue(lowTierRendering)
 
   useEffect(() => {
     // Skip for returning visitors who've already accepted: the cookied snippet
@@ -92,9 +95,12 @@ function CookiePopupInner() {
     <div
       role="dialog"
       aria-label="Cookie banner"
-      className="bg-raise shadow-modal fixed right-4 bottom-4 z-100 w-72 rounded-lg"
+      className={clsx(
+        'block w-64 rounded-md border border-neutral-900/10',
+        isLowTier ? 'bg-default/60' : 'bg-default/25 backdrop-blur-md',
+      )}
     >
-      <div className="text-sans-md m-3">
+      <div className="text-sans-sm m-3">
         <p>
           We use cookies to improve your experience and assist our marketing team.{' '}
           <a
@@ -107,8 +113,8 @@ function CookiePopupInner() {
           </a>
         </p>
       </div>
-      <hr className="border-secondary" />
-      <div className="m-3 flex justify-end gap-2.5">
+      <hr className="border-neutral-900/10" />
+      <div className="m-2 flex justify-end gap-2.5">
         <Button
           size="sm"
           variant="ghost"
