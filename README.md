@@ -30,3 +30,11 @@ bun run lint     # oxlint
 - `src/data/guidedTours.ts` — tour definitions
 - `src/data/specifications.ts` — hardware specs shown in the side panel
 - `models/`, `public/models/` — GLB assets (LOD0 / LOD1)
+
+## Licensing
+
+Source code is licensed under the [Mozilla Public License 2.0](LICENSE).
+
+The 3D models, textures, images, and other binary assets are licensed under [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/). They may not be used for commercial purposes or in derivative works. See [LICENSE-ASSETS](LICENSE-ASSETS) for full terms and covered paths.
+
+**Trademark notice:** The Oxide name, logo, and hardware designs are trademarks or trade dress of Oxide Computer Company. Nothing in these licenses grants the right to use them in any way that suggests endorsement or affiliation with Oxide Computer Company. Some models depict third-party components; all third-party trademarks remain the property of their respective owners and their inclusion does not imply endorsement by those manufacturers.
