@@ -4,7 +4,9 @@
   "semi": false,
   "singleQuote": true,
   "trailingComma": "all",
-  "plugins": ["@ianvs/prettier-plugin-sort-imports", "prettier-plugin-tailwindcss"],
+  "sortTailwindcss": {},
   "importOrder": ["<THIRD_PARTY_MODULES>", "", "^~/(.*)$", "", "^[./]"],
-  "importOrderTypeScriptVersion": "5.2.2"
+  "importOrderTypeScriptVersion": "5.2.2",
+  "sortPackageJson": false,
+  "ignorePatterns": ["public/", "dist/", "bun.lock"]
 }
