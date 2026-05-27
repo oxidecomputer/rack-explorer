@@ -6,7 +6,7 @@
       "name": "rack-explorer",
       "dependencies": {
         "@ctrl/tinycolor": "^4.2.0",
-        "@oxide/design-system": "^6.2.1",
+        "@oxide/design-system": "^6.4.0",
         "@pmndrs/detect-gpu": "^6.0.4",
         "@react-three/drei": "^10.7.7",
         "@react-three/fiber": "^9.6.1",
@@ -145,7 +145,7 @@
 
     "@oxfmt/binding-win32-x64-msvc": ["@oxfmt/binding-win32-x64-msvc@0.52.0", "", { "os": "win32", "cpu": "x64" }, "sha512-q5xL7oeXkZdEtNZWBdvehJcmt+GRu9l2bK40yJs1jJXlqq+r0Hygb1rTjq+FM2o/2xyt4cufH6KRplHp3Jjsvw=="],
 
-    "@oxide/design-system": ["@oxide/design-system@6.2.1", "", { "dependencies": { "@floating-ui/react": "^0.27.16", "@headlessui/react": "^2.2.8", "@radix-ui/react-accordion": "^1.2.12", "@radix-ui/react-tabs": "^1.1.13", "classnames": "^2.5.1", "prettier-plugin-tailwindcss": "^0.6.14", "shiki": "^3.13.0" }, "peerDependencies": { "@asciidoctor/core": "^3.0.0", "@oxide/react-asciidoc": "^1.3.0", "react": ">=18.0.0", "react-dom": ">=18.0.0" } }, "sha512-1QBu1CVLx20AI9QHOo/m7yFslghpYfHhHxa7r/74NV6Ff/RawkUQjl7X+NgFxLyf3jJehWgWBhcycxM+Bw1q3A=="],
+    "@oxide/design-system": ["@oxide/design-system@6.4.0", "", { "dependencies": { "@floating-ui/react": "^0.27.16", "@headlessui/react": "^2.2.8", "@radix-ui/react-accordion": "^1.2.12", "@radix-ui/react-tabs": "^1.1.13", "classnames": "^2.5.1", "prettier-plugin-tailwindcss": "^0.6.14", "shiki": "^3.13.0" }, "peerDependencies": { "@asciidoctor/core": "^3.0.0", "@oxide/react-asciidoc": "^1.3.0", "react": ">=18.0.0", "react-dom": ">=18.0.0" } }, "sha512-YDJOpZFzJVq4K1X6kM3N9S3u0wokcfyAdrJQXqQxZIayraHhrE0L8eXsXSNOUeFyQqCA7mlI2O7SgslhNuItEw=="],
 
     "@oxide/react-asciidoc": ["@oxide/react-asciidoc@1.3.0", "", { "dependencies": { "html-react-parser": "^5.2.6" }, "peerDependencies": { "@asciidoctor/core": "^3.0.0", "react": ">=18.0.0", "react-dom": ">=18.0.0" } }, "sha512-0QNKE03z3nh82AjmJD7Gx7uxpEa0Io4bb/3Zlqh7b87c6iyQ99nV1bdiIel/Ja7FfSdC/qqIfmcedxutvKuD7Q=="],
 
