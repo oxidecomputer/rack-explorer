@@ -1,0 +1,129 @@
+import { Button } from '@oxide/design-system/ui'
+import { useEffect, useRef, useState } from 'react'
+
+import { DREAMDATA_COOKIED_SNIPPET, DREAMDATA_COOKIELESS_SNIPPET } from '../util/dreamdata'
+import {
+  acceptTracking,
+  hasAcceptedTracking,
+  hasTrackingChoice,
+  rejectTracking,
+} from '../util/tracking'
+
+function appendInlineScript(id: string, contents: string) {
+  if (document.getElementById(id)) return
+
+  const script = document.createElement('script')
+  script.id = id
+  script.innerHTML = contents
+  document.body.appendChild(script)
+}
+
+function initCookielessTrackers() {
+  appendInlineScript('init-dreamdata-cl', DREAMDATA_COOKIELESS_SNIPPET)
+}
+
+function initTrackers() {
+  const script1 = document.createElement('script')
+  script1.innerHTML = `_linkedin_partner_id = "6206948"; window._linkedin_data_partner_ids = window._linkedin_data_partner_ids || []; window._linkedin_data_partner_ids.push(_linkedin_partner_id);`
+
+  const script2 = document.createElement('script')
+  script2.innerHTML = `(function(l) { if (!l){window.lintrk = function(a,b){window.lintrk.q.push([a,b])}; window.lintrk.q=[]} var s = document.getElementsByTagName("script")[0]; var b = document.createElement("script"); b.type = "text/javascript";b.async = true; b.src = "https://snap.licdn.com/li.lms-analytics/insight.min.js"; s.parentNode.insertBefore(b, s);})(window.lintrk);`
+
+  // Strictly speaking, the noscript fallback is dead code here — this whole
+  // function only runs from a user gesture in a React app, so JS is on. Kept
+  // for parity with the LinkedIn-supplied snippet.
+  const noScript = document.createElement('noscript')
+  noScript.innerHTML = `<img height="1" width="1" style="display:none;" alt="" src="https://px.ads.linkedin.com/collect/?pid=6206948&fmt=gif" />`
+
+  document.body.appendChild(script1)
+  document.body.appendChild(script2)
+  document.body.appendChild(noScript)
+
+  // Dreamdata's cookied snippet only loads here, after consent. Its IIFE
+  // self-executes on insert and falls through to dreamdata.init() because we
+  // don't seed dataLayer.
+  appendInlineScript('init-dreamdata', DREAMDATA_COOKIED_SNIPPET)
+}
+
+const tinyButton = 'h-7 px-2.5! py-1!'
+
+// Only render in production builds. Dev/preview do not load trackers.
+export function CookiePopup() {
+  if (!import.meta.env.PROD) return null
+  return <CookiePopupInner />
+}
+
+function CookiePopupInner() {
+  const [runTrackers, setRunTrackers] = useState(hasAcceptedTracking())
+  const trackingInitialized = useRef(false)
+
+  useEffect(() => {
+    // Skip for returning visitors who've already accepted: the cookied snippet
+    // will load below, and per Dreamdata's docs the two trackers are alternates
+    // routed by consent, not parallel pipelines. Loading both causes the
+    // cookied tracker to start a session that the cookieless snippet's auto
+    // page() then races, producing "cookieless event detected after session
+    // started with anonymous ID" warnings.
+    if (hasAcceptedTracking()) return
+    initCookielessTrackers()
+  }, [])
+
+  useEffect(() => {
+    // make sure we only ever do this once
+    if (runTrackers && !trackingInitialized.current) {
+      trackingInitialized.current = true
+      initTrackers()
+    }
+  }, [runTrackers])
+
+  // show popup only if cookie is not set
+  const [show, setShow] = useState(!hasTrackingChoice())
+  if (!show) return null
+
+  return (
+    <div
+      role="dialog"
+      aria-label="Cookie banner"
+      className="bg-raise shadow-modal fixed right-4 bottom-4 z-100 w-72 rounded-lg"
+    >
+      <div className="text-sans-md m-3">
+        <p>
+          We use cookies to improve your experience and assist our marketing team.{' '}
+          <a
+            href="https://oxide.computer/privacy-policy"
+            target="_blank"
+            rel="noreferrer"
+            className="text-secondary hover:text-raise underline"
+          >
+            Privacy policy
+          </a>
+        </p>
+      </div>
+      <hr className="border-secondary" />
+      <div className="m-3 flex justify-end gap-2.5">
+        <Button
+          size="sm"
+          variant="ghost"
+          className={tinyButton}
+          onClick={() => {
+            rejectTracking()
+            setShow(false)
+          }}
+        >
+          Reject
+        </Button>
+        <Button
+          size="sm"
+          className={tinyButton}
+          onClick={() => {
+            acceptTracking()
+            setShow(false)
+            setRunTrackers(true)
+          }}
+        >
+          Accept
+        </Button>
+      </div>
+    </div>
+  )
+}

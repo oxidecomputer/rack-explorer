@@ -41,6 +41,7 @@ import {
 } from './atoms'
 import { Card } from './components/Card'
 import { ContactSales } from './components/ContactSales'
+import { CookiePopup } from './components/CookiePopup'
 import { FreeTutorial } from './components/FreeTutorial'
 import { GuidedTourOutline } from './components/GuidedTourOutline'
 import { GuidedTourPanel } from './components/GuidedTourPanel'
@@ -494,6 +495,8 @@ function App() {
           )}
         </AnimatePresence>
       </div>
+
+      <CookiePopup />
     </MotionConfig>
   )
 }
