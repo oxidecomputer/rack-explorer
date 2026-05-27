@@ -90,7 +90,7 @@ function findPath(targetId: string | null): { id: string; label: string }[] | nu
   const entry = getNode(base)
   if (!entry) return null
 
-  // Build path from ancestors + self (skip root since breadcrumb always shows "Oxide Rack")
+  // Build path from ancestors + self (skip root since breadcrumb always shows "Oxide Cloud Computer")
   const path = [...entry.ancestors.slice(1), entry.node].map((n) => ({
     id: n.id,
     label: n.label,
@@ -220,11 +220,11 @@ function App() {
                   breadcrumbsEnabled && 'hover:text-default',
                 )}
               >
-                Oxide Rack
+                Oxide Cloud Computer
               </button>
               {breadcrumbPath &&
                 breadcrumbPath.length > 0 &&
-                breadcrumbPath[0].label !== 'Oxide Rack' && (
+                breadcrumbPath[0].label !== 'Oxide Cloud Computer' && (
                   <>
                     {breadcrumbPath.map((item, i) => {
                       const isLast = i === breadcrumbPath.length - 1

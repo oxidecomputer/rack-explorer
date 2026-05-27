@@ -89,7 +89,7 @@ const selectionOffset: [number, number, number] = [0, 0, 0.1]
 
 export const componentTree: ComponentNode = {
   id: 'oxide-rack',
-  label: 'Oxide Rack',
+  label: 'Oxide Cloud Computer',
   waypoint: {
     direction: [5, 3.8, 10],
     target: [0, 1.2, 0],
