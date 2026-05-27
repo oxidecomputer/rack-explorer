@@ -15,6 +15,10 @@ bun run build    # type-check and build for production
 bun run lint     # oxlint
 ```
 
+## Analytics
+
+Analytics are off by default. The canonical deploy at `explorer.oxide.computer` sets `VITE_ANALYTICS_DOMAIN` at build time, which injects a [Plausible](https://plausible.io) script proxied through the `vercel.json` rewrites. Forks build with the variable unset and ship no analytics.
+
 ## Stack
 
 - React 19 + Vite
