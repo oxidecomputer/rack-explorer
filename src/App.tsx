@@ -323,7 +323,6 @@ function App() {
                 <Outline />
               )}
             </Card>
-            <CookiePopup />
             {!isLandingOpen && (
               <button
                 onClick={() => {
@@ -496,6 +495,8 @@ function App() {
           )}
         </AnimatePresence>
       </div>
+
+      <CookiePopup />
     </MotionConfig>
   )
 }
