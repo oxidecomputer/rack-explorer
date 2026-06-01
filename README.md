@@ -22,7 +22,8 @@ bun run lint     # oxlint
 Analytics are off by default. The canonical deploy at `explorer.oxide.computer` sets
 `VITE_ANALYTICS_DOMAIN` at build time, which injects a [Plausible](https://plausible.io)
 script proxied through the `vercel.json` rewrites. Forks build with the variable unset and
-ship no analytics.
+ship no analytics. Setting this var also turns on the cookie popup, so to test the cookie
+popup locally, you can use `VITE_ANALYTICS_DOMAIN=localhost bun run dev`.
 
 ## Stack
 
