@@ -57,9 +57,11 @@ function initTrackers() {
 
 const tinyButton = 'h-6 px-2! text-mono-xs py-1!'
 
-// Only render in production builds. Dev/preview do not load trackers.
+// Only render when analytics is configured via VITE_ANALYTICS_DOMAIN at build
+// time, matching the Plausible injection in vite.config.ts. Unset by default in
+// dev and preview, so trackers don't load locally unless you opt in.
 export function CookiePopup() {
-  if (!import.meta.env.PROD) return null
+  if (!import.meta.env.VITE_ANALYTICS_DOMAIN) return null
   return <CookiePopupInner />
 }
 
