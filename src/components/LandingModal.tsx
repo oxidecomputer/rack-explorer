@@ -6,9 +6,9 @@
  * Copyright Oxide Computer Company
  */
 
-import { Warning12Icon } from "@oxide/design-system/icons/react";
-import { useValue } from "@tldraw/state-react";
-import { motion } from "motion/react";
+import { Warning12Icon } from '@oxide/design-system/icons/react'
+import { useValue } from '@tldraw/state-react'
+import { motion } from 'motion/react'
 
 import {
   detectedTier,
@@ -16,9 +16,9 @@ import {
   maybeStartFreeTutorial,
   softwareRenderingDetected,
   startTour,
-} from "../atoms";
-import { getFirstStandardTour } from "../data/guidedTours";
-import { ExplorerIcon, GuidedTourIcon } from "./Icons";
+} from '../atoms'
+import { getFirstStandardTour } from '../data/guidedTours'
+import { ExplorerIcon, GuidedTourIcon } from './Icons'
 
 function OptionCard({
   icon,
@@ -26,10 +26,10 @@ function OptionCard({
   description,
   onClick,
 }: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  onClick: () => void;
+  icon: React.ReactNode
+  title: string
+  description: string
+  onClick: () => void
 }) {
   return (
     <button
@@ -44,40 +44,40 @@ function OptionCard({
         <p className="text-sans-sm text-tertiary">{description}</p>
       </div>
     </button>
-  );
+  )
 }
 
 function PerformanceNotice() {
-  const isSoftware = useValue(softwareRenderingDetected);
-  const tier = useValue(detectedTier);
+  const isSoftware = useValue(softwareRenderingDetected)
+  const tier = useValue(detectedTier)
 
   const message = isSoftware
     ? "Your browser doesn't appear to be using hardware acceleration. Try enabling it in your settings, or switching to a more recent browser."
     : tier !== null && tier <= 1
-      ? "A lower performance GPU was detected. For the smoothest experience, try with another computer or mobile device."
-      : null;
+      ? 'A lower performance GPU was detected. For the smoothest experience, try with another computer or mobile device.'
+      : null
 
-  if (!message) return null;
+  if (!message) return null
 
   return (
     <div className="bg-notice text-notice mt-4 flex items-start gap-2 rounded-md p-3">
       <Warning12Icon className="text-notice-tertiary mt-px shrink-0" />
       <p className="text-sans-sm pr-6">{message}</p>
     </div>
-  );
+  )
 }
 
 export function LandingModal() {
-  const dismiss = (mode: "free" | "guided") => {
-    if (mode === "guided") {
-      const first = getFirstStandardTour();
-      startTour(first.id);
+  const dismiss = (mode: 'free' | 'guided') => {
+    if (mode === 'guided') {
+      const first = getFirstStandardTour()
+      startTour(first.id)
     } else {
       // Wait for the modal exit animation before showing coachmarks.
-      setTimeout(maybeStartFreeTutorial, 400);
+      setTimeout(maybeStartFreeTutorial, 400)
     }
-    landingOpen.set(false);
-  };
+    landingOpen.set(false)
+  }
 
   return (
     <motion.div
@@ -88,7 +88,7 @@ export function LandingModal() {
       transition={{ duration: 0.3 }}
     >
       <motion.div
-        className="pointer-events-auto bg-default w-full max-w-lg rounded-lg p-6"
+        className="bg-default pointer-events-auto w-full max-w-lg rounded-lg p-6"
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{
@@ -99,12 +99,8 @@ export function LandingModal() {
         transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
         <div className="mb-5 text-center">
-          <div className="text-mono-sm text-tertiary mb-1">
-            Oxide 3D Explorer
-          </div>
-          <h2 className="text-sans-2xl text-raise">
-            What would you like to see?
-          </h2>
+          <div className="text-mono-sm text-tertiary mb-1">Oxide 3D Explorer</div>
+          <h2 className="text-sans-2xl text-raise">What would you like to see?</h2>
         </div>
 
         <div className="flex flex-col gap-2">
@@ -113,19 +109,19 @@ export function LandingModal() {
               icon={<ExplorerIcon />}
               title="Explore the hardware"
               description="Take a closer look at Oxide's cloud computer. Explore every sled, switch, and shelf at your own pace."
-              onClick={() => dismiss("free")}
+              onClick={() => dismiss('free')}
             />
           </div>
           <OptionCard
             icon={<GuidedTourIcon />}
             title="Guided Tour & Help"
             description="Follow a step-by-step walkthrough. Learn how the system works or get instructions for common tasks."
-            onClick={() => dismiss("guided")}
+            onClick={() => dismiss('guided')}
           />
         </div>
 
         <PerformanceNotice />
       </motion.div>
     </motion.div>
-  );
+  )
 }
