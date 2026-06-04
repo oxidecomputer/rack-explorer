@@ -81,14 +81,14 @@ export function LandingModal() {
 
   return (
     <motion.div
-      className="pointer-events-auto absolute inset-0 z-20 flex items-center justify-center p-4"
+      className="absolute inset-0 z-20 flex items-center justify-center p-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, transition: { duration: 0.24 } }}
       transition={{ duration: 0.3 }}
     >
       <motion.div
-        className="bg-default w-full max-w-lg rounded-lg p-6"
+        className="bg-default pointer-events-auto w-full max-w-lg rounded-lg p-6"
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{

@@ -41,6 +41,7 @@ import {
 } from './atoms'
 import { Card } from './components/Card'
 import { ContactSales } from './components/ContactSales'
+import { CookiePopup } from './components/CookiePopup'
 import { FreeTutorial } from './components/FreeTutorial'
 import { GuidedTourOutline } from './components/GuidedTourOutline'
 import { GuidedTourPanel } from './components/GuidedTourPanel'
@@ -322,6 +323,7 @@ function App() {
                 <Outline />
               )}
             </Card>
+            <CookiePopup />
             {!isLandingOpen && (
               <button
                 onClick={() => {
@@ -461,10 +463,14 @@ function App() {
               loading={isLandingOpen}
               className={clsx(
                 'hover:bg-hover/80 block w-64 rounded-md border border-neutral-900/10 p-2.5 transition-colors',
-                isLowTier ? 'bg-default/95' : 'bg-default/70 backdrop-blur-md',
+                isLowTier ? 'bg-default/60' : 'bg-default/25 backdrop-blur-md',
               )}
             />
           </motion.div>
+        </div>
+
+        <div className="1000:hidden pointer-events-auto fixed right-3 bottom-3 z-50">
+          <CookiePopup />
         </div>
 
         {!isLandingOpen && !isVideo && !(isGuided && isStartScreen) && (
