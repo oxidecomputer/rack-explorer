@@ -98,7 +98,7 @@ function CookiePopupInner() {
       role="dialog"
       aria-label="Cookie banner"
       className={clsx(
-        'fixed bottom-4 left-4 z-100 w-64 rounded-md border border-neutral-900/10',
+        'block w-64 rounded-md border border-neutral-900/10',
         isLowTier ? 'bg-default/60' : 'bg-default/25 backdrop-blur-md',
       )}
     >
