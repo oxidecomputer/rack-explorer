@@ -469,6 +469,10 @@ function App() {
           </motion.div>
         </div>
 
+        <div className="1000:hidden pointer-events-auto fixed right-3 bottom-3 z-50">
+          <CookiePopup />
+        </div>
+
         {!isLandingOpen && !isVideo && !(isGuided && isStartScreen) && (
           <motion.button
             initial={false}
