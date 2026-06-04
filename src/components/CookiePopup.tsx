@@ -17,7 +17,7 @@ import {
   rejectTracking,
 } from '../util/tracking'
 import { useValue } from '@tldraw/state-react'
-import { lowTierRendering } from '../atoms'
+import { landingOpen, lowTierRendering } from '../atoms'
 
 function appendInlineScript(id: string, contents: string) {
   if (document.getElementById(id)) return
@@ -69,6 +69,7 @@ function CookiePopupInner() {
   const [runTrackers, setRunTrackers] = useState(hasAcceptedTracking())
   const trackingInitialized = useRef(false)
   const isLowTier = useValue(lowTierRendering)
+  const isLandingOpen = useValue(landingOpen)
 
   useEffect(() => {
     // Skip for returning visitors who've already accepted: the cookied snippet
@@ -89,16 +90,19 @@ function CookiePopupInner() {
     }
   }, [runTrackers])
 
-  // show popup only if cookie is not set
+  // Show popup only if no cookie choice has been made yet, and the landing
+  // modal is dismissed — otherwise the banner peeks out around the modal,
+  // visible but un-clickable. Trackers above already initialized via useEffect,
+  // so the cookieless tracker runs even while we're hiding the banner.
   const [show, setShow] = useState(!hasTrackingChoice())
-  if (!show) return null
+  if (!show || isLandingOpen) return null
 
   return (
     <div
       role="dialog"
       aria-label="Cookie banner"
       className={clsx(
-        'fixed bottom-4 left-4 z-100 w-64 rounded-md border border-neutral-900/10',
+        'block w-64 rounded-md border border-neutral-900/10',
         isLowTier ? 'bg-default/60' : 'bg-default/25 backdrop-blur-md',
       )}
     >
