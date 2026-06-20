@@ -212,7 +212,7 @@ export const guidedTours: GuidedTour[] = [
       {
         title: 'Power Shelf',
         description:
-          'Two power shelves at the base of the rack hold six 3600 W rectifiers each, configurable as 1+1 redundant (~21.6 kW) or 2+0 (~30 kW). Their DC output runs up a single copper busbar to every sled, consolidating what would otherwise be 64 individual AC power supplies and their associated cabling.',
+          'Two power shelves at the center of the rack hold six 3600 W rectifiers each, configurable as 1+1 redundant (~21.6 kW) or 2+0 (~30 kW). Their DC output runs up a single copper busbar to every sled, consolidating what would otherwise be 64 individual AC power supplies and their associated cabling.',
         selectedId: 'power-shelf:1',
       },
       {
