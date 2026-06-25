@@ -34,3 +34,27 @@ export function detectSoftwareRendering(): boolean {
     return false
   }
 }
+
+/** The largest square edge (in device pixels) the GPU will allocate a render
+ *  target at, taken as the min of MAX_RENDERBUFFER_SIZE and MAX_TEXTURE_SIZE.
+ *
+ *  Post-processing (EffectComposer, N8AO normal pass, MSAA) allocates offscreen
+ *  targets at `canvasSize × DPR`. Chrome/ANGLE silently clamps oversized buffers;
+ *  Firefox fails the allocation, yielding an incomplete framebuffer that takes
+ *  the whole context down ("Width or height exceeds maximum renderbuffer size").
+ *  Callers clamp DPR so device dimensions stay within this. Null if unknown. */
+export function probeMaxBufferSize(): number | null {
+  if (typeof document === 'undefined') return null
+  try {
+    const canvas = document.createElement('canvas')
+    const gl = canvas.getContext('webgl2') as WebGL2RenderingContext | null
+    if (!gl) return null
+    const maxRb = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE) as number
+    const maxTex = gl.getParameter(gl.MAX_TEXTURE_SIZE) as number
+    gl.getExtension('WEBGL_lose_context')?.loseContext()
+    const max = Math.min(maxRb, maxTex)
+    return Number.isFinite(max) && max > 0 ? max : null
+  } catch {
+    return null
+  }
+}
