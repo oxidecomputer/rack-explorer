@@ -1004,9 +1004,7 @@ export const Scene = () => {
   // options (powerPreference, antialias, precision) can be tier-aware — these
   // can't be changed after the WebGL context is created. Detection is ~30ms.
   const [detectedConfig, setDetectedConfig] = useState<GPUConfig | null>(null)
-  // Largest render-target edge the GPU allows, queried once. Null = unknown
-  // (treated as no cap). Used to clamp DPR so post-processing buffers can't
-  // exceed Firefox's renderbuffer limit and take down the context.
+  // Largest render-target edge the GPU allows; clamps DPR below. Null = no cap.
   const [maxBufferSize] = useState(() => probeMaxBufferSize())
 
   useEffect(() => {
@@ -1049,8 +1047,7 @@ const SceneCanvas = ({
   // are immutable after WebGL context creation, so we can't track lowTier here.
   const [tierAtMount] = useState(() => (detectedConfig.tier ?? 1) < 2)
 
-  // Longest viewport edge in CSS px (canvas is fixed full-screen). Drives the
-  // DPR cap below; tracked so the cap re-tightens when the window grows.
+  // Longest viewport edge in CSS px; tracked so the DPR cap re-tightens on resize.
   const [viewportEdge, setViewportEdge] = useState(() =>
     typeof window === 'undefined' ? 0 : Math.max(window.innerWidth, window.innerHeight),
   )
@@ -1060,9 +1057,8 @@ const SceneCanvas = ({
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
-  // Highest DPR that keeps every render-target edge within the GPU's limit.
-  // The 0.98 margin leaves headroom for rounding in derived (e.g. half-res)
-  // passes. Infinity when the limit is unknown or the viewport is unmeasured.
+  // Highest DPR that keeps render-target edges within the GPU's limit; 0.98
+  // leaves headroom for rounding in derived (half-res) passes. Infinity = no cap.
   const bufferDprCap =
     maxBufferSize && viewportEdge > 0
       ? Math.max(1, (maxBufferSize * 0.98) / viewportEdge)
@@ -1110,9 +1106,8 @@ const SceneCanvas = ({
   const [perfFactor, setPerfFactor] = useState(1)
 
   // Derived DPR: manual overrides pin to maxDpr/1; 'auto' scales with perfFactor.
-  // Clamped to bufferDprCap so post-processing render targets never exceed the
-  // GPU's MAX_RENDERBUFFER_SIZE (Firefox fails the allocation and loses the
-  // context rather than clamping like Chrome/ANGLE does).
+  // bufferDprCap keeps render targets within the GPU limit — Firefox loses the
+  // context on overflow rather than clamping like Chrome/ANGLE.
   const dpr = Math.min(
     bufferDprCap,
     dprSetting === 'high'
