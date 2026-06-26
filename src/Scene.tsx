@@ -1052,8 +1052,7 @@ const SceneCanvas = ({
     typeof window === 'undefined' ? 0 : Math.max(window.innerWidth, window.innerHeight),
   )
   useEffect(() => {
-    const onResize = () =>
-      setViewportEdge(Math.max(window.innerWidth, window.innerHeight))
+    const onResize = () => setViewportEdge(Math.max(window.innerWidth, window.innerHeight))
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
