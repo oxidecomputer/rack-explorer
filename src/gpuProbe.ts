@@ -34,3 +34,24 @@ export function detectSoftwareRendering(): boolean {
     return false
   }
 }
+
+/** Largest render-target edge (device px) the GPU allows: min of
+ *  MAX_RENDERBUFFER_SIZE and MAX_TEXTURE_SIZE. Null if unknown.
+ *
+ *  Post-processing targets are sized at `canvasSize × DPR`; on overflow Firefox
+ *  loses the context (Chrome/ANGLE silently clamps), so callers clamp DPR to fit. */
+export function probeMaxBufferSize(): number | null {
+  if (typeof document === 'undefined') return null
+  try {
+    const canvas = document.createElement('canvas')
+    const gl = canvas.getContext('webgl2') as WebGL2RenderingContext | null
+    if (!gl) return null
+    const maxRb = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE) as number
+    const maxTex = gl.getParameter(gl.MAX_TEXTURE_SIZE) as number
+    gl.getExtension('WEBGL_lose_context')?.loseContext()
+    const max = Math.min(maxRb, maxTex)
+    return Number.isFinite(max) && max > 0 ? max : null
+  } catch {
+    return null
+  }
+}

@@ -68,7 +68,7 @@ import {
   resolveWaypoint,
   type ModelConfig,
 } from './data/componentTree'
-import { detectSoftwareRendering } from './gpuProbe'
+import { detectSoftwareRendering, probeMaxBufferSize } from './gpuProbe'
 import { eventsWithoutHover } from './perf/eventsWithoutHover'
 import { markInit, parsePerfFlags, type PerfFlags } from './perf/harness'
 
@@ -1004,6 +1004,8 @@ export const Scene = () => {
   // options (powerPreference, antialias, precision) can be tier-aware — these
   // can't be changed after the WebGL context is created. Detection is ~30ms.
   const [detectedConfig, setDetectedConfig] = useState<GPUConfig | null>(null)
+  // Largest render-target edge the GPU allows; clamps DPR below. Null = no cap.
+  const [maxBufferSize] = useState(() => probeMaxBufferSize())
 
   useEffect(() => {
     let cancelled = false
@@ -1025,10 +1027,16 @@ export const Scene = () => {
   }, [])
 
   if (!detectedConfig) return null
-  return <SceneCanvas detectedConfig={detectedConfig} />
+  return <SceneCanvas detectedConfig={detectedConfig} maxBufferSize={maxBufferSize} />
 }
 
-const SceneCanvas = ({ detectedConfig }: { detectedConfig: GPUConfig }) => {
+const SceneCanvas = ({
+  detectedConfig,
+  maxBufferSize,
+}: {
+  detectedConfig: GPUConfig
+  maxBufferSize: number | null
+}) => {
   const lastMissTime = useRef(0)
   const postSetting = useValue(postProcessingSetting)
   const dprSetting = useValue(resolutionSetting)
@@ -1038,6 +1046,22 @@ const SceneCanvas = ({ detectedConfig }: { detectedConfig: GPUConfig }) => {
   // Tier-bound flag captured at mount for the GL context options below — these
   // are immutable after WebGL context creation, so we can't track lowTier here.
   const [tierAtMount] = useState(() => (detectedConfig.tier ?? 1) < 2)
+
+  // Longest viewport edge in CSS px; tracked so the DPR cap re-tightens on resize.
+  const [viewportEdge, setViewportEdge] = useState(() =>
+    typeof window === 'undefined' ? 0 : Math.max(window.innerWidth, window.innerHeight),
+  )
+  useEffect(() => {
+    const onResize = () => setViewportEdge(Math.max(window.innerWidth, window.innerHeight))
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+  // Highest DPR that keeps render-target edges within the GPU's limit; 0.98
+  // leaves headroom for rounding in derived (half-res) passes. Infinity = no cap.
+  const bufferDprCap =
+    maxBufferSize && viewportEdge > 0
+      ? Math.max(1, (maxBufferSize * 0.98) / viewportEdge)
+      : Infinity
 
   // Tier promotion via sustained factor. detect-gpu's database lags new GPUs
   // and some browsers farble the renderer string, so capable GPUs can land on
@@ -1081,12 +1105,16 @@ const SceneCanvas = ({ detectedConfig }: { detectedConfig: GPUConfig }) => {
   const [perfFactor, setPerfFactor] = useState(1)
 
   // Derived DPR: manual overrides pin to maxDpr/1; 'auto' scales with perfFactor.
-  const dpr =
+  // bufferDprCap keeps render targets within the GPU limit — Firefox loses the
+  // context on overflow rather than clamping like Chrome/ANGLE.
+  const dpr = Math.min(
+    bufferDprCap,
     dprSetting === 'high'
       ? maxDpr
       : dprSetting === 'low'
         ? 1
-        : Math.max(1, 1 + (maxDpr - 1) * perfFactor)
+        : Math.max(1, 1 + (maxDpr - 1) * perfFactor),
+  )
 
   // Promotion timer: factor sustained above PROMOTION_FACTOR_THRESHOLD for the
   // full duration → bump tier. The first-crossed timestamp lives in a ref so
