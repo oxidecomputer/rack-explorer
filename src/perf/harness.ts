@@ -16,6 +16,8 @@
 //   ?dpr=<n>               — override DPR (e.g. 0.25, 0.5, 1, 2)
 //   ?canvas=<px|full>      — square canvas size (e.g. 256, 512, 1024) or full
 //   ?post=<mode>           — none | outline | outline+ao
+//   ?msaa=<n>              — force EffectComposer MSAA samples (0, 2, 4, 8),
+//                            bypassing the probe — for sample-count ablation
 //   ?instancing=<mode>     — instanced (default) | cloned (for ablation)
 //   ?perforations=<mode>   — on (default) | off — strips alpha-tested perforation
 //                            geometry to measure its overdraw cost
@@ -48,6 +50,7 @@ export interface PerfFlags {
   dprOverride: number | [number, number] | null
   canvasSize: number | 'full'
   postOverride: PostMode | null
+  msaaOverride: number | null
   instancing: InstancingMode
   perforations: PerforationsMode
   download: boolean
@@ -88,6 +91,13 @@ export function parsePerfFlags(search: string = window.location.search): PerfFla
     postOverride = post
   }
 
+  let msaaOverride: number | null = null
+  const msaa = params.get('msaa')
+  if (msaa !== null) {
+    const n = Number(msaa)
+    if (Number.isFinite(n) && n >= 0) msaaOverride = Math.floor(n)
+  }
+
   const instancingRaw = params.get('instancing')
   const instancing: InstancingMode = instancingRaw === 'cloned' ? 'cloned' : 'instanced'
 
@@ -104,6 +114,7 @@ export function parsePerfFlags(search: string = window.location.search): PerfFla
     dprOverride,
     canvasSize,
     postOverride,
+    msaaOverride,
     instancing,
     perforations,
     download,
@@ -148,6 +159,7 @@ export interface ScenarioResult {
     dpr: number | [number, number] | null
     canvas: number | 'full'
     post: PostMode | null
+    msaa: number | null
     instancing: InstancingMode
     perforations: PerforationsMode
   }

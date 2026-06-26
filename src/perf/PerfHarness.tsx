@@ -160,6 +160,7 @@ export function PerfHarness({
         dpr: flags.dprOverride,
         canvas: flags.canvasSize,
         post: flags.postOverride,
+        msaa: flags.msaaOverride,
         instancing: flags.instancing,
         perforations: flags.perforations,
       },

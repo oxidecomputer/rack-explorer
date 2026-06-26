@@ -68,7 +68,7 @@ import {
   resolveWaypoint,
   type ModelConfig,
 } from './data/componentTree'
-import { detectSoftwareRendering, probeMaxBufferSize } from './gpuProbe'
+import { detectSoftwareRendering, probeMaxBufferSize, probeMaxSamples } from './gpuProbe'
 import { eventsWithoutHover } from './perf/eventsWithoutHover'
 import { markInit, parsePerfFlags, type PerfFlags } from './perf/harness'
 
@@ -623,6 +623,7 @@ function SceneContent({
   gpuTier,
   perfFactor,
   lowTier,
+  multisampling,
 }: {
   aoQuality: AOQuality
   postMode: PerfFlags['postOverride']
@@ -630,6 +631,7 @@ function SceneContent({
   gpuTier: number | undefined
   perfFactor: number
   lowTier: boolean
+  multisampling: number
 }) {
   const cameraControlsRef = useRef<CameraControls>(null)
   const currentSelectedId = useValue(selectedId)
@@ -734,6 +736,7 @@ function SceneContent({
                   : aoQuality
             }
             enableOutline={postMode !== 'ao'}
+            multisampling={multisampling}
           />
         )}
         {postMode === 'none' && perfFlags.enabled && <ManualRenderer />}
@@ -1098,6 +1101,18 @@ const SceneCanvas = ({
   const dprConfig = perfFlags.dprOverride ?? effectiveConfig.dpr
   const maxDpr = Array.isArray(dprConfig) ? dprConfig[1] : dprConfig
 
+  // Highest MSAA level EffectComposer can allocate here. bufferDprCap bounds the
+  // edge but not total allocation, so probe the worst case (viewport × max DPR,
+  // squared to over-estimate); bucketed to 256px to avoid re-probing per pixel.
+  const effectiveMaxDpr = Math.min(maxDpr, bufferDprCap)
+  const probeEdge = Math.ceil((viewportEdge * effectiveMaxDpr) / 256) * 256
+  const probedMultisampling = useMemo(
+    () => probeMaxSamples(probeEdge, probeEdge),
+    [probeEdge],
+  )
+  // `?msaa=<n>` forces a count for ablation, bypassing the probe.
+  const safeMultisampling = perfFlags.msaaOverride ?? probedMultisampling
+
   // Adaptive AO quality: 'full' → 'off' as perf factor drops. Hysteresis
   // prevents flicker. Only takes effect when postSetting === 'auto' AND the
   // tier supports AO; otherwise the manual or tier-disabled value wins.
@@ -1272,6 +1287,7 @@ const SceneCanvas = ({
           gpuTier={effectiveConfig.tier}
           perfFactor={perfFactor}
           lowTier={lowTier}
+          multisampling={safeMultisampling}
         />
         <PerformanceMonitor
           ms={500}
