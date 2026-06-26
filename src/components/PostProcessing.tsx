@@ -28,9 +28,13 @@ const setSharedComposer = (composer: PPEffectComposer | null) => {
 export const PostProcessing = ({
   aoQuality,
   enableOutline = true,
+  multisampling = 0,
 }: {
   aoQuality: AOQuality
   enableOutline?: boolean
+  // Composer MSAA samples; 0 disables it. Probed by the caller (probeMaxSamples)
+  // so it never exceeds what the GPU can allocate at this resolution.
+  multisampling?: number
 }) => {
   const outlineRef = useRef<OutlineEffect>(null)
   const patched = useRef(false)
@@ -82,7 +86,12 @@ export const PostProcessing = ({
   }
 
   return (
-    <EffectComposer ref={setSharedComposer} enableNormalPass={aoEnabled} autoClear={false}>
+    <EffectComposer
+      ref={setSharedComposer}
+      enableNormalPass={aoEnabled}
+      autoClear={false}
+      multisampling={multisampling}
+    >
       {effects}
     </EffectComposer>
   )
