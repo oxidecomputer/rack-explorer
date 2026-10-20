@@ -17,7 +17,7 @@ import {
   rejectTracking,
 } from '../util/tracking'
 import { useValue } from '@tldraw/state-react'
-import { lowTierRendering } from '../atoms'
+import { kioskMode, lowTierRendering } from '../atoms'
 
 function appendInlineScript(id: string, contents: string) {
   if (document.getElementById(id)) return
@@ -60,8 +60,11 @@ const tinyButton = 'h-6 px-2! text-mono-xs py-1!'
 // Only render when analytics is configured via VITE_ANALYTICS_DOMAIN at build
 // time, matching the Plausible injection in vite.config.ts. Unset by default in
 // dev and preview, so trackers don't load locally unless you opt in.
+// Kiosk mode skips the banner and trackers entirely: a shared device shouldn't
+// let one visitor's choice stand for everyone after them.
 export function CookiePopup() {
-  if (!import.meta.env.VITE_ANALYTICS_DOMAIN) return null
+  const isKiosk = useValue(kioskMode)
+  if (!import.meta.env.VITE_ANALYTICS_DOMAIN || isKiosk) return null
   return <CookiePopupInner />
 }
 

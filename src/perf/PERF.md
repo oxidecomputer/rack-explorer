@@ -35,7 +35,7 @@ DevTools poking. `download=1` also saves `perf-<timestamp>.json`.
 | `dpr=<n>`             | Override devicePixelRatio (e.g. `1`, `2`, `4`). Bypasses GPU-tier config.                                                    |
 | `canvas=<px>`         | Pin canvas to a fixed square size.                                                                                           |
 | `post=<mode>`         | `none`, `outline`, `ao`, `outline+ao`. Isolates post-processing passes.                                                      |
-| `msaa=<n>`            | Force EffectComposer MSAA samples (`0`, `2`, `4`, `8`), bypassing the probe. For sample-count ablation.                       |
+| `msaa=<n>`            | Force EffectComposer MSAA samples (`0`, `2`, `4`, `8`), bypassing the probe. For sample-count ablation.                      |
 | `instancing=<mode>`   | `instanced` (default) or `cloned` — unrolls instances into individual meshes.                                                |
 | `perforations=<mode>` | `on` (default) or `off` — strips alpha-tested perforation GLBs (sled / switch / power-shelf) to isolate their fillrate cost. |
 
@@ -361,16 +361,14 @@ revisit, cross-fade via tweened `N8AO.intensity` rather than a hard toggle.
 
 ## MSAA sample-count cap: 8× → 4× (probed, never hardcoded)
 
-EffectComposer defaulted to 8× MSAA. On large displays the 8× multisampled
-renderbuffer (`w×h×samples×bytesPerPixel`) overflowed ANGLE/Metal's per-resource
-allocation limit → zero-size incomplete framebuffer → black scene. Fix:
-`probeMaxSamples()` (src/gpuProbe.ts) empirically picks the highest count that
-allocates (4→2→0), and we capped the ceiling at 4×. `?msaa=<n>` forces a count
-for ablation.
+EffectComposer defaulted to 8× MSAA. On large displays the 8× multisampled renderbuffer
+(`w×h×samples×bytesPerPixel`) overflowed ANGLE/Metal's per-resource allocation limit →
+zero-size incomplete framebuffer → black scene. Fix: `probeMaxSamples()` (src/gpuProbe.ts)
+empirically picks the highest count that allocates (4→2→0), and we capped the ceiling at 4×.
+`?msaa=<n>` forces a count for ablation.
 
-Ran `?perf=all&msaa={8,4,2}` on M4 Max / Chrome 149, default tier-3 config (DPR
-`[1,2]`, post=auto). Frame time is v-sync-locked at 16.6ms — median gpuMs is the
-signal:
+Ran `?perf=all&msaa={8,4,2}` on M4 Max / Chrome 149, default tier-3 config (DPR `[1,2]`,
+post=auto). Frame time is v-sync-locked at 16.6ms — median gpuMs is the signal:
 
 | Scenario        | gpu p50 @8× | @4×   | @2×   | 8→4   | 4→2  |
 | --------------- | ----------- | ----- | ----- | ----- | ---- |
@@ -382,16 +380,16 @@ signal:
 
 p99 mirrors it; rapid-selection p99 is the extreme: 20.2 → 20.4 → **13.4**.
 
-- **8→4 is free** (within ±2% noise everywhere) and visually indistinguishable on
-  edges. The 8× default was pure waste — hence the cap.
-- **4→2 is a real ~15–18% GPU win** (~2ms p50) but a genuine quality regression:
-  2× under-resolves the near-axis-aligned edges this app is full of. Not taken —
-  GPU budget is comfortable (~10ms p50 vs 16.6ms at the shipping max DPR of 2), so
-  there's no frame-rate to buy at this resolution. Weaker-GPU / huge-display cases
-  are already covered by adaptive DPR and the probe's own 4→2→0 fallback.
+- **8→4 is free** (within ±2% noise everywhere) and visually indistinguishable on edges. The
+  8× default was pure waste — hence the cap.
+- **4→2 is a real ~15–18% GPU win** (~2ms p50) but a genuine quality regression: 2×
+  under-resolves the near-axis-aligned edges this app is full of. Not taken — GPU budget is
+  comfortable (~10ms p50 vs 16.6ms at the shipping max DPR of 2), so there's no frame-rate
+  to buy at this resolution. Weaker-GPU / huge-display cases are already covered by adaptive
+  DPR and the probe's own 4→2→0 fallback.
 
-Caveat: default-DPR runs (not the `dpr=4` danger zone), and M4 Max is best-case —
-the relative MSAA cost grows with pixel count, but production caps DPR at 2.
+Caveat: default-DPR runs (not the `dpr=4` danger zone), and M4 Max is best-case — the
+relative MSAA cost grows with pixel count, but production caps DPR at 2.
 
 ---
 

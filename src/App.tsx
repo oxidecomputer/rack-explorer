@@ -16,7 +16,7 @@ import {
 import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
 import { AnimatePresence, motion, MotionConfig } from 'motion/react'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 
 import {
   activeTour,
@@ -27,18 +27,23 @@ import {
   goToNextTour,
   goToTourStep,
   isVideoTour,
+  kioskMode,
   landingOpen,
   lowTierRendering,
+  maybeStartFreeTutorial,
   mobileOutlineOpen,
   navigationMode,
   restartFreeTutorial,
   sceneReady,
   seekVideo,
   selectedId,
+  setKioskMode,
   specificationsOpen,
+  startIdleTour,
   startTour,
   tourStartScreen,
 } from './atoms'
+import { IdleTourOverlay } from './components/IdleTourOverlay'
 import { Card } from './components/Card'
 import { ContactSales } from './components/ContactSales'
 import { CookiePopup } from './components/CookiePopup'
@@ -64,6 +69,7 @@ import { getNode, inheritInstanceIndex } from './data/componentTree'
 import { getFirstStandardTour, getTour } from './data/guidedTours'
 import { Scene } from './Scene'
 import { useKeyboardNavigation } from './useKeyboardNavigation'
+import { useKiosk } from './useKiosk'
 
 // Deep link: `?tour=<id>` jumps straight into the named tour, skipping the
 // landing modal. Runs at module load — before the first React render — so the
@@ -83,6 +89,24 @@ import { useKeyboardNavigation } from './useKeyboardNavigation'
     window.history.replaceState({}, '', url.pathname + url.search + url.hash)
   }
 }
+
+// `?kiosk=1` / `?kiosk=0` turns kiosk mode on or off (persisted), then the
+// param is stripped. A kiosk boots straight into the idle tour rather than the
+// landing modal, unless a `?tour=` deep link already chose where to start.
+{
+  const url = new URL(window.location.href)
+  const kiosk = url.searchParams.get('kiosk')
+  if (kiosk !== null) {
+    setKioskMode(kiosk !== '0')
+    url.searchParams.delete('kiosk')
+    window.history.replaceState({}, '', url.pathname + url.search + url.hash)
+  }
+  if (kioskMode.get() && landingOpen.get()) startIdleTour()
+}
+
+/** Kiosk mode's exit hatch: the header (and Options with it) is hidden from
+ *  visitors, so holding the top-left corner for this long turns kiosk mode off. */
+const KIOSK_EXIT_HOLD_MS = 3_000
 
 function findPath(targetId: string | null): { id: string; label: string }[] | null {
   if (!targetId) return null
@@ -126,6 +150,13 @@ function App() {
   const isStartScreen = useValue(tourStartScreen)
   const isStandardTour = isGuided && !isVideo
   const isLowTier = useValue(lowTierRendering)
+  const isKiosk = useValue(kioskMode)
+  const exitHoldTimer = useRef<number | null>(null)
+
+  const cancelExitHold = () => {
+    if (exitHoldTimer.current !== null) window.clearTimeout(exitHoldTimer.current)
+    exitHoldTimer.current = null
+  }
 
   const handleVideoSkipPrev = useCallback(() => {
     if (!currentVideoTour) return
@@ -148,6 +179,7 @@ function App() {
   }
 
   useKeyboardNavigation()
+  useKiosk()
 
   // Mobile only has guided tours. On mount and on any resize that drops
   // below the breakpoint, push users out of free explore into the first tour.
@@ -198,11 +230,36 @@ function App() {
           )}
         </AnimatePresence>
 
-        <header className="pointer-events-auto relative z-30 flex w-full items-center justify-between px-4 pt-4">
+        {/* Hidden kiosk exit hatch */}
+        {isKiosk && (
+          <div
+            className="pointer-events-auto absolute top-0 left-0 z-60 h-16 w-16"
+            onPointerDown={() => {
+              cancelExitHold()
+              exitHoldTimer.current = window.setTimeout(
+                () => setKioskMode(false),
+                KIOSK_EXIT_HOLD_MS,
+              )
+            }}
+            onPointerUp={cancelExitHold}
+            onPointerLeave={cancelExitHold}
+            onPointerCancel={cancelExitHold}
+          />
+        )}
+
+        {/* Kiosk mode drops the header on wide layouts, but the narrow layout
+            (e.g. an iPad in portrait) keeps it for its "Open outline" button. */}
+        <header
+          className={clsx(
+            'pointer-events-auto relative z-30 flex w-full items-center justify-between px-4 pt-4',
+            isKiosk && '1000:hidden',
+          )}
+        >
+          {/* No outbound link in kiosk mode */}
           <a
             className="group flex w-64 flex-col select-none"
-            href="https://oxide.computer"
-            target="_blank"
+            href={isKiosk ? undefined : 'https://oxide.computer'}
+            target={isKiosk ? undefined : '_blank'}
           >
             <div className="text-raise text-mono-xs group-hover:text-raise group-hover:link-with-underline opacity-40">
               Oxide Computer Company
@@ -329,6 +386,7 @@ function App() {
                 onClick={() => {
                   if (isGuided) {
                     exitGuidedMode()
+                    if (isKiosk) maybeStartFreeTutorial()
                   } else {
                     const first = getFirstStandardTour()
                     startTour(first.id)
@@ -480,7 +538,9 @@ function App() {
             transition={{ type: 'spring', duration: 0.5, bounce: 0 }}
             onClick={toggleSpecifications}
             className={clsx(
-              'hover:bg-hover target-8 max-1000:hidden pointer-events-auto absolute top-17 right-4 z-10 rounded border p-0.5 transition-colors',
+              'hover:bg-hover target-8 max-1000:hidden pointer-events-auto absolute right-4 z-10 rounded border p-0.5 transition-colors',
+              // Level with the specs card's title, which moves up with no header.
+              isKiosk ? 'top-5' : 'top-17',
               specsOpen ? 'border-transparent' : 'border-default',
             )}
           >
@@ -499,6 +559,8 @@ function App() {
             </div>
           )}
         </AnimatePresence>
+
+        <IdleTourOverlay />
       </div>
     </MotionConfig>
   )

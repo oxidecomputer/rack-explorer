@@ -18,3 +18,14 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 )
+
+// Offline cache, only when launched as a saved home-screen app (where the kiosk
+// runs). In a regular browser tab we leave caching to HTTP.
+const isStandalone =
+  window.matchMedia('(display-mode: standalone)').matches ||
+  (navigator as Navigator & { standalone?: boolean }).standalone === true
+if (import.meta.env.PROD && isStandalone && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {
+    // Not fatal — the app just works online-only.
+  })
+}

@@ -6,7 +6,7 @@
  * Copyright Oxide Computer Company
  */
 
-import { getGPUTier, type TierResult } from '@pmndrs/detect-gpu'
+import { getGPUTier, type ModelEntry, type TierResult } from '@pmndrs/detect-gpu'
 import {
   CameraControls,
   Environment,
@@ -30,6 +30,7 @@ import {
   hdriRotationX,
   hdriRotationY,
   hdriRotationZ,
+  idleTourActive,
   isVideoTour,
   lowTierRendering,
   maxZoomMultiplier,
@@ -169,15 +170,21 @@ function RackWireframe() {
 
 function ShowcaseRotation({
   cameraControlsRef,
+  spinDirectionRef,
 }: {
   cameraControlsRef: React.RefObject<CameraControls | null>
+  spinDirectionRef: React.RefObject<1 | -1>
 }) {
   const isShowcase = useValue(showcaseMode)
+  const isIdleTour = useValue(idleTourActive)
   const speed = useValue(showcaseRotationSpeed)
 
   useFrame((_state, delta) => {
-    if (!isShowcase || !cameraControlsRef.current) return
-    cameraControlsRef.current.rotate(delta * speed, 0, false)
+    if (!(isShowcase || isIdleTour) || !cameraControlsRef.current) return
+    // The idle tour keeps flying between steps; rotating with a transition
+    // lets the orbit ride on top of those fits instead of snapping their angle.
+    const direction = isIdleTour ? spinDirectionRef.current : 1
+    cameraControlsRef.current.rotate(delta * speed * direction, 0, isIdleTour)
   })
 
   return null
@@ -270,6 +277,12 @@ const _corner = new THREE.Vector3()
 const _newPos = new THREE.Vector3()
 const _curCamPos = new THREE.Vector3()
 const _curCamTgt = new THREE.Vector3()
+const _endSpherical = new THREE.Spherical()
+const _curSpherical = new THREE.Spherical()
+
+/** How much slower camera fits run during the kiosk idle tour. The orbit adds
+ *  its own swing on top of each move, so full-speed fits read as jarring. */
+const IDLE_TOUR_TRANSITION_SLOWDOWN = 2
 
 // Zoom-in cap: minimum camera-to-target distance in world units.
 const MIN_DOLLY_DISTANCE_TOP = 5
@@ -368,8 +381,10 @@ function computeFitPosition(
 
 function CameraFitter({
   controlsRef,
+  spinDirectionRef,
 }: {
   controlsRef: React.RefObject<CameraControls | null>
+  spinDirectionRef: React.RefObject<1 | -1>
 }) {
   const sel = useValue(selectedId)
   const navMode = useValue(navigationMode)
@@ -379,6 +394,7 @@ function CameraFitter({
   const stepWaypoint = navMode === 'guided' ? (tourStep?.waypoint ?? null) : null
   const fitFractionMult = useValue(fitFractionMultiplier)
   const maxZoomMult = useValue(maxZoomMultiplier)
+  const isIdleTour = useValue(idleTourActive)
   const reducedMotion = useReducedMotion()
   const isFirstFitRef = useRef(true)
   const lastFitKeyRef = useRef('')
@@ -505,10 +521,23 @@ function CameraFitter({
         _curCamTgt.z - waypoint.target[2],
       )
       const travel = Math.max(posTravel, tgtTravel)
-      controlsRef.current.smoothTime = Math.max(0.2, Math.min(0.4, 0.2 + travel * 0.02))
+      const smoothTime = Math.max(0.2, Math.min(0.4, 0.2 + travel * 0.02))
+      controlsRef.current.smoothTime = isIdleTour
+        ? smoothTime * IDLE_TOUR_TRANSITION_SLOWDOWN
+        : smoothTime
       controlsRef.current.normalizeRotations()
     }
     controlsRef.current.setLookAt(...position, ...waypoint.target, animate)
+    if (animate) {
+      // Each fit returns to the waypoint's own angle, undoing whatever the
+      // idle-tour orbit accumulated. Orbit onward in the direction the fit
+      // just swung, so the camera never visibly reverses on itself. With
+      // similar waypoint angles this alternates the spin step to step.
+      const swing =
+        controlsRef.current.getSpherical(_endSpherical, true).theta -
+        controlsRef.current.getSpherical(_curSpherical, false).theta
+      if (Math.abs(swing) > 1e-3) spinDirectionRef.current = swing > 0 ? 1 : -1
+    }
     // camera-controls only writes camera.position inside its own update(),
     // which runs at priority -1 — *before* this useFrame at priority 0. So
     // for a non-animated snap, the new _spherical we just set won't reach
@@ -634,6 +663,8 @@ function SceneContent({
   multisampling: number
 }) {
   const cameraControlsRef = useRef<CameraControls>(null)
+  /** Idle-tour orbit direction, set by CameraFitter after each fit. */
+  const spinDirectionRef = useRef<1 | -1>(1)
   const currentSelectedId = useValue(selectedId)
   const tourStep = useValue(activeTourStep)
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null)
@@ -947,8 +978,11 @@ function SceneContent({
           three: ACTION.NONE,
         }}
       />
-      <ShowcaseRotation cameraControlsRef={cameraControlsRef} />
-      <CameraFitter controlsRef={cameraControlsRef} />
+      <ShowcaseRotation
+        cameraControlsRef={cameraControlsRef}
+        spinDirectionRef={spinDirectionRef}
+      />
+      <CameraFitter controlsRef={cameraControlsRef} spinDirectionRef={spinDirectionRef} />
       <CameraOffset />
       <DebugStats aoQuality={aoQuality} gpuTier={gpuTier} perfFactor={perfFactor} />
       <CanvasExporter />
@@ -1002,6 +1036,22 @@ const HIGH_TIER_RENDERER_RE =
 const isUnrecognizedHighTierGPU = (tier: TierResult | null) =>
   tier?.type === 'FALLBACK' && !!tier.gpu && HIGH_TIER_RENDERER_RE.test(tier.gpu)
 
+// detect-gpu fetches its benchmark data from unpkg by default. Bundle it
+// instead, so tier detection (which gates Canvas mount) doesn't depend on a
+// third-party CDN and works from the offline cache. Each file stays a lazy chunk.
+const GPU_BENCHMARKS_DIR = '/node_modules/@pmndrs/detect-gpu/dist/benchmarks'
+const gpuBenchmarks = import.meta.glob<[string, ...ModelEntry[]]>(
+  '/node_modules/@pmndrs/detect-gpu/dist/benchmarks/*.json',
+  { import: 'default' },
+)
+async function loadGPUBenchmarks(file: string): Promise<ModelEntry[]> {
+  const load = gpuBenchmarks[`${GPU_BENCHMARKS_DIR}/${file}`]
+  if (!load) throw new Error(`Unknown GPU benchmark file: ${file}`)
+  // First entry is the data format version, which the default loader also strips.
+  const [, ...entries] = await load()
+  return entries
+}
+
 export const Scene = () => {
   // Null until getGPUTier() resolves. Canvas mount is deferred so GL context
   // options (powerPreference, antialias, precision) can be tier-aware — these
@@ -1014,7 +1064,7 @@ export const Scene = () => {
     let cancelled = false
     if (detectSoftwareRendering()) softwareRenderingDetected.set(true)
     markInit('gpuTierStartMs', performance.now())
-    getGPUTier().then((tier) => {
+    getGPUTier({ override: { loadBenchmarks: loadGPUBenchmarks } }).then((tier) => {
       markInit('gpuTierEndMs', performance.now())
       if (cancelled) return
       const shouldPromote =
@@ -1223,6 +1273,7 @@ const SceneCanvas = ({
   const isStartScreen = useValue(tourStartScreen)
   const videoClickActive = isVideo && !isStartScreen
   const isShowcase = useValue(showcaseMode)
+  const isIdleTour = useValue(idleTourActive)
 
   // Perf mode forces continuous rendering and pins canvas size for deterministic runs.
   const canvasStyle =
@@ -1256,7 +1307,7 @@ const SceneCanvas = ({
         }}
         dpr={dpr}
         linear
-        frameloop={isShowcase || perfFlags.enabled ? 'always' : 'demand'}
+        frameloop={isShowcase || isIdleTour || perfFlags.enabled ? 'always' : 'demand'}
         onPointerMissed={() => {
           if (videoClickActive) {
             togglePlayWithFlash()

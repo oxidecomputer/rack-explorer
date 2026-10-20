@@ -35,6 +35,18 @@ body {
   @apply bg-secondary text-default overflow-hidden;
 }
 
+/* Kiosk mode (set by useKiosk): no long-press text selection or callouts, no
+   tap flash, no rubber-banding and no pinch-zooming the page itself. Pinch on
+   the canvas is unaffected — camera-controls sets its own touch-action. */
+html[data-kiosk] {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+  touch-action: pan-x pan-y;
+}
+
 button,
 a {
   @apply focus-visible:ring-accent-secondary focus-visible:ring-2 focus-visible:outline-0;

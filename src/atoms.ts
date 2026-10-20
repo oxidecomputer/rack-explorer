@@ -9,7 +9,12 @@
 import { computed, atom as createAtom, type Atom, type AtomOptions } from '@tldraw/state'
 
 import { findClosestModelAncestorId } from './data/componentTree'
-import { getVideoTourStepAtTime, guidedTours, type VideoTour } from './data/guidedTours'
+import {
+  getFirstStandardTour,
+  getVideoTourStepAtTime,
+  guidedTours,
+  type VideoTour,
+} from './data/guidedTours'
 
 // Preserve atom identity across HMR re-evaluation. This module is non-
 // refreshable (no React components), so an edit to it — or to any non-
@@ -63,6 +68,60 @@ export const mobileOutlineOpen = atom('mobileOutlineOpen', false)
 // Options
 export const showcaseMode = atom('showcaseMode', false)
 export const debugMode = atom('debugMode', false)
+
+// Kiosk mode: for unattended devices (e.g. an iPad at a conference booth).
+// Hides outbound links and tracking, and plays an idle tour when nobody is using it.
+// Persisted so a home-screen app relaunches into it. `?kiosk=1|0` sets it.
+const KIOSK_KEY = 'rack-explorer:kiosk'
+
+function readKiosk(): boolean {
+  try {
+    return localStorage.getItem(KIOSK_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+export const kioskMode = atom('kioskMode', readKiosk())
+
+export function setKioskMode(enabled: boolean) {
+  kioskMode.set(enabled)
+  try {
+    if (enabled) {
+      localStorage.setItem(KIOSK_KEY, '1')
+      // Plausible skips events when this is set.
+      localStorage.setItem('plausible_ignore', 'true')
+    } else {
+      localStorage.removeItem(KIOSK_KEY)
+      localStorage.removeItem('plausible_ignore')
+    }
+  } catch {
+    // localStorage unavailable — kiosk mode lasts for this session only.
+  }
+  if (enabled) startIdleTour()
+  else idleTourActive.set(false)
+}
+
+/** Kiosk idle tour: the overview tour plays itself (camera orbiting, steps
+ *  auto-advancing) until someone touches the screen. */
+export const idleTourActive = atom('idleTourActive', false)
+
+/** Reset everything a previous visitor may have left behind and start the
+ *  idle tour on the first step of the overview tour, past its start screen. */
+export function startIdleTour() {
+  landingOpen.set(false)
+  freeTutorialStepIndex.set(null)
+  mobileOutlineOpen.set(false)
+  specificationsOpen.set(true)
+  startTour(getFirstStandardTour().id)
+  tourStartScreen.set(false)
+  idleTourActive.set(true)
+}
+
+/** A visitor touched the screen — hand them the tour from the current step. */
+export function stopIdleTour() {
+  idleTourActive.set(false)
+}
 
 /** Debug-only: render the click-hitbox volumes for waypoint-only nodes
  *  (e.g. disks, power-connector) as visible wireframes. */
@@ -285,9 +344,10 @@ export const freeTutorialStepIndex = atom<number | null>('freeTutorialStepIndex'
 
 export const FREE_TUTORIAL_STEP_COUNT = 3
 
-/** Start the tutorial if it hasn't been seen before. */
+/** Start the tutorial if it hasn't been seen before. In kiosk mode every
+ *  visitor is new, so it always starts. */
 export function maybeStartFreeTutorial() {
-  if (readTutorialSeen()) return
+  if (!kioskMode.get() && readTutorialSeen()) return
   freeTutorialStepIndex.set(0)
 }
 
@@ -313,6 +373,7 @@ export function advanceFreeTutorial() {
 
 export function dismissFreeTutorial() {
   freeTutorialStepIndex.set(null)
+  if (kioskMode.get()) return
   try {
     localStorage.setItem(FREE_TUTORIAL_SEEN_KEY, '1')
   } catch {

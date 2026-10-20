@@ -88,12 +88,7 @@ export function probeMaxSamples(width: number, height: number): number {
       }
       gl.renderbufferStorageMultisample(gl.RENDERBUFFER, samples, gl.RGBA16F, width, height)
       const allocError = gl.getError()
-      gl.framebufferRenderbuffer(
-        gl.FRAMEBUFFER,
-        gl.COLOR_ATTACHMENT0,
-        gl.RENDERBUFFER,
-        rb,
-      )
+      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rb)
       const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER)
       gl.deleteRenderbuffer(rb)
       if (allocError === gl.NO_ERROR && status === gl.FRAMEBUFFER_COMPLETE) {

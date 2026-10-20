@@ -15,11 +15,13 @@ import { useState } from 'react'
 
 import {
   debugMode,
+  kioskMode,
   landingOpen,
   navigationMode,
   postProcessingSetting,
   qualitySetting,
   resolutionSetting,
+  setKioskMode,
   showcaseMode,
   type QualityLevel,
 } from '../atoms'
@@ -115,8 +117,12 @@ export function OptionsDropdown() {
   const currentNavigationMode = useValue(navigationMode)
   const isGuided = currentNavigationMode === 'guided'
   const isLandingOpen = useValue(landingOpen)
+  const isKiosk = useValue(kioskMode)
   // While landing modal is open, the dropdown is force-hidden.
   const open = openState && !isLandingOpen
+
+  // Kept away from kiosk visitors; holding the top-left corner exits kiosk mode.
+  if (isKiosk) return null
 
   return (
     <div className="max-1000:hidden relative z-40 w-full">
@@ -149,6 +155,14 @@ export function OptionsDropdown() {
               label="Showcase Mode"
               checked={isShowcaseMode}
               onChange={(v) => showcaseMode.set(v)}
+            />
+            <ToggleRow
+              label="Kiosk Mode"
+              checked={isKiosk}
+              onChange={(v) => {
+                setOpen(false)
+                setKioskMode(v)
+              }}
             />
             <ToggleRow
               label="Debug Mode"
