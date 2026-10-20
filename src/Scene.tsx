@@ -280,6 +280,10 @@ const _curCamTgt = new THREE.Vector3()
 const _endSpherical = new THREE.Spherical()
 const _curSpherical = new THREE.Spherical()
 
+/** How much slower camera fits run during the kiosk idle tour. The orbit adds
+ *  its own swing on top of each move, so full-speed fits read as jarring. */
+const IDLE_TOUR_TRANSITION_SLOWDOWN = 2
+
 // Zoom-in cap: minimum camera-to-target distance in world units.
 const MIN_DOLLY_DISTANCE_TOP = 5
 const MIN_DOLLY_DISTANCE_DRILLED = 1.5
@@ -390,6 +394,7 @@ function CameraFitter({
   const stepWaypoint = navMode === 'guided' ? (tourStep?.waypoint ?? null) : null
   const fitFractionMult = useValue(fitFractionMultiplier)
   const maxZoomMult = useValue(maxZoomMultiplier)
+  const isIdleTour = useValue(idleTourActive)
   const reducedMotion = useReducedMotion()
   const isFirstFitRef = useRef(true)
   const lastFitKeyRef = useRef('')
@@ -516,7 +521,10 @@ function CameraFitter({
         _curCamTgt.z - waypoint.target[2],
       )
       const travel = Math.max(posTravel, tgtTravel)
-      controlsRef.current.smoothTime = Math.max(0.2, Math.min(0.4, 0.2 + travel * 0.02))
+      const smoothTime = Math.max(0.2, Math.min(0.4, 0.2 + travel * 0.02))
+      controlsRef.current.smoothTime = isIdleTour
+        ? smoothTime * IDLE_TOUR_TRANSITION_SLOWDOWN
+        : smoothTime
       controlsRef.current.normalizeRotations()
     }
     controlsRef.current.setLookAt(...position, ...waypoint.target, animate)
