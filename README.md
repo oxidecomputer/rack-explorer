@@ -76,8 +76,17 @@ to one origin.
    Accessibility Shortcut. Then, in the app, triple-click the top (or Home) button. Under
    Options, turn off Motion (locks orientation), Hardware Buttons and Keyboards. Rotate to
    landscape, then tap **Start**.
-5. **Quiet the device.** Turn on Do Not Disturb, turn off Siri, Low Power Mode and automatic
-   software updates, turn brightness up, and keep it on a charger.
+5. **Keep the screen on and bright.** Guided Access's own Auto-Lock only applies while it's
+   running, so also cover the rest:
+   - Settings → Display & Brightness → Auto-Lock → **Never**.
+   - Settings → Accessibility → Display & Text Size → **Auto-Brightness off**, then set
+     brightness high by hand. Otherwise dim booth lighting dims the screen.
+   - Settings → Face ID & Passcode → **Attention Aware Features off** (Face ID iPads), or
+     the screen dims whenever nobody is looking at it.
+   - Turn off **Night Shift** (Display & Brightness), and optionally True Tone, so colours
+     stay consistent through the day.
+6. **Quiet the device.** Turn on Do Not Disturb, turn off Siri, Low Power Mode (which also
+   forces a 30-second Auto-Lock) and automatic software updates, and keep it on a charger.
 
 To get out, triple-click and enter the passcode to end Guided Access, then hold the top-left
 corner for 3 seconds to leave kiosk mode.
