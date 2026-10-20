@@ -247,110 +247,116 @@ function App() {
           />
         )}
 
-        {!isKiosk && (
-          <header className="pointer-events-auto relative z-30 flex w-full items-center justify-between px-4 pt-4">
-            <a
-              className="group flex w-64 flex-col select-none"
-              href="https://oxide.computer"
-              target="_blank"
-            >
-              <div className="text-raise text-mono-xs group-hover:text-raise group-hover:link-with-underline opacity-40">
-                Oxide Computer Company
-              </div>
-              <div className="text-sans-sm text-default">3D Explorer</div>
-            </a>
-            {!isGuided && (
-              <div className="text-secondary max-1000:hidden flex flex-1 items-center justify-center gap-2 select-none">
-                <button
-                  disabled={!breadcrumbsEnabled}
-                  onClick={() => {
-                    selectedId.set('oxide-rack')
-                  }}
-                  className={clsx(
-                    'text-mono-xs transition-colors',
-                    breadcrumbsEnabled && 'hover:text-default',
-                  )}
-                >
-                  Cloud Computer
-                </button>
-                {breadcrumbPath &&
-                  breadcrumbPath.length > 0 &&
-                  breadcrumbPath[0].label !== 'Cloud Computer' && (
-                    <>
-                      {breadcrumbPath.map((item, i) => {
-                        const isLast = i === breadcrumbPath.length - 1
-                        return (
-                          <span key={item.id} className="flex items-center gap-2">
-                            <span className="text-raise text-mono-xs opacity-20">/</span>
-                            <div
+        {/* Kiosk mode drops the header on wide layouts, but the narrow layout
+            (e.g. an iPad in portrait) keeps it for its "Open outline" button. */}
+        <header
+          className={clsx(
+            'pointer-events-auto relative z-30 flex w-full items-center justify-between px-4 pt-4',
+            isKiosk && '1000:hidden',
+          )}
+        >
+          {/* No outbound link in kiosk mode */}
+          <a
+            className="group flex w-64 flex-col select-none"
+            href={isKiosk ? undefined : 'https://oxide.computer'}
+            target={isKiosk ? undefined : '_blank'}
+          >
+            <div className="text-raise text-mono-xs group-hover:text-raise group-hover:link-with-underline opacity-40">
+              Oxide Computer Company
+            </div>
+            <div className="text-sans-sm text-default">3D Explorer</div>
+          </a>
+          {!isGuided && (
+            <div className="text-secondary max-1000:hidden flex flex-1 items-center justify-center gap-2 select-none">
+              <button
+                disabled={!breadcrumbsEnabled}
+                onClick={() => {
+                  selectedId.set('oxide-rack')
+                }}
+                className={clsx(
+                  'text-mono-xs transition-colors',
+                  breadcrumbsEnabled && 'hover:text-default',
+                )}
+              >
+                Cloud Computer
+              </button>
+              {breadcrumbPath &&
+                breadcrumbPath.length > 0 &&
+                breadcrumbPath[0].label !== 'Cloud Computer' && (
+                  <>
+                    {breadcrumbPath.map((item, i) => {
+                      const isLast = i === breadcrumbPath.length - 1
+                      return (
+                        <span key={item.id} className="flex items-center gap-2">
+                          <span className="text-raise text-mono-xs opacity-20">/</span>
+                          <div
+                            className={clsx(
+                              'flex items-center gap-2',
+                              isLast
+                                ? 'flex items-center gap-2 rounded-md bg-neutral-800/30 px-1'
+                                : '',
+                            )}
+                          >
+                            <button
+                              disabled={!breadcrumbsEnabled || isLast}
+                              onClick={() => {
+                                selectedId.set(
+                                  inheritInstanceIndex(selectedId.get(), item.id),
+                                )
+                              }}
                               className={clsx(
-                                'flex items-center gap-2',
-                                isLast
-                                  ? 'flex items-center gap-2 rounded-md bg-neutral-800/30 px-1'
-                                  : '',
+                                'text-mono-xs transition-colors',
+                                isLast && 'text-default',
+                                breadcrumbsEnabled && !isLast && 'hover:text-default',
                               )}
                             >
+                              {item.label}
+                            </button>
+                            {isLast && breadcrumbsEnabled && (
                               <button
-                                disabled={!breadcrumbsEnabled || isLast}
                                 onClick={() => {
-                                  selectedId.set(
-                                    inheritInstanceIndex(selectedId.get(), item.id),
-                                  )
+                                  const current = selectedId.get()
+                                  const base = current.split(':')[0]
+                                  const entry = getNode(base)
+                                  const parentId = entry?.parent?.id ?? 'oxide-rack'
+                                  selectedId.set(inheritInstanceIndex(current, parentId))
                                 }}
-                                className={clsx(
-                                  'text-mono-xs transition-colors',
-                                  isLast && 'text-default',
-                                  breadcrumbsEnabled && !isLast && 'hover:text-default',
-                                )}
+                                className="text-tertiary target-4 hover:text-default -ml-1 transition-colors"
+                                aria-label="Go up one level"
                               >
-                                {item.label}
+                                <Close8Icon />
                               </button>
-                              {isLast && breadcrumbsEnabled && (
-                                <button
-                                  onClick={() => {
-                                    const current = selectedId.get()
-                                    const base = current.split(':')[0]
-                                    const entry = getNode(base)
-                                    const parentId = entry?.parent?.id ?? 'oxide-rack'
-                                    selectedId.set(inheritInstanceIndex(current, parentId))
-                                  }}
-                                  className="text-tertiary target-4 hover:text-default -ml-1 transition-colors"
-                                  aria-label="Go up one level"
-                                >
-                                  <Close8Icon />
-                                </button>
-                              )}
-                            </div>
-                          </span>
-                        )
-                      })}
-                    </>
-                  )}
-              </div>
-            )}
-            <div className="flex w-64 items-center justify-end gap-2">
-              <OptionsDropdown />
-              {!isLandingOpen && !isGuided && (
-                <button
-                  onClick={restartFreeTutorial}
-                  className="hover:bg-hover/80 target-8 max-1000:hidden text-tertiary hover:text-default flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-neutral-900/10 bg-transparent transition-colors"
-                  aria-label="Replay tutorial"
-                >
-                  <Question16Icon className="h-4 w-4" />
-                </button>
-              )}
-              {!isLandingOpen && !(isGuided && isStartScreen) && (
-                <button
-                  onClick={() => mobileOutlineOpen.set(true)}
-                  className="1000:hidden hover:bg-hover target-8 border-default rounded border p-1.5"
-                  aria-label="Open outline"
-                >
-                  <SidebarIcon className="text-tertiary h-4 w-4" />
-                </button>
-              )}
+                            )}
+                          </div>
+                        </span>
+                      )
+                    })}
+                  </>
+                )}
             </div>
-          </header>
-        )}
+          )}
+          <div className="flex w-64 items-center justify-end gap-2">
+            <OptionsDropdown />
+            {!isLandingOpen && !isGuided && (
+              <button
+                onClick={restartFreeTutorial}
+                className="hover:bg-hover/80 target-8 max-1000:hidden text-tertiary hover:text-default flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-neutral-900/10 bg-transparent transition-colors"
+                aria-label="Replay tutorial"
+              >
+                <Question16Icon className="h-4 w-4" />
+              </button>
+            )}
+            {!isLandingOpen && !(isGuided && isStartScreen) && (
+              <button
+                onClick={() => mobileOutlineOpen.set(true)}
+                className="1000:hidden hover:bg-hover target-8 border-default rounded border p-1.5"
+                aria-label="Open outline"
+              >
+                <SidebarIcon className="text-tertiary h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </header>
 
         <div className="relative z-10 flex min-h-0 grow p-4">
           <nav className="max-1000:hidden pointer-events-auto flex h-full flex-col gap-2">
