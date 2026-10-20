@@ -25,6 +25,7 @@ import {
   showcaseMode,
   type QualityLevel,
 } from '../atoms'
+import { isStandalone } from '../util/standalone'
 
 function ToggleIndicator({ checked }: { checked: boolean }) {
   return (
@@ -156,14 +157,18 @@ export function OptionsDropdown() {
               checked={isShowcaseMode}
               onChange={(v) => showcaseMode.set(v)}
             />
-            <ToggleRow
-              label="Kiosk Mode"
-              checked={isKiosk}
-              onChange={(v) => {
-                setOpen(false)
-                setKioskMode(v)
-              }}
-            />
+            {/* Kiosk mode is set up from the saved home-screen app, so visitors
+                to the public site never see it (and can't get stuck in it). */}
+            {isStandalone && (
+              <ToggleRow
+                label="Kiosk Mode"
+                checked={isKiosk}
+                onChange={(v) => {
+                  setOpen(false)
+                  setKioskMode(v)
+                }}
+              />
+            )}
             <ToggleRow
               label="Debug Mode"
               checked={isDebugMode}
