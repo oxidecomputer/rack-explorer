@@ -27,9 +27,12 @@ popup locally, you can use `VITE_ANALYTICS_DOMAIN=localhost bun run dev`.
 
 ## Kiosk mode
 
-For running unattended on a shared device, such as an iPad at a conference booth. Turn it on
-with the **Kiosk Mode** toggle in Options, or with `?kiosk=1` (`?kiosk=0` turns it off). The
-setting is saved in local storage, so the app relaunches straight into it.
+For running unattended on a shared device, such as an iPad at a conference booth. In the
+saved home-screen app, turn it on with the **Kiosk Mode** toggle in Options; the app
+remembers it and relaunches straight into it.
+
+In a regular browser tab the toggle is hidden, so visitors to the public site can't stumble
+into it. You can still try it with `?kiosk=1`, but only until the page reloads.
 
 In kiosk mode:
 
@@ -69,8 +72,8 @@ to one origin.
    it runs full screen, with no address bar.
 2. **Let it cache.** Leave it open on good Wi-Fi for a minute or two. To confirm, switch on
    airplane mode, force-quit and relaunch, and play the video tour.
-3. **Turn on kiosk mode** from Options _inside the saved app_. Home-screen apps don't share
-   storage with Safari, and have no address bar for `?kiosk=1`.
+3. **Turn on kiosk mode** from Options _inside the saved app_. The toggle only appears
+   there, and only the saved app remembers the setting.
 4. **Lock the iPad to the app with Guided Access.** In Settings → Accessibility → Guided
    Access, turn it on, set a passcode, set its Display Auto-Lock to Never and turn on the
    Accessibility Shortcut. Then, in the app, triple-click the top (or Home) button. Under
@@ -93,8 +96,8 @@ corner for 3 seconds to leave kiosk mode.
 
 Things to know:
 
-- **Landscape only.** In portrait (under 1000px wide) the app falls back to its mobile
-  layout, and some of its controls live in the header that kiosk mode hides.
+- **Prefer landscape.** In portrait (under 1000px wide) the app falls back to its mobile
+  layout, which only offers guided tours, not free explore.
 - **Guided Access ends on restart.** Relaunch the app and triple-click again; kiosk mode
   itself is remembered. For multi-day unattended setups, Single App Mode via Apple
   Configurator or MDM survives restarts but needs a supervised (wiped) iPad.

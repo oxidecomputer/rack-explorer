@@ -15,6 +15,7 @@ import {
   guidedTours,
   type VideoTour,
 } from './data/guidedTours'
+import { isStandalone } from './util/standalone'
 
 // Preserve atom identity across HMR re-evaluation. This module is non-
 // refreshable (no React components), so an edit to it — or to any non-
@@ -71,10 +72,13 @@ export const debugMode = atom('debugMode', false)
 
 // Kiosk mode: for unattended devices (e.g. an iPad at a conference booth).
 // Hides outbound links and tracking, and plays an idle tour when nobody is using it.
-// Persisted so a home-screen app relaunches into it. `?kiosk=1|0` sets it.
+// `?kiosk=1|0` sets it. Only the saved home-screen app remembers it, so it
+// relaunches into kiosk mode; in a browser tab a reload turns it off, so nobody
+// on the public site can get stuck in it.
 const KIOSK_KEY = 'rack-explorer:kiosk'
 
 function readKiosk(): boolean {
+  if (!isStandalone) return false
   try {
     return localStorage.getItem(KIOSK_KEY) === '1'
   } catch {
@@ -86,6 +90,12 @@ export const kioskMode = atom('kioskMode', readKiosk())
 
 export function setKioskMode(enabled: boolean) {
   kioskMode.set(enabled)
+  if (isStandalone) persistKioskMode(enabled)
+  if (enabled) startIdleTour()
+  else idleTourActive.set(false)
+}
+
+function persistKioskMode(enabled: boolean) {
   try {
     if (enabled) {
       localStorage.setItem(KIOSK_KEY, '1')
@@ -98,8 +108,6 @@ export function setKioskMode(enabled: boolean) {
   } catch {
     // localStorage unavailable — kiosk mode lasts for this session only.
   }
-  if (enabled) startIdleTour()
-  else idleTourActive.set(false)
 }
 
 /** Kiosk idle tour: the overview tour plays itself (camera orbiting, steps
