@@ -7,6 +7,7 @@
  */
 
 import { useValue } from '@tldraw/state-react'
+import clsx from 'clsx'
 import { AnimatePresence, motion, useAnimationControls } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 
@@ -15,25 +16,39 @@ import {
   dismissFreeTutorial,
   FREE_TUTORIAL_STEP_COUNT,
   freeTutorialStepIndex,
+  kioskMode,
   landingOpen,
   navigationMode,
 } from '../atoms'
 
+// Touch screens (e.g. an iPad, which gets this desktop layout in landscape)
+// have no keyboard, scroll wheel or clicks, so they get their own wording.
+const IS_TOUCH = window.matchMedia('(hover: none) and (pointer: coarse)').matches
+
 const STEPS: {
   body: string
   position: string
+  /** Pinned level with the top of the sidebar cards, which sit higher in kiosk
+   *  mode where there's no header. */
+  alignToCards?: true
 }[] = [
   {
-    body: 'The rack tree of components. Click any item to focus on it. Use Arrow Up and Down to step through adjacent items, Enter to drill down or Esc to go back up.',
-    position: 'left-72 top-20',
+    body: IS_TOUCH
+      ? 'The rack tree of components. Tap any item to focus on it.'
+      : 'The rack tree of components. Click any item to focus on it. Use Arrow Up and Down to step through adjacent items, Enter to drill down or Esc to go back up.',
+    position: 'left-72',
+    alignToCards: true,
   },
   {
-    body: 'Drag to orbit, scroll to zoom and click components to select them. Double-click the background to zoom back out.',
+    body: IS_TOUCH
+      ? 'Drag to orbit, pinch to zoom and tap components to select them. Double-tap the background to zoom back out.'
+      : 'Drag to orbit, scroll to zoom and click components to select them. Double-click the background to zoom back out.',
     position: 'bottom-4 left-1/2 -translate-x-1/2',
   },
   {
     body: 'Where available, selecting a component shows contextual specifications.',
-    position: 'right-72 top-20',
+    position: 'right-72',
+    alignToCards: true,
   },
 ]
 
@@ -57,6 +72,7 @@ export function FreeTutorial() {
   const stepIndex = useValue(freeTutorialStepIndex)
   const mode = useValue(navigationMode)
   const isLandingOpen = useValue(landingOpen)
+  const isKiosk = useValue(kioskMode)
   const [isDirty, setIsDirty] = useState(false)
 
   const visible = stepIndex !== null && mode === 'free' && !isLandingOpen
@@ -98,7 +114,11 @@ export function FreeTutorial() {
       {visible && step && (
         <motion.div
           key={stepIndex}
-          className={`pointer-events-auto absolute z-30 ${step.position}`}
+          className={clsx(
+            'pointer-events-auto absolute z-30',
+            step.position,
+            step.alignToCards && (isKiosk ? 'top-8' : 'top-20'),
+          )}
           {...entrance}
           exit={EXIT}
           onPointerOver={() => {

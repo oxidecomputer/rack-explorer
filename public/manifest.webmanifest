@@ -1,0 +1,16 @@
+{
+  "name": "Oxide 3D Explorer",
+  "short_name": "3D Explorer",
+  "description": "Explore the Oxide Cloud Computer in 3D.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#080F11",
+  "theme_color": "#080F11",
+  "icons": [
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
