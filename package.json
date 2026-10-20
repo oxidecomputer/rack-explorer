@@ -20,7 +20,7 @@
     "@react-three/postprocessing": "^3.0.4",
     "@tailwindcss/vite": "^4.2.4",
     "@three.ez/instanced-mesh": "^0.3.15",
-    "@tldraw/state": "^5.0.0",
+    "@tldraw/state": "^5.1.0",
     "@tldraw/state-react": "^5.0.0",
     "@types/three": "^0.184.1",
     "clsx": "^2.1.1",
