@@ -21,6 +21,8 @@
 //   ?instancing=<mode>     — instanced (default) | cloned (for ablation)
 //   ?perforations=<mode>   — on (default) | off — strips alpha-tested perforation
 //                            geometry to measure its overdraw cost
+//   ?canvasaa=<mode>       — off (default) | on — `on` restores the canvas's own
+//                            MSAA + depth buffer alongside the composer's
 //   ?download=1            — auto-download results JSON when the run finishes
 
 export type ScenarioName =
@@ -41,6 +43,7 @@ export const ALL_SCENARIOS: ScenarioName[] = [
 export type PostMode = 'none' | 'outline' | 'ao' | 'outline+ao'
 export type InstancingMode = 'instanced' | 'cloned'
 export type PerforationsMode = 'on' | 'off'
+export type CanvasAAMode = 'off' | 'on'
 
 export interface PerfFlags {
   enabled: boolean
@@ -53,6 +56,7 @@ export interface PerfFlags {
   msaaOverride: number | null
   instancing: InstancingMode
   perforations: PerforationsMode
+  canvasAA: CanvasAAMode
   download: boolean
 }
 
@@ -104,6 +108,8 @@ export function parsePerfFlags(search: string = window.location.search): PerfFla
   const perforationsRaw = params.get('perforations')
   const perforations: PerforationsMode = perforationsRaw === 'off' ? 'off' : 'on'
 
+  const canvasAA: CanvasAAMode = params.get('canvasaa') === 'on' ? 'on' : 'off'
+
   const download = params.get('download') === '1'
 
   return {
@@ -117,6 +123,7 @@ export function parsePerfFlags(search: string = window.location.search): PerfFla
     msaaOverride,
     instancing,
     perforations,
+    canvasAA,
     download,
   }
 }
@@ -162,6 +169,7 @@ export interface ScenarioResult {
     msaa: number | null
     instancing: InstancingMode
     perforations: PerforationsMode
+    canvasAA: CanvasAAMode
   }
   framesMeasured: number
   frameMs: { median: number; p95: number; p99: number; mean: number }

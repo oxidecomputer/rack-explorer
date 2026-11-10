@@ -6,7 +6,7 @@
  * Copyright Oxide Computer Company
  */
 
-import { EffectComposer as PPEffectComposer } from 'postprocessing'
+import type { EffectComposer as PPEffectComposer } from 'postprocessing'
 
 /** PostProcessing.tsx writes its EffectComposer ref here on mount and clears it
  *  on unmount, so the exporter can drive the same composer that's currently

@@ -6,16 +6,33 @@
  * Copyright Oxide Computer Company
  */
 
-import { selectionContext, type Api, type SelectApi } from '@react-three/postprocessing'
+import type { ThreeElements } from '@react-three/fiber'
 import React, {
   createContext,
   useContext,
   useEffect,
-  useMemo,
   useRef,
   useState,
+  type Dispatch,
+  type SetStateAction,
 } from 'react'
 import * as THREE from 'three'
+
+import { NO_SELECTION, SelectedObjectsContext } from './selectedObjects'
+
+// Deliberately independent of @react-three/postprocessing: that package is a
+// single module that also pulls in postprocessing + n8ao, so importing its
+// selection context here would drag ~170kB into the main bundle and defeat the
+// lazy PostProcessing chunk. PostProcessing reads SelectedObjectsContext and
+// hands the list to <Outline selection>.
+
+type Api = {
+  selected: THREE.Object3D[]
+  select: Dispatch<SetStateAction<THREE.Object3D[]>>
+  enabled: boolean
+}
+
+type SelectApi = { enabled?: boolean } & ThreeElements['group']
 
 const selectContext = /* @__PURE__ */ createContext<Api | null>(null)
 
@@ -72,15 +89,12 @@ export function ModifiedSelection({
     api.enabled = enabled
   }, [selected, select, enabled])
 
-  const selectionApi = useMemo(
-    () => ({ selected, select, enabled }),
-    [selected, select, enabled],
-  )
-
   return (
     // eslint-disable-next-line react-hooks/refs -- stable ref intentionally provided as context value
     <selectContext.Provider value={selectApiRef.current}>
-      <selectionContext.Provider value={selectionApi}>{children}</selectionContext.Provider>
+      <SelectedObjectsContext.Provider value={enabled ? selected : NO_SELECTION}>
+        {children}
+      </SelectedObjectsContext.Provider>
     </selectContext.Provider>
   )
 }

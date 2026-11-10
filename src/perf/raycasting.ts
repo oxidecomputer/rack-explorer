@@ -28,11 +28,26 @@ import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from 'three-
 
 const BUILT_KEY = '__rackExplorerBvhBuilt'
 
-/** Build a BVH for every Mesh geometry under `root`, if not already built.
- *  Idempotent — safe to call across components that share the same cached
- *  GLTF scene. The build is one-time and adds a few ms per geometry; after
- *  that, raycasts (clicks) traverse the BVH instead of every triangle. */
+const scheduled = new WeakSet<THREE.Object3D>()
+
+/** Schedule a BVH build for every Mesh geometry under `root`, in idle time.
+ *  Idempotent — safe to call during render from every component that shares
+ *  the same cached GLTF scene. Raycasts only happen on click, and
+ *  acceleratedRaycast falls back to the standard per-triangle path for any
+ *  geometry without a BVH yet, so deferring is safe — it just keeps the
+ *  build (tens of ms for the larger interiors) off the drill-in frame. */
 export function ensureBoundsTree(root: THREE.Object3D): void {
+  if (scheduled.has(root)) return
+  scheduled.add(root)
+  const run = () => buildBoundsTrees(root)
+  if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(run, { timeout: 2000 })
+  } else {
+    setTimeout(run, 200)
+  }
+}
+
+function buildBoundsTrees(root: THREE.Object3D): void {
   root.traverse((child) => {
     if (!(child instanceof THREE.Mesh)) return
     const geom = child.geometry as THREE.BufferGeometry & {
