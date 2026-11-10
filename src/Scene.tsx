@@ -7,18 +7,12 @@
  */
 
 import { getGPUTier, type ModelEntry, type TierResult } from '@pmndrs/detect-gpu'
-import {
-  CameraControls,
-  Environment,
-  Grid,
-  PerformanceMonitor,
-  Stats,
-} from '@react-three/drei'
+import { CameraControls, Environment, Grid, Stats } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useValue } from '@tldraw/state-react'
 import CameraControlsImpl from 'camera-controls'
 import { useReducedMotion } from 'motion/react'
-import { lazy, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 
 import {
@@ -48,7 +42,6 @@ import {
   tourStartScreen,
 } from './atoms'
 import { CanvasExporter } from './components/CanvasExporter'
-import { DebugPanel } from './components/DebugPanel'
 import { Hitbox } from './components/Hitbox'
 import { InstancedGLBModel } from './components/InstancedGLBModel'
 import { MOBILE_SPECS_PANEL_HEIGHT } from './components/MobileSpecsDrawer'
@@ -70,8 +63,11 @@ import {
   type ModelConfig,
 } from './data/componentTree'
 import { detectSoftwareRendering, probeMaxBufferSize, probeMaxSamples } from './gpuProbe'
+import { AdaptivePerformanceMonitor } from './perf/AdaptivePerformanceMonitor'
 import { eventsWithoutHover } from './perf/eventsWithoutHover'
+import type { FrameRateSample } from './perf/frameRateMonitor'
 import { markInit, parsePerfFlags, type PerfFlags } from './perf/harness'
+import { prefetchDrillInModels, preloadRackModels } from './preload'
 
 const perfFlags = parsePerfFlags()
 
@@ -85,8 +81,25 @@ function filterPerforations(models: ModelConfig[]): ModelConfig[] {
   return models.filter((m) => !isPerforationModel(m))
 }
 
-const PostProcessing = lazy(() =>
-  import('./components/PostProcessing').then((m) => ({ default: m.PostProcessing })),
+const includeModel = (model: ModelConfig) =>
+  !(perfFlags.perforations === 'off' && isPerforationModel(model))
+
+// Start network + Draco decode for the rack overview, and the PostProcessing
+// chunk the scene also suspends on, at module load so they overlap GPU tier
+// detection instead of starting when the Canvas mounts. This does slow tier
+// detection itself (it shares bandwidth and main thread), but nothing is
+// visible until the models arrive, and first model frame is what improves —
+// measured 1.88s → 1.69s on a throttled cold load. Starting these only after
+// tier detection requested its benchmark chunk measured worse (1.76s).
+preloadRackModels(includeModel)
+const loadPostProcessing = () =>
+  import('./components/PostProcessing').then((m) => ({ default: m.PostProcessing }))
+void loadPostProcessing()
+const PostProcessing = lazy(loadPostProcessing)
+
+// Debug-only; lazy so tweakpane (~145kB) stays out of the main bundle.
+const DebugPanel = lazy(() =>
+  import('./components/DebugPanel').then((m) => ({ default: m.DebugPanel })),
 )
 
 type AOQuality = 'full' | 'low' | 'off'
@@ -634,6 +647,9 @@ function DebugOverlay() {
 
   return (
     <>
+      <Suspense fallback={null}>
+        <DebugPanel />
+      </Suspense>
       <div
         id="debug-stats"
         className="pointer-events-none absolute bottom-0 left-3 z-50 rounded bg-black/70 px-2 py-1 font-mono text-xs text-white"
@@ -668,6 +684,10 @@ function SceneContent({
   const currentSelectedId = useValue(selectedId)
   const tourStep = useValue(activeTourStep)
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null)
+
+  // SceneContent only commits once its initial models have loaded (the R3F
+  // root suspends until then), so this runs after the first full scene.
+  useEffect(() => prefetchDrillInModels(includeModel), [])
 
   const baseId = currentSelectedId.split(':')[0]
 
@@ -996,6 +1016,12 @@ function SceneContent({
   )
 }
 
+/** Measured full-rate rendering needed before promoting one GPU tier. */
+const PROMOTION_RENDER_MS = 10_000
+/** Measured rendering after a promotion during which a decline demotes. Two
+ *  decision cycles (10 samples × 500ms each) at the new settings. */
+const DEMOTION_WINDOW_MS = 10_000
+
 type GPUConfig = {
   dpr: number | [number, number]
   enableAO: boolean
@@ -1116,14 +1142,18 @@ const SceneCanvas = ({
       ? Math.max(1, (maxBufferSize * 0.98) / viewportEdge)
       : Infinity
 
-  // Tier promotion via sustained factor. detect-gpu's database lags new GPUs
+  // Tier promotion on measured evidence. detect-gpu's database lags new GPUs
   // and some browsers farble the renderer string, so capable GPUs can land on
   // tier 1 even after the renderer-string regex fallback. After
-  // PROMOTION_DURATION_MS at factor ceiling, bump tier by one (capped at 3).
-  // If factor immediately collapses post-promotion, demote once and lock to
-  // prevent oscillation — adaptive DPR/AO can't claw back the Lambert→PBR
-  // material cost on a truly tier-1 GPU. The user can still manually override
-  // via the Quality dropdown either way.
+  // PROMOTION_RENDER_MS of *measured* rendering at full display rate, bump
+  // tier by one (capped at 3). If the monitor then declines within
+  // DEMOTION_WINDOW_MS of measured rendering, demote once and lock to prevent
+  // oscillation — adaptive DPR/AO can't claw back the Lambert→PBR material
+  // cost on a truly tier-1 GPU. The user can still manually override via the
+  // Quality dropdown either way.
+  //
+  // Both windows count rendering time, not wall-clock time: in demand mode an
+  // idle scene produces no frames, and no frames must mean no promotion.
   //
   // antialias and precision are immutable after canvas mount, so a promoted
   // user gets the Lambert→PBR / DPR / AO upgrade but not antialias until reload.
@@ -1138,7 +1168,6 @@ const SceneCanvas = ({
         : getGPUConfig({ tier: promotedTier } as TierResult),
     [detectedConfig, baseTier, promotedTier],
   )
-  const lastPromotionRef = useRef<number | null>(null)
 
   const tierAOEnabled =
     perfFlags.postOverride === 'outline+ao' || perfFlags.postOverride === 'ao'
@@ -1181,71 +1210,50 @@ const SceneCanvas = ({
         : Math.max(1, 1 + (maxDpr - 1) * perfFactor),
   )
 
-  // Promotion timer: factor sustained above PROMOTION_FACTOR_THRESHOLD for the
-  // full duration → bump tier. The first-crossed timestamp lives in a ref so
-  // the timer resumes from where it left off across PerformanceMonitor's
-  // onChange wobbles within the high range (factor 0.97 → 1.0 → 0.98 …).
-  // Resets if factor drops below the threshold.
-  const promotePendingSinceRef = useRef<number | null>(null)
-  useEffect(() => {
+  // Measured rendering time at full rate since the last tier change, and
+  // measured rendering time since the last promotion (null = no promotion
+  // under review). Refs, because samples arrive from inside the frame loop.
+  const healthyRenderMsRef = useRef(0)
+  const sincePromotionMsRef = useRef<number | null>(null)
+
+  const handleSample = (sample: FrameRateSample) => {
+    if (sample.change) {
+      setPerfFactor(sample.factor)
+      // Adaptive AO: only when 'auto' (manual high/low bypasses adaptiveAO).
+      // Hysteresis: drop below 0.6, restore above 0.9.
+      if (postSetting === 'auto') {
+        if (sample.factor < 0.6) setAdaptiveAO('off')
+        else if (sample.factor > 0.9) setAdaptiveAO('full')
+      }
+    }
+
+    if (sincePromotionMsRef.current !== null) {
+      if (sample.change === 'decline') {
+        // The promoted settings were too much for this GPU: undo and lock.
+        sincePromotionMsRef.current = null
+        healthyRenderMsRef.current = 0
+        detectedTier.set(Math.max(baseTier, promotedTier - 1))
+        setTierBump((b) => Math.max(0, b - 1))
+        setPromotionLocked(true)
+        return
+      }
+      sincePromotionMsRef.current += sample.sampleMs
+      if (sincePromotionMsRef.current > DEMOTION_WINDOW_MS)
+        sincePromotionMsRef.current = null
+    }
+
     if (promotionLocked || promotedTier >= 3) return
-    if (perfFactor < 0.95) {
-      promotePendingSinceRef.current = null
-      return
-    }
-    if (promotePendingSinceRef.current === null) {
-      promotePendingSinceRef.current = performance.now()
-    }
-    const remaining = 10_000 - (performance.now() - promotePendingSinceRef.current)
-    const promote = () => {
-      promotePendingSinceRef.current = null
-      detectedTier.set(Math.min(3, baseTier + tierBump + 1))
-      lastPromotionRef.current = performance.now()
+    healthyRenderMsRef.current =
+      sample.healthy && sample.factor >= 0.95
+        ? healthyRenderMsRef.current + sample.sampleMs
+        : 0
+    if (healthyRenderMsRef.current >= PROMOTION_RENDER_MS) {
+      healthyRenderMsRef.current = 0
+      sincePromotionMsRef.current = 0
+      detectedTier.set(promotedTier + 1)
       setTierBump((b) => b + 1)
     }
-    if (remaining <= 0) {
-      promote()
-      return
-    }
-    const timer = window.setTimeout(promote, remaining)
-    return () => window.clearTimeout(timer)
-  }, [perfFactor, promotedTier, promotionLocked, baseTier, tierBump])
-
-  // Demotion verifier: within 5s of a recent promotion, if factor stays below
-  // 0.5 for 2s, the GPU couldn't keep up — undo the bump and lock to prevent
-  // oscillation. PerformanceMonitor reacts to a tier change within ~1.5s, so
-  // a low reading inside this window is a real signal, not measurement lag.
-  // Outside the window, transient stutters from unrelated causes (model
-  // loading, scene transition) are tolerated by adaptive DPR/AO.
-  const demotePendingSinceRef = useRef<number | null>(null)
-  useEffect(() => {
-    if (tierBump === 0) return
-    if (lastPromotionRef.current === null) return
-    if (performance.now() - lastPromotionRef.current > 5_000) {
-      demotePendingSinceRef.current = null
-      return
-    }
-    if (perfFactor > 0.5) {
-      demotePendingSinceRef.current = null
-      return
-    }
-    if (demotePendingSinceRef.current === null) {
-      demotePendingSinceRef.current = performance.now()
-    }
-    const elapsed = performance.now() - demotePendingSinceRef.current
-    const demote = () => {
-      demotePendingSinceRef.current = null
-      lastPromotionRef.current = null
-      setTierBump((b) => Math.max(0, b - 1))
-      setPromotionLocked(true)
-    }
-    if (elapsed >= 2_000) {
-      demote()
-      return
-    }
-    const timer = window.setTimeout(demote, 2_000 - elapsed)
-    return () => window.clearTimeout(timer)
-  }, [perfFactor, tierBump])
+  }
 
   // Effective AO quality routed into PostProcessing.
   const effectiveAO: AOQuality =
@@ -1340,25 +1348,9 @@ const SceneCanvas = ({
           lowTier={lowTier}
           multisampling={safeMultisampling}
         />
-        <PerformanceMonitor
-          ms={500}
-          iterations={10}
-          threshold={0.75}
-          factor={1}
-          bounds={(refreshrate) => (refreshrate > 90 ? [60, 100] : [30, 60])}
-          onChange={({ factor }) => {
-            setPerfFactor(factor)
-            // Adaptive AO: only when 'auto' (manual high/low bypasses adaptiveAO).
-            // Hysteresis: drop below 0.6, restore above 0.9.
-            if (postSetting === 'auto') {
-              if (factor < 0.6) setAdaptiveAO('off')
-              else if (factor > 0.9) setAdaptiveAO('full')
-            }
-          }}
-        />
+        <AdaptivePerformanceMonitor onSample={handleSample} resetKey={promotedTier} />
       </Canvas>
       <DebugOverlay />
-      <DebugPanel />
     </>
   )
 }

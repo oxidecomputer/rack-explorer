@@ -12,9 +12,10 @@ import {
   type EffectComposer as PPEffectComposer,
   type OutlineEffect,
 } from 'postprocessing'
-import { useEffect, useRef, type ReactElement } from 'react'
+import { useContext, useEffect, useRef, type ReactElement } from 'react'
 
 import { sharedComposerRef } from './composerRef'
+import { SelectedObjectsContext } from './selectedObjects'
 
 export type AOQuality = 'full' | 'low' | 'off'
 
@@ -23,6 +24,19 @@ export type AOQuality = 'full' | 'low' | 'off'
 // of PostProcessing.
 const setSharedComposer = (composer: PPEffectComposer | null) => {
   sharedComposerRef.current = composer
+}
+
+// N8AO turns on "transparency aware" mode (and keeps it on) as soon as any
+// transparent material is in the scene — here the floor grid, rack shadow and
+// hitboxes. That mode adds two extra scene renders into full-res half-float
+// targets, two depth copies and four scene traversals every frame. None of our
+// transparent objects need AO-correct compositing, so opt out. Setting
+// `configuration.transparencyAware = false` alone is a no-op (it already
+// starts false and the setter only reacts to changes), hence the direct flag.
+const disableAOTransparencyDetection = (
+  pass: { autoDetectTransparency: boolean } | null,
+) => {
+  if (pass) pass.autoDetectTransparency = false
 }
 
 export const PostProcessing = ({
@@ -38,6 +52,7 @@ export const PostProcessing = ({
 }) => {
   const outlineRef = useRef<OutlineEffect>(null)
   const patched = useRef(false)
+  const selected = useContext(SelectedObjectsContext)
 
   useEffect(() => {
     if (outlineRef.current && !patched.current) {
@@ -61,6 +76,7 @@ export const PostProcessing = ({
     effects.push(
       <N8AO
         key="ao"
+        ref={disableAOTransparencyDetection}
         color="black"
         denoiseSamples={isLow ? 2 : 4}
         denoiseRadius={isLow ? 6 : 12}
@@ -76,6 +92,7 @@ export const PostProcessing = ({
       <Outline
         key="outline"
         ref={outlineRef}
+        selection={selected}
         edgeStrength={2.5}
         blendFunction={BlendFunction.ALPHA}
         visibleEdgeColor={4773271}
@@ -85,13 +102,11 @@ export const PostProcessing = ({
     )
   }
 
+  // No enableNormalPass: N8AO reconstructs normals from the composer's depth
+  // texture and never reads the NormalPass, which would otherwise re-render
+  // the whole scene every frame for nothing.
   return (
-    <EffectComposer
-      ref={setSharedComposer}
-      enableNormalPass={aoEnabled}
-      autoClear={false}
-      multisampling={multisampling}
-    >
+    <EffectComposer ref={setSharedComposer} autoClear={false} multisampling={multisampling}>
       {effects}
     </EffectComposer>
   )

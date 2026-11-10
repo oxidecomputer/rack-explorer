@@ -217,6 +217,10 @@ Lesson: stack ablations carefully. `halfRes` collapsed the budget that temporal 
 amortize. Once `halfRes` shipped, temporal's premise no longer held, but we hadn't
 re-measured.
 
+**Correction (Nov 2026):** the normal pass named above as the dominant AO cost was never
+used by N8AO at all — it has been removed. See _Unused normal pass and N8AO transparency
+mode_ below.
+
 ## Perforation ablation (May 2026)
 
 Question: do the alpha-tested perforation GLBs (sled / switch / power-shelf, `Perforations`
@@ -393,14 +397,161 @@ relative MSAA cost grows with pixel count, but production caps DPR at 2.
 
 ---
 
+# November 2026 pass (M4 Max / Chrome 157)
+
+Method for everything in this section: production builds served with `vite preview`, driven
+by headless Chrome via puppeteer (it reports `ANGLE Metal Renderer: Apple M4 Max`, i.e. the
+real GPU, not SwiftShader), 1440×900 viewport. Render numbers are `?perf=all` with `dpr`
+pinned, averaged over 3 runs (`dpr=2`) or 2 runs (`dpr=4`). Before = `main` at `22057ae`.
+
+## Unused normal pass and N8AO transparency mode
+
+Two post-processing passes were rendering the scene again every frame for no visual benefit:
+
+1. **`enableNormalPass` on `EffectComposer`.** Adds a `NormalPass` that re-renders the whole
+   scene with a normal override material. Only `SSAO` reads it.
+   `@react-three/postprocessing`'s `N8AO` builds `new N8AOPostPass(scene, camera)` and takes
+   depth from the composer's depth texture (`needsDepthTexture`), reconstructing normals
+   itself. Removed.
+2. **N8AO "transparency aware" mode.** `N8AOPostPass.detectTransparency()` walks the scene
+   every frame and, if any material is `transparent`, sets `transparencyAware = true`
+   permanently. The floor `Grid`, `RackShadow` and `Hitbox` all are. That mode costs two
+   extra scene renders into full-res half-float targets, two depth-copy quads, four scene
+   traversals and a `Map` of every object, per frame. Turned off via
+   `pass.autoDetectTransparency = false` (setting `configuration.transparencyAware = false`
+   is a no-op: it already starts false and the setter only reacts to changes).
+
+GPU p50 (ms), before → after:
+
+| Scenario        | dpr=2              | dpr=4                |
+| --------------- | ------------------ | -------------------- |
+| idle-rack       | 4.53 → 2.20 (−51%) | 28.79 → 12.80 (−56%) |
+| showcase-rack   | 4.70 → 2.18 (−54%) | 29.09 → 13.07 (−55%) |
+| drilled-sled    | 4.29 → 1.81 (−58%) | 28.14 → 12.15 (−57%) |
+| rapid-selection | 4.78 → 2.46 (−49%) | 29.56 → 13.71 (−54%) |
+| orbit-stress    | 4.77 → 2.52 (−47%) | 29.01 → 12.64 (−56%) |
+
+- Draw calls (rack level) 235 → 137; triangles 1,279k → 738k — the normal pass was a full
+  second copy of the scene.
+- GPU p95 at `dpr=2`: ~7.9 → ~3.7ms. At `dpr=4`: 31–34 → 13–15ms.
+- CPU p50 at `dpr=4`: ~9.2 → ~7.2ms (fewer scene traversals). `dpr=2` CPU is too noisy to
+  call.
+
+Visual check: canvas-only screenshots at identical harness poses are pixel-identical for
+`idle-rack` (max channel delta 7/255). The only diff in `rapid-selection` is the sled
+slide-out animation captured at a different phase. Outline and the AO contact shadow under
+the rack are unchanged.
+
+## Bundle split
+
+The `PostProcessing` lazy chunk was 0.77kB because `Selection.tsx` imported
+`selectionContext` from `@react-three/postprocessing` — a single-module package that also
+imports `postprocessing` and `n8ao` — and `composerRef.ts` value-imported `postprocessing`.
+Selection now uses its own context (`selectedObjects.ts`) and `PostProcessing` passes the
+list to `<Outline selection>`. `DebugPanel` (tweakpane) is lazy and only mounts in debug
+mode.
+
+|                        | before                 | after                  |
+| ---------------------- | ---------------------- | ---------------------- |
+| main chunk             | 2,009 kB (599 kB gzip) | 1,648 kB (475 kB gzip) |
+| `PostProcessing` chunk | 0.77 kB                | 212 kB                 |
+| `DebugPanel` chunk     | —                      | 150 kB (debug only)    |
+
+## Adaptive quality: evidence-based monitor for `frameloop="demand"`
+
+drei's `<PerformanceMonitor>` assumes continuous rendering. Its sample window stays open
+across idle gaps, so in demand mode a burst of frames followed by idle reads as a very low
+fps. Two consequences:
+
+- **Spurious degradation** when render bursts are shorter than the 500ms sample window. Real
+  bursts are mostly longer than that — a drag renders for ~1.2s because camera-controls
+  keeps easing after release — so in practice this rarely triggered. Simulated with drei's
+  algorithm on synthetic timelines (fast GPU, moves 2.5s apart, 5 min):
+
+  | Burst length | drei factor | new factor |
+  | ------------ | ----------- | ---------- |
+  | 1.2s         | 1.0         | 1.0        |
+  | 0.6s         | 1.0         | 1.0        |
+  | 0.5s         | 0.1         | 1.0        |
+  | 0.4s         | 0.2         | 1.0        |
+
+- **Tier promotion without evidence.** `perfFactor` starts at 1 and only changes on a
+  monitor decision, and an idle page produces no samples. The 10s promotion timer therefore
+  promoted every tier-0/1 device to tier 2 after 10s and tier 3 after 20s, idle or not. The
+  demotion check (factor < 0.5 within 5s of promotion) was unreachable: the monitor moves at
+  most 0.1 per ≥5s of samples. Reproduced in the browser by spoofing the GPU renderer string
+  to `Intel(R) HD Graphics 4000`:
+
+  |                                   | old                      | new                     |
+  | --------------------------------- | ------------------------ | ----------------------- |
+  | after load                        | tier 1, dpr 1, AO off    | tier 1, dpr 1, AO off   |
+  | after 25s idle                    | **tier 3, dpr 2, AO on** | tier 1, dpr 1, AO off   |
+  | after ~20s of continuous dragging | tier 3                   | tier 2, dpr 1.75, AO on |
+
+  (Old: `tierBump` also never reset `detectedTier` on demotion.)
+
+`FrameRateMonitor` (`frameRateMonitor.ts`) keeps drei's decision rule (10 samples × 500ms,
+75% threshold, ±0.1 steps, refresh-rate-derived bounds) but is fed only real frame
+intervals: `AdaptivePerformanceMonitor` records after every loop tick whether R3F already
+has the next frame queued (`frameloop === 'always'` or `internal.frames > 0`), and only then
+counts the gap to the next frame. Short bursts accumulate into one sample; idle time never
+counts. Promotion now needs `PROMOTION_RENDER_MS` (10s) of measured full-rate rendering, and
+a decline within `DEMOTION_WINDOW_MS` (10s) of measured rendering after a promotion demotes
+and locks. The monitor resets its samples on tier change.
+
+## Preloading and deferred BVH builds
+
+- Rack-level GLBs, the Draco decoder and the `PostProcessing` chunk start loading when
+  `Scene.tsx` evaluates, overlapping GPU tier detection instead of waiting for the Canvas to
+  mount and suspend (`preload.ts`). `useLoader.preload` shares the `[GLTFLoader, path]`
+  cache key with the components' `useLoader`, so nothing is fetched or decoded twice.
+- Once the rack scene has committed, drill-in models (sled and switch internals) are
+  prefetched in an idle callback, so the first drill-in no longer suspends the scene on a
+  network fetch + decode.
+- `ensureBoundsTree` now schedules the BVH build in idle time instead of running it during
+  render. Raycasts only happen on click, and `acceleratedRaycast` falls back to the standard
+  path for geometry without a BVH.
+
+Cold load (fresh browser context each run), median of 5:
+
+| Profile                                     | tier detected | first frame with models  |
+| ------------------------------------------- | ------------- | ------------------------ |
+| unthrottled (localhost), before → after     | 225 → 232ms   | 630 → 638ms (no change)  |
+| 10 Mbps / 60ms RTT / 4× CPU, before → after | 806 → 1188ms  | **1845 → 1666ms (−10%)** |
+
+Tier detection itself gets slower (it shares bandwidth and main thread with the preloads),
+but nothing is visible until the models arrive, so first model frame is the metric that
+matters. Variant tried and rejected: starting preloads only after tier detection requested
+its benchmark chunk — tier detection was still slower (1271ms) and the first model frame
+improved less (1755ms).
+
+Drill-in: both `cosmo/lod1/interior.glb` and `sidecar/lod1/interior.glb` are fetched before
+any interaction on every run of the new build, and on none of the old. Drill-in latency
+itself was not timed.
+
+## Not done yet (found in this pass)
+
+- **Kiosk precache carries ~4.8MB of unused files:** every `lod0` model (~3MB,
+  unreferenced), `images/og.png` (1MB; only the `.webp` is referenced) and
+  `draco/draco_decoder.js` (0.7MB; only the fallback for browsers without WebAssembly).
+- `DebugStats` is always mounted: a `getElementById` and `gl.info.reset()` every frame, and
+  `gl.info.autoReset = false` permanently, even with debug off.
+- `App` re-renders on every selection and tour-step change, and `Scene` isn't memoized, so
+  each re-render reaches the R3F root.
+- Meshopt (`EXT_meshopt_compression`) instead of Draco would mean a much smaller decoder and
+  faster decode, at the cost of a pipeline change.
+
+---
+
 # Priority of follow-ups
 
-1. **Confirm outline-blur hypothesis** with `post=outline&dpr=4` and `post=ao&dpr=4`
-   comparisons. If outline dominates drilled-sled's +10ms, consider reducing `edgeStrength`
-   or gating `blur` on high-tier GPUs.
-2. **Consider tier-3 DPR cap at 1.75 too** if halfRes AO isn't enough on Retina. The quality
-   loss is small and fillrate scales with pixel count.
+1. ~~**Confirm outline-blur hypothesis**~~ — no longer reproduces. In the Nov 2026 runs
+   drilled-sled at `dpr=4` costs the same as idle-rack (before: 28.1 vs 28.8ms; after: 12.2
+   vs 12.8ms). Outline `blur` is off by default anyway.
+2. **Tier-3 DPR cap at 1.75** — much less pressing now GPU time has halved (~2.2ms p50 at
+   `dpr=2` on M4 Max).
 3. **Do not** spend time on draw-call count or scene graph traversal — CPU is not the
    bottleneck on any measured configuration.
 4. **Do not** merge instanced geometry back into monolithic meshes — the cloned ablation
    proves instancing saves ~3ms on the low-tier path.
+5. **Clean the kiosk precache** (see _Not done yet_ above).
