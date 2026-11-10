@@ -81,6 +81,13 @@ function filterPerforations(models: ModelConfig[]): ModelConfig[] {
   return models.filter((m) => !isPerforationModel(m))
 }
 
+// With the EffectComposer mounted, the scene renders into the composer's own
+// multisampled target and the canvas only ever receives one fullscreen
+// triangle. A canvas MSAA + depth buffer would be allocated at full resolution
+// and resolved every frame for nothing. `?post=none` renders straight to the
+// canvas, so it keeps both; `?canvasaa=on` restores them for ablation.
+const composerOwnsFrame = perfFlags.postOverride !== 'none' && perfFlags.canvasAA !== 'on'
+
 const includeModel = (model: ModelConfig) =>
   !(perfFlags.perforations === 'off' && isPerforationModel(model))
 
@@ -1155,8 +1162,9 @@ const SceneCanvas = ({
   // Both windows count rendering time, not wall-clock time: in demand mode an
   // idle scene produces no frames, and no frames must mean no promotion.
   //
-  // antialias and precision are immutable after canvas mount, so a promoted
-  // user gets the Lambert→PBR / DPR / AO upgrade but not antialias until reload.
+  // precision is immutable after canvas mount, so a promoted user gets the
+  // Lambert→PBR / DPR / AO upgrade but stays on mediump until reload.
+  // (Antialiasing is the composer's MSAA, which is the same on every tier.)
   const baseTier = detectedConfig.tier ?? 1
   const [tierBump, setTierBump] = useState(0)
   const [promotionLocked, setPromotionLocked] = useState(false)
@@ -1310,7 +1318,8 @@ const SceneCanvas = ({
           toneMapping: 0,
           premultipliedAlpha: false,
           powerPreference: 'high-performance',
-          antialias: !tierAtMount,
+          antialias: !composerOwnsFrame && !tierAtMount,
+          depth: !composerOwnsFrame,
           precision: tierAtMount ? 'mediump' : 'highp',
         }}
         dpr={dpr}

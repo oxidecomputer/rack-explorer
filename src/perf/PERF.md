@@ -38,6 +38,7 @@ DevTools poking. `download=1` also saves `perf-<timestamp>.json`.
 | `msaa=<n>`            | Force EffectComposer MSAA samples (`0`, `2`, `4`, `8`), bypassing the probe. For sample-count ablation.                      |
 | `instancing=<mode>`   | `instanced` (default) or `cloned` — unrolls instances into individual meshes.                                                |
 | `perforations=<mode>` | `on` (default) or `off` — strips alpha-tested perforation GLBs (sled / switch / power-shelf) to isolate their fillrate cost. |
+| `canvasaa=<mode>`     | `off` (default) or `on` — restores the canvas's own MSAA + depth buffer alongside the composer's.                            |
 
 ## How it measures
 
@@ -528,6 +529,47 @@ improved less (1755ms).
 Drill-in: both `cosmo/lod1/interior.glb` and `sidecar/lod1/interior.glb` are fetched before
 any interaction on every run of the new build, and on none of the old. Drill-in latency
 itself was not timed.
+
+## Canvas MSAA and depth buffer off when the composer owns the frame
+
+With post-processing on, the scene renders into `EffectComposer`'s own multisampled target
+and the canvas only receives one fullscreen triangle. The canvas was still created with
+`antialias: true` (tier ≥ 2) and the default depth buffer, so the browser allocated a
+full-resolution multisampled backbuffer plus depth and resolved it every frame for nothing.
+Now `antialias` and `depth` are off unless `?post=none` (which renders straight to the
+canvas). `?canvasaa=on` restores them for ablation.
+
+GPU p50 (ms), before → after (baseline: `307042f`):
+
+| Scenario        | dpr=2              | dpr=4                |
+| --------------- | ------------------ | -------------------- |
+| idle-rack       | 2.17 → 1.81 (−17%) | 12.24 → 9.23 (−25%)  |
+| showcase-rack   | 2.17 → 1.81 (−17%) | 12.40 → 9.23 (−26%)  |
+| drilled-sled    | 1.71 → 1.59 (−7%)  | 11.83 → 8.61 (−27%)  |
+| rapid-selection | 2.54 → 2.14 (−16%) | 13.15 → 10.15 (−23%) |
+| orbit-stress    | 2.40 → 1.93 (−20%) | 12.87 → 9.59 (−25%)  |
+
+p95 follows (`dpr=4`: 12.9–15.4 → 9.8–11.9ms). The same build with `?canvasaa=on` lands
+within 2–6% of baseline, so the gain is this change. Canvas-only screenshots across 34 poses
+(rack, sled, switch, shelf, patch panel, several orbits each) match within the run noise
+floor. Antialiasing is now the composer's MSAA on every tier; tier 0–1 previously had none
+on the canvas either, so they only lose the unused depth buffer.
+
+## Rejected: backface culling and draw-order tiers
+
+Measured with the same harness, behind temporary flags:
+
+- **Backface culling.** Every material in the GLBs is exported double-sided. Switching
+  opaque materials to `FrontSide` saved only 3–5% GPU at `dpr=4` and was within noise at
+  `dpr=2`. Winding is consistent in every GLB (no flipped neighbours), but several meshes
+  are single-walled sheet (a rack column return, a switch heatsink cover, a switch front
+  bracket, some sled/shelf parts) and open visible holes when culled.
+- **Draw-order tiers** (`renderOrder` so rack skin and enclosures draw before internals, for
+  early-z): no measurable change.
+
+Both likely read as small here because Apple GPUs are tile-based with hidden-surface
+removal: hidden fragments are rejected regardless of draw order. Immediate-mode desktop GPUs
+(NVIDIA/AMD/Intel) may gain more from either; not measured.
 
 ## Not done yet (found in this pass)
 

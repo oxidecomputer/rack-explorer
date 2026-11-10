@@ -163,6 +163,7 @@ export function PerfHarness({
         msaa: flags.msaaOverride,
         instancing: flags.instancing,
         perforations: flags.perforations,
+        canvasAA: flags.canvasAA,
       },
       framesMeasured: samples.length,
       frameMs: summarize(frameMsArr),
