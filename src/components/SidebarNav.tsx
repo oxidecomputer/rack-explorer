@@ -65,12 +65,12 @@ export function TourCard() {
       onClick={() => startTour(getFirstStandardTour().id)}
       className="text-sans-sm group bg-accent hover:bg-accent-hover block w-64 rounded-md border border-current/5 p-2.5 text-left transition-colors"
     >
-      <div className="text-accent flex items-center justify-between">
+      <div className="text-accent flex items-center gap-1">
         <span className="flex items-center gap-1.5">
           <Compass16Icon className="text-accent-secondary h-3 w-3" />
           Take the tour
         </span>
-        <NextArrow12Icon className="transition-transform group-hover:translate-x-0.5" />
+        <NextArrow12Icon className="text-accent-secondary transition-transform group-hover:translate-x-0.5" />
       </div>
       <p className="text-accent-secondary mt-1 pr-4">
         Follow a step-by-step walkthrough of the rack
