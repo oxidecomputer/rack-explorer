@@ -99,7 +99,6 @@ export function LandingModal() {
         transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
         <div className="mb-5 text-center">
-          <div className="text-mono-sm text-tertiary mb-1">Oxide 3D Explorer</div>
           <h2 className="text-sans-2xl text-raise">What would you like to see?</h2>
         </div>
 
@@ -114,7 +113,7 @@ export function LandingModal() {
           </div>
           <OptionCard
             icon={<GuidedTourIcon />}
-            title="Guided Tour & Help"
+            title="Guided tour & help"
             description="Follow a step-by-step walkthrough. Learn how the system works or get instructions for common tasks."
             onClick={() => dismiss('guided')}
           />

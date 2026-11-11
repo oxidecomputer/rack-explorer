@@ -7,8 +7,8 @@
  */
 
 import { Button } from '@oxide/design-system/ui'
-import { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
+import { useEffect, useRef, useState } from 'react'
 import { DREAMDATA_COOKIED_SNIPPET, DREAMDATA_COOKIELESS_SNIPPET } from '../util/dreamdata'
 import {
   acceptTracking,
@@ -17,7 +17,8 @@ import {
   rejectTracking,
 } from '../util/tracking'
 import { useValue } from '@tldraw/state-react'
-import { kioskMode, lowTierRendering } from '../atoms'
+import { kioskMode } from '../atoms'
+import { useFrostedPanel } from './canvasBlur'
 
 function appendInlineScript(id: string, contents: string) {
   if (document.getElementById(id)) return
@@ -71,7 +72,7 @@ export function CookiePopup() {
 function CookiePopupInner() {
   const [runTrackers, setRunTrackers] = useState(hasAcceptedTracking())
   const trackingInitialized = useRef(false)
-  const isLowTier = useValue(lowTierRendering)
+  const [frostRef, frosted] = useFrostedPanel<HTMLDivElement>()
 
   useEffect(() => {
     // Skip for returning visitors who've already accepted: the cookied snippet
@@ -100,9 +101,10 @@ function CookiePopupInner() {
     <div
       role="dialog"
       aria-label="Cookie banner"
+      ref={frostRef}
       className={clsx(
         'block w-64 rounded-md border border-neutral-900/10',
-        isLowTier ? 'bg-default/60' : 'bg-default/25 backdrop-blur-md',
+        frosted ? 'bg-default/25' : 'bg-default/60',
       )}
     >
       <div className="text-sans-sm m-3">

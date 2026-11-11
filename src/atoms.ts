@@ -188,6 +188,12 @@ export const softwareRenderingDetected = atom('softwareRenderingDetected', false
 /** True when GLB model components should render with downgraded Lambert
  *  materials. Computed from the high-quality setting + detected tier so manual
  *  overrides win and 'auto' falls back to tier ≥ 2. */
+/** True while PanelBlurEffect is in the composer, frosting the canvas behind
+ *  registered panels (canvasBlur.ts). Panels use a translucent tint when it
+ *  is, and a near-opaque one when it isn't (`?post=none`, or before the
+ *  post-processing chunk has loaded). */
+export const panelBlurActive = atom('panelBlurActive', false)
+
 export const lowTierRendering = computed('lowTierRendering', () => {
   const setting = qualitySetting.get()
   if (setting === 'high') return false

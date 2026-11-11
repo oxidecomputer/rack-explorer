@@ -21,9 +21,12 @@ const QR_PATH =
 export function ContactSales({
   loading,
   className,
+  ref,
 }: {
   loading?: boolean
   className?: string
+  /** Attached to the root element, whichever variant renders. */
+  ref?: (el: HTMLElement | null) => void
 }) {
   const isKiosk = useValue(kioskMode)
 
@@ -31,7 +34,7 @@ export function ContactSales({
   // The hover styles callers pass are inert on touch devices.
   if (isKiosk && !loading) {
     return (
-      <div className={clsx(className, 'flex items-center gap-3')}>
+      <div ref={ref} className={clsx(className, 'flex items-center gap-3')}>
         <div className="min-w-0 grow">
           <div className="text-mono-xs text-tertiary">Contact Sales</div>
           <p className="text-default text-sans-sm mt-1 pr-1">
@@ -52,7 +55,12 @@ export function ContactSales({
   }
 
   return (
-    <a href="https://oxide.computer/contact" target="_blank" className={className}>
+    <a
+      ref={ref}
+      href="https://oxide.computer/contact"
+      target="_blank"
+      className={className}
+    >
       {loading ? (
         <CTASkeleton />
       ) : (

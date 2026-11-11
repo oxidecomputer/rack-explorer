@@ -44,6 +44,7 @@ import {
   tourStartScreen,
 } from './atoms'
 import { IdleTourOverlay } from './components/IdleTourOverlay'
+import { useFrostedPanel } from './components/canvasBlur'
 import { Card } from './components/Card'
 import { ContactSales } from './components/ContactSales'
 import { CookiePopup } from './components/CookiePopup'
@@ -177,6 +178,10 @@ function App() {
   const toggleSpecifications = () => {
     specificationsOpen.set(!specsOpen)
   }
+
+  // Panels over the canvas frosted by PanelBlurEffect (see canvasBlur.ts).
+  const [timelineFrostRef, frosted] = useFrostedPanel<HTMLDivElement>()
+  const [contactFrostRef] = useFrostedPanel<HTMLElement>()
 
   useKeyboardNavigation()
   useKiosk()
@@ -477,7 +482,13 @@ function App() {
                   <VideoCaptions />
                 </div>
                 <div className="1000:pl-4 pointer-events-auto absolute right-0 bottom-0 left-0 z-20">
-                  <div className="bg-default/80 rounded-lg px-4 py-3 backdrop-blur-md">
+                  <div
+                    ref={timelineFrostRef}
+                    className={clsx(
+                      'rounded-lg px-4 py-3',
+                      frosted ? 'bg-default/80' : 'bg-default/95',
+                    )}
+                  >
                     <VideoTourTimeline onSeek={seekVideo} />
                   </div>
                 </div>
@@ -519,9 +530,10 @@ function App() {
             </Card>
             <ContactSales
               loading={isLandingOpen}
+              ref={contactFrostRef}
               className={clsx(
                 'hover:bg-hover/80 block w-64 rounded-md border border-neutral-900/10 p-2.5 transition-colors',
-                isLowTier ? 'bg-default/60' : 'bg-default/25 backdrop-blur-md',
+                frosted ? 'bg-default/25' : 'bg-default/60',
               )}
             />
           </motion.div>

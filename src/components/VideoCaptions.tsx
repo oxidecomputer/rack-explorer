@@ -7,15 +7,18 @@
  */
 
 import { useValue } from '@tldraw/state-react'
+import clsx from 'clsx'
 import { AnimatePresence, motion } from 'motion/react'
 
 import { activeVideoTour, tourStartScreen, videoTourCurrentTime } from '../atoms'
 import { getCaptionAtTime } from '../data/guidedTours'
+import { useFrostedPanel } from './canvasBlur'
 
 export function VideoCaptions() {
   const tour = useValue(activeVideoTour)
   const time = useValue(videoTourCurrentTime)
   const isStartScreen = useValue(tourStartScreen)
+  const [frostRef, frosted] = useFrostedPanel<HTMLDivElement>()
 
   if (!tour?.captions?.length || isStartScreen) return null
   const text = getCaptionAtTime(tour, time)
@@ -31,7 +34,13 @@ export function VideoCaptions() {
           transition={{ type: 'spring', duration: 0.25, bounce: 0 }}
           className="pointer-events-none flex justify-center"
         >
-          <div className="bg-default/85 text-sans-lg text-default rounded-md px-3 py-1.5 text-center backdrop-blur-md">
+          <div
+            ref={frostRef}
+            className={clsx(
+              'text-sans-lg text-default rounded-md px-3 py-1.5 text-center',
+              frosted ? 'bg-default/85' : 'bg-default/95',
+            )}
+          >
             {text}
           </div>
         </motion.div>

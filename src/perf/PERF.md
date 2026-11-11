@@ -571,6 +571,87 @@ Both likely read as small here because Apple GPUs are tile-based with hidden-sur
 removal: hidden fragments are rejected regardless of draw order. Immediate-mode desktop GPUs
 (NVIDIA/AMD/Intel) may gain more from either; not measured.
 
+## Backdrop blur off the panels over the canvas
+
+The sidebar cards, Contact Sales, cookie popup, mobile specs drawer, video timeline and
+captions, tour step pips and tour arrow hover all used `backdrop-filter: blur(…)` over the
+WebGL canvas. A backdrop filter stops the browser handing the canvas straight to the
+display: every frame the scene redraws, the compositor re-renders and re-blurs everything
+behind each panel. **The harness can't see this** — it times WebGL work, and this cost lands
+in the browser's compositor afterwards.
+
+Method: Chrome trace (`viz`, `gpu`, `toplevel` categories) while dragging the camera in an
+orbit for 3s (181 frames), 1440×900 at `deviceScaleFactor` 2, mean of 3 runs. GPU time is
+`SkiaOutputSurfaceImplOnGpu::SwapBuffers`, CPU time is `Display::DrawAndSwap`, both per
+frame. Before = `main` at `884c7e3`; after = `52e741d`.
+
+| Mode                     | Blurred elements | Compositor GPU / frame | Compositor CPU / frame |
+| ------------------------ | ---------------- | ---------------------- | ---------------------- |
+| Free explore (rack)      | 3 → 0            | 3.54 → 0.65ms (−82%)   | 0.29 → 0.08ms          |
+| Guided tour (first step) | 17 → 0           | 3.23 → 0.65ms (−80%)   | 0.30 → 0.07ms          |
+
+- For scale, the whole WebGL frame is ~2.2ms (harness GPU p50 at `dpr=2`). The blur was
+  costing more than the scene.
+- **Blur radius doesn't matter.** In an ablation, 2px and 4px blurs cost the same as 12px
+  (~3.0ms). The cost comes from having any backdrop filter over the canvas, not from the
+  size of the blur kernel. Hiding the whole UI measured 0.6ms, the same as panels without
+  blur.
+- WebGL is unchanged: `?perf=all&dpr=2` GPU p50 matches within run-to-run noise (2 runs
+  each, ±0.3ms either way), with identical draw calls and triangles.
+- It only costs while the canvas is redrawing (orbit, zoom, camera fits, tour step
+  transitions, showcase rotation, the kiosk idle tour). With `frameloop="demand"` a still
+  scene composites nothing.
+
+Panels now use the backgrounds the low-tier path already used (`bg-default/60`–`/95`), so
+the per-tier class branches are gone. The landing modal's full-screen `backdrop-blur-xl`
+stays: the scene is mostly still while the modal is open.
+
+The frosted look came back in WebGL instead; see the next section.
+
+## Frosted panels in WebGL (`PanelBlurEffect`)
+
+The panels are frosted again, by the post-processing chain rather than the browser:
+
+- Panels register with `canvasBlur.ts` (`useFrostedPanel`), which measures each one's rect,
+  corner radius and effective opacity relative to the canvas, clipped by `overflow`
+  ancestors. It re-measures only on DOM mutations (style/class/childList under `body`) and
+  resizes, and asks the canvas to redraw when a rect changes, so `frameloop="demand"` still
+  works.
+- `PanelBlurEffect` runs last in the composer: a 4-tap box downsample to one texel per 2 CSS
+  px (4 on low tier), then a separable Gaussian with σ = 12 CSS px, matching CSS
+  `blur(12px)` at any DPR. A rounded-rect mask swaps the blurred frame in under each panel,
+  composited over the page background colour (the canvas is transparent) and blended with
+  `SRC` so the selection outline can't show through.
+- Panels keep their original translucent tints while the effect runs, and fall back to
+  near-opaque ones when it doesn't (`?post=none`, or before the post-processing chunk
+  loads).
+
+Measured as in the previous section (compositor: orbit trace, 1440×900 at 2× DPR, mean of 3
+runs; WebGL: `?perf=idle-rack`, mean of 3 runs). CSS blur = `884c7e3`, no blur = `52e741d`.
+
+| Compositor per frame, orbiting | CSS blur | No blur | WebGL blur |
+| ------------------------------ | -------- | ------- | ---------- |
+| GPU, free explore              | 3.13ms   | 0.67ms  | 0.63ms     |
+| GPU, guided tour               | 3.03ms   | 0.68ms  | 0.71ms     |
+| CPU, free explore              | 0.27ms   | 0.10ms  | 0.08ms     |
+
+| WebGL GPU p50 (`idle-rack`) | No blur | WebGL blur          |
+| --------------------------- | ------- | ------------------- |
+| `dpr=1`                     | 0.87ms  | 1.16ms (+0.29)      |
+| `dpr=2`                     | 2.19ms  | 2.35ms (noise)      |
+| `dpr=4`                     | 6.55ms  | 5.94ms (noise)      |
+| Draw calls                  | 137     | 140 (3 blur passes) |
+
+- Compositor cost is the same as having no blur at all; the blur's own cost is within run
+  noise at `dpr` 2 and 4, and ~0.3ms at `dpr=1` (fixed per-pass overhead, not fill: the
+  low-tier resolution measured the same).
+- With the scene still, nothing renders (0 draw calls over 1s). Hiding a panel while idle
+  triggers exactly one redraw, and the frosted patch goes with it.
+- Visually matched against the real CSS `blur(12px)` with panel backgrounds made
+  transparent: same strength and falloff, rounded corners intact.
+- Limits: up to 8 panels (`MAX_BLUR_REGIONS`); a layout change caused only by inserting a
+  stylesheet won't trigger a re-measure. Tour step pips and tour-arrow hover aren't frosted.
+
 ## Not done yet (found in this pass)
 
 - **Kiosk precache carries ~4.8MB of unused files:** every `lod0` model (~3MB,

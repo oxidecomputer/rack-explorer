@@ -5,11 +5,10 @@
  *
  * Copyright Oxide Computer Company
  */
-import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
 import { AnimatePresence, motion } from 'motion/react'
 
-import { lowTierRendering } from '../atoms'
+import { useFrostedPanel } from './canvasBlur'
 
 export const Card = ({
   title,
@@ -20,12 +19,15 @@ export const Card = ({
   contentKey?: string
   children: React.ReactNode
 }) => {
-  const isLowTier = useValue(lowTierRendering)
+  const [frostRef, frosted] = useFrostedPanel<HTMLDivElement>()
   return (
     <div
+      ref={frostRef}
+      // Frosted by PanelBlurEffect in WebGL, not CSS backdrop-filter, which
+      // makes the browser re-composite the canvas every frame.
       className={clsx(
         'flex min-h-0 w-64 flex-1 flex-col overflow-hidden rounded-md select-none',
-        isLowTier ? 'bg-default/95' : 'bg-default/70 backdrop-blur-md',
+        frosted ? 'bg-default/70' : 'bg-default/95',
       )}
     >
       <div className="text-mono-xs text-secondary flex w-full items-center justify-between px-2.5 py-2">
