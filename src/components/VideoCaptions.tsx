@@ -31,7 +31,7 @@ export function VideoCaptions() {
           transition={{ type: 'spring', duration: 0.25, bounce: 0 }}
           className="pointer-events-none flex justify-center"
         >
-          <div className="bg-default/85 text-sans-lg text-default rounded-md px-3 py-1.5 text-center backdrop-blur-md">
+          <div className="bg-default/95 text-sans-lg text-default rounded-md px-3 py-1.5 text-center">
             {text}
           </div>
         </motion.div>

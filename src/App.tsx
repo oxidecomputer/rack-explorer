@@ -477,7 +477,7 @@ function App() {
                   <VideoCaptions />
                 </div>
                 <div className="1000:pl-4 pointer-events-auto absolute right-0 bottom-0 left-0 z-20">
-                  <div className="bg-default/80 rounded-lg px-4 py-3 backdrop-blur-md">
+                  <div className="bg-default/95 rounded-lg px-4 py-3">
                     <VideoTourTimeline onSeek={seekVideo} />
                   </div>
                 </div>
@@ -519,10 +519,7 @@ function App() {
             </Card>
             <ContactSales
               loading={isLandingOpen}
-              className={clsx(
-                'hover:bg-hover/80 block w-64 rounded-md border border-neutral-900/10 p-2.5 transition-colors',
-                isLowTier ? 'bg-default/60' : 'bg-default/25 backdrop-blur-md',
-              )}
+              className="hover:bg-hover/80 bg-default/60 block w-64 rounded-md border border-neutral-900/10 p-2.5 transition-colors"
             />
           </motion.div>
         </div>

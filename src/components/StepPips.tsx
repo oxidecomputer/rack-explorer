@@ -40,7 +40,7 @@ export function StepPips() {
             >
               <div
                 className={clsx(
-                  'flex h-8 items-center justify-center overflow-hidden rounded-md bg-neutral-800/20 text-center backdrop-blur-sm hover:bg-neutral-800/30',
+                  'flex h-8 items-center justify-center overflow-hidden rounded-md bg-neutral-800/20 text-center hover:bg-neutral-800/30',
                   isActive ? 'bg-neutral-800/30' : '',
                 )}
               >
