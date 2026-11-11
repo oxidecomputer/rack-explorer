@@ -571,6 +571,46 @@ Both likely read as small here because Apple GPUs are tile-based with hidden-sur
 removal: hidden fragments are rejected regardless of draw order. Immediate-mode desktop GPUs
 (NVIDIA/AMD/Intel) may gain more from either; not measured.
 
+## Backdrop blur off the panels over the canvas
+
+The sidebar cards, Contact Sales, cookie popup, mobile specs drawer, video timeline and
+captions, tour step pips and tour arrow hover all used `backdrop-filter: blur(…)` over the
+WebGL canvas. A backdrop filter stops the browser handing the canvas straight to the
+display: every frame the scene redraws, the compositor re-renders and re-blurs everything
+behind each panel. **The harness can't see this** — it times WebGL work, and this cost lands
+in the browser's compositor afterwards.
+
+Method: Chrome trace (`viz`, `gpu`, `toplevel` categories) while dragging the camera in an
+orbit for 3s (181 frames), 1440×900 at `deviceScaleFactor` 2, mean of 3 runs. GPU time is
+`SkiaOutputSurfaceImplOnGpu::SwapBuffers`, CPU time is `Display::DrawAndSwap`, both per
+frame. Before = `main` at `884c7e3`; after = `52e741d`.
+
+| Mode                     | Blurred elements | Compositor GPU / frame | Compositor CPU / frame |
+| ------------------------ | ---------------- | ---------------------- | ---------------------- |
+| Free explore (rack)      | 3 → 0            | 3.54 → 0.65ms (−82%)   | 0.29 → 0.08ms          |
+| Guided tour (first step) | 17 → 0           | 3.23 → 0.65ms (−80%)   | 0.30 → 0.07ms          |
+
+- For scale, the whole WebGL frame is ~2.2ms (harness GPU p50 at `dpr=2`). The blur was
+  costing more than the scene.
+- **Blur radius doesn't matter.** In an ablation, 2px and 4px blurs cost the same as 12px
+  (~3.0ms). The cost comes from having any backdrop filter over the canvas, not from the
+  size of the blur kernel. Hiding the whole UI measured 0.6ms, the same as panels without
+  blur.
+- WebGL is unchanged: `?perf=all&dpr=2` GPU p50 matches within run-to-run noise (2 runs
+  each, ±0.3ms either way), with identical draw calls and triangles.
+- It only costs while the canvas is redrawing (orbit, zoom, camera fits, tour step
+  transitions, showcase rotation, the kiosk idle tour). With `frameloop="demand"` a still
+  scene composites nothing.
+
+Panels now use the backgrounds the low-tier path already used (`bg-default/60`–`/95`), so
+the per-tier class branches are gone. The landing modal's full-screen `backdrop-blur-xl`
+stays: the scene is mostly still while the modal is open.
+
+If the frosted look is wanted back, do the blur inside WebGL instead: a final
+post-processing pass that blurs the frame at quarter resolution inside each panel's screen
+rect. That needs the panel rects fed in (sidebar open/close animation, resize, card heights)
+and a rounded-rect mask, but should cost ~0.1–0.3ms rather than ~2.6ms. Not attempted.
+
 ## Not done yet (found in this pass)
 
 - **Kiosk precache carries ~4.8MB of unused files:** every `lod0` model (~3MB,
