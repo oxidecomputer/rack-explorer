@@ -31,6 +31,9 @@ export type ScenarioName =
   | 'drilled-sled'
   | 'rapid-selection'
   | 'orbit-stress'
+  | 'configure-1'
+  | 'configure-24'
+  | 'configure-100'
 
 export const ALL_SCENARIOS: ScenarioName[] = [
   'idle-rack',
@@ -38,6 +41,15 @@ export const ALL_SCENARIOS: ScenarioName[] = [
   'drilled-sled',
   'rapid-selection',
   'orbit-stress',
+]
+
+/** Rack configurator at 1, 24 and 100 racks, the camera framing each layout.
+ *  Run with `?perf=configure` (or one by name); not part of `all`, so older
+ *  `all` reports stay comparable. */
+export const CONFIGURE_SCENARIOS: ScenarioName[] = [
+  'configure-1',
+  'configure-24',
+  'configure-100',
 ]
 
 export type PostMode = 'none' | 'outline' | 'ao' | 'outline+ao'
@@ -68,7 +80,12 @@ export function parsePerfFlags(search: string = window.location.search): PerfFla
   let scenarios: ScenarioName[] = []
   if (perf === 'all') {
     scenarios = [...ALL_SCENARIOS]
-  } else if (perf && (ALL_SCENARIOS as string[]).includes(perf)) {
+  } else if (perf === 'configure') {
+    scenarios = [...CONFIGURE_SCENARIOS]
+  } else if (
+    perf &&
+    ([...ALL_SCENARIOS, ...CONFIGURE_SCENARIOS] as string[]).includes(perf)
+  ) {
     scenarios = [perf as ScenarioName]
   }
 

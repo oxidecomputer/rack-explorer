@@ -78,7 +78,8 @@ disabled — navigation is through tour controls only.
 - **Motion (Framer Motion)** for animations — consistent spring config:
   `type: 'spring', duration: 0.5, bounce: 0`
 - Key UI components: `Outline.tsx` (tree browser), `Specifications.tsx` (specs panel),
-  `GuidedTourPanel.tsx`, `LandingModal.tsx`
+  `GuidedTourPanel.tsx`, `SidebarNav.tsx` (Components/Tours/Configure tabs, tour
+  card)
 
 ## Conventions
 

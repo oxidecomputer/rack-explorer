@@ -13,7 +13,14 @@ import { useFrame, useThree } from '@react-three/fiber'
 import type { CameraControls } from '@react-three/drei'
 import { useEffect, useRef } from 'react'
 
-import { selectedId, showcaseMode } from '../atoms'
+import {
+  exitGuidedMode,
+  navigationMode,
+  selectedId,
+  showcaseMode,
+  startConfigure,
+  updateRackConfig,
+} from '../atoms'
 import { GPUTimer } from './gpuTimer'
 import {
   downloadJson,
@@ -105,6 +112,13 @@ export function PerfHarness({
   function startScenario(name: ScenarioName) {
     // Reset state between scenarios.
     showcaseMode.set(false)
+    const configureRacks = name.startsWith('configure-') ? Number(name.split('-')[1]) : null
+    if (configureRacks !== null) {
+      if (navigationMode.get() !== 'configure') startConfigure()
+      updateRackConfig({ racks: configureRacks })
+    } else if (navigationMode.get() === 'configure') {
+      exitGuidedMode()
+    }
     switch (name) {
       case 'idle-rack':
         selectedId.set('oxide-rack')
