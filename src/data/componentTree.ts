@@ -97,18 +97,18 @@ export const componentTree: ComponentNode = {
     fitFraction: 0.85,
   },
   model: [
-    { path: './models/rack-frame/lod1/body.glb', clickable: false },
-    { path: './models/rack-frame/lod1/core.glb', clickable: false },
+    { path: '/models/rack-frame/lod1/body.glb', clickable: false },
+    { path: '/models/rack-frame/lod1/core.glb', clickable: false },
     {
-      path: './models/rack-frame/lod1/cosmo-housing.glb',
+      path: '/models/rack-frame/lod1/cosmo-housing.glb',
       showModelInChildView: true,
     },
     {
-      path: './models/rack-frame/lod1/patch-housing.glb',
+      path: '/models/rack-frame/lod1/patch-housing.glb',
       showModelInChildView: true,
     },
     {
-      path: './models/rack-frame/lod1/power-housing.glb',
+      path: '/models/rack-frame/lod1/power-housing.glb',
       showModelInChildView: true,
     },
   ],
@@ -122,13 +122,13 @@ export const componentTree: ComponentNode = {
       selectionOffset: selectionOffset,
       model: [
         {
-          path: './models/cosmo/lod1/exterior.glb',
+          path: '/models/cosmo/lod1/exterior.glb',
           animationSpeed: 2,
           showModelInChildView: true,
         },
         {
-          path: './models/cosmo/lod1/perforations.glb',
-          textures: { Perforations: './models/perforations.png' },
+          path: '/models/cosmo/lod1/perforations.glb',
+          textures: { Perforations: '/models/perforations.png' },
           showModelInChildView: true,
         },
       ],
@@ -138,8 +138,8 @@ export const componentTree: ComponentNode = {
           label: 'Inner',
           waypoint: { direction: [1.5, 1, 1.5], target: [0, 0, 0] },
           model: {
-            path: './models/cosmo/lod1/interior.glb',
-            textures: { PCB_Texture: './models/cosmo/pcb.png' },
+            path: '/models/cosmo/lod1/interior.glb',
+            textures: { PCB_Texture: '/models/cosmo/pcb.png' },
           },
           children: [
             {
@@ -160,7 +160,7 @@ export const componentTree: ComponentNode = {
                 target: [0, 0, 0],
                 fitFraction: 0.4,
               },
-              model: { path: './models/cosmo/lod1/heatsink.glb' },
+              model: { path: '/models/cosmo/lod1/heatsink.glb' },
             },
             {
               id: 'ram',
@@ -170,7 +170,7 @@ export const componentTree: ComponentNode = {
                 target: [0, 0, 0],
                 fitFraction: 0.5,
               },
-              model: { path: './models/cosmo/lod1/memory.glb' },
+              model: { path: '/models/cosmo/lod1/memory.glb' },
             },
             {
               id: 'power-connector',
@@ -196,7 +196,7 @@ export const componentTree: ComponentNode = {
               id: 'fans',
               label: 'Fans',
               waypoint: { direction: [1.25, 0.95, -1], target: [0, 0.05, -0.25] },
-              model: { path: './models/cosmo/lod1/fans.glb' },
+              model: { path: '/models/cosmo/lod1/fans.glb' },
             },
             {
               id: 'airflow-shroud',
@@ -207,7 +207,7 @@ export const componentTree: ComponentNode = {
                 target: [0, 0, 0],
                 fitFraction: 0.5,
               },
-              model: { path: './models/cosmo/lod1/shroud.glb', clickable: false },
+              model: { path: '/models/cosmo/lod1/shroud.glb', clickable: false },
             },
           ],
         },
@@ -225,15 +225,15 @@ export const componentTree: ComponentNode = {
       selectionOffset: selectionOffset,
       model: [
         {
-          path: './models/sidecar/lod1/exterior.glb',
+          path: '/models/sidecar/lod1/exterior.glb',
           showModelInChildView: true,
         },
         {
-          path: './models/sidecar/lod1/cover.glb',
+          path: '/models/sidecar/lod1/cover.glb',
         },
         {
-          path: './models/sidecar/lod1/perforations.glb',
-          textures: { Perforations: './models/perforations.png' },
+          path: '/models/sidecar/lod1/perforations.glb',
+          textures: { Perforations: '/models/perforations.png' },
           showModelInChildView: true,
         },
       ],
@@ -242,7 +242,7 @@ export const componentTree: ComponentNode = {
           id: 'switch-inner',
           label: 'Inner',
           waypoint: { direction: [2, 1.5, 2.675], target: [0, 0, 0] },
-          model: { path: './models/sidecar/lod1/interior.glb', clickable: false },
+          model: { path: '/models/sidecar/lod1/interior.glb', clickable: false },
         },
       ],
     },
@@ -257,10 +257,10 @@ export const componentTree: ComponentNode = {
       ],
       selectionOffset: selectionOffset,
       model: [
-        { path: './models/power-shelf/lod1/shelf.glb' },
+        { path: '/models/power-shelf/lod1/shelf.glb' },
         {
-          path: './models/power-shelf/lod1/perforations.glb',
-          textures: { Perforations: './models/perforations.png' },
+          path: '/models/power-shelf/lod1/perforations.glb',
+          textures: { Perforations: '/models/perforations.png' },
         },
       ],
     },
@@ -269,7 +269,7 @@ export const componentTree: ComponentNode = {
       label: 'Patch Panel',
       waypoint: { direction: [1, -0.05, 3.675], target: [0, 2.2, 0.325] },
       model: {
-        path: './models/patch-panel/lod1/panel.glb',
+        path: '/models/patch-panel/lod1/panel.glb',
         position: [0, 2.2, 0.15],
       },
     },

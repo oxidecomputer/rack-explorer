@@ -4,7 +4,10 @@
       "source": "/js/viewscript.js",
       "destination": "https://trck.oxide.computer/js/plausible.js"
     },
-    { "source": "/api/event", "destination": "https://trck.oxide.computer/api/event" }
+    { "source": "/api/event", "destination": "https://trck.oxide.computer/api/event" },
+    { "source": "/configurator", "destination": "/index.html" },
+    { "source": "/tours", "destination": "/index.html" },
+    { "source": "/tours/:tourId", "destination": "/index.html" }
   ],
   "bunVersion": "1.x"
 }

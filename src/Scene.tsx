@@ -155,7 +155,7 @@ function HDRIEnvironment() {
   }, [rotX, rotY, rotZ, intensity, showBackground, invalidate])
   return (
     <Environment
-      files="./common/hdri.jpg"
+      files="/common/hdri.jpg"
       environmentIntensity={intensity}
       environmentRotation={rotation}
       background={showBackground}

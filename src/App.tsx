@@ -31,7 +31,6 @@ import {
   setKioskMode,
   sidebarTab,
   specificationsOpen,
-  startConfigure,
   startIdleTour,
   startTour,
   tourStartScreen,
@@ -66,39 +65,19 @@ import { VideoPlayPauseFlash } from './components/VideoPlayPauseFlash'
 import { VideoTourPlayer } from './components/VideoTourPlayer'
 import { VideoTourTimeline } from './components/VideoTourTimeline'
 import { getNode, inheritInstanceIndex } from './data/componentTree'
-import { getFirstStandardTour, getTour } from './data/guidedTours'
+import { getFirstStandardTour } from './data/guidedTours'
+import { applyInitialRoute, startRouting } from './routing'
 import { Scene } from './Scene'
 import { useKeyboardNavigation } from './useKeyboardNavigation'
 import { useKiosk } from './useKiosk'
 
-// Deep link: `?tour=<id>` jumps straight into the named tour. Runs at module load — before the first React render — so the
-// initial paint already reflects the tour state and the right sidebar doesn't
-// animate from "open" to "hidden". The param is stripped so a refresh doesn't
-// trap the user in it.
-{
-  const url = new URL(window.location.href)
-  const tourId = url.searchParams.get('tour')
-  if (tourId) {
-    const tour = getTour(tourId)
-    if (tour) startTour(tour.id)
-    url.searchParams.delete('tour')
-    window.history.replaceState({}, '', url.pathname + url.search + url.hash)
-  }
-}
-
-// Deep link: `?configure` opens the rack configurator. Stripped like `?tour=`.
-{
-  const url = new URL(window.location.href)
-  if (url.searchParams.has('configure')) {
-    startConfigure()
-    url.searchParams.delete('configure')
-    window.history.replaceState({}, '', url.pathname + url.search + url.hash)
-  }
-}
+// The URL picks the starting mode (see routing.ts). Runs at module load, before
+// the first render, so the right sidebar doesn't animate from "open" to "hidden".
+applyInitialRoute()
 
 // `?kiosk=1` / `?kiosk=0` turns kiosk mode on or off (persisted), then the
-// param is stripped. A kiosk boots straight into the idle tour, unless a deep
-// link already chose where to start.
+// param is stripped. A kiosk boots straight into the idle tour, unless the URL
+// already chose where to start.
 {
   const url = new URL(window.location.href)
   const kiosk = url.searchParams.get('kiosk')
@@ -208,6 +187,9 @@ function App() {
     mm.addEventListener('change', apply)
     return () => mm.removeEventListener('change', apply)
   }, [])
+
+  // After the mobile redirect above, so that lands as a URL replace, not a push.
+  useEffect(() => startRouting(), [])
 
   // First visit on desktop: once the scene is up, point out the controls.
   useEffect(() => {
@@ -370,13 +352,7 @@ function App() {
         <div className="relative z-10 flex min-h-0 grow p-4">
           <nav className="max-1000:hidden pointer-events-auto flex h-full flex-col gap-2">
             <Card
-              title={
-                isLoading ? (
-                  <Bar className="h-3 w-28" />
-                ) : (
-                  <SidebarTabs />
-                )
-              }
+              title={isLoading ? <Bar className="h-3 w-28" /> : <SidebarTabs />}
               contentKey={isLoading ? 'skeleton' : currentTab}
             >
               {isLoading ? (
