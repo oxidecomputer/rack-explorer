@@ -12,9 +12,13 @@ import {
   type EffectComposer as PPEffectComposer,
   type OutlineEffect,
 } from 'postprocessing'
-import { useContext, useEffect, useRef, type ReactElement } from 'react'
+import { useThree } from '@react-three/fiber'
+import { useContext, useEffect, useMemo, useRef, type ReactElement } from 'react'
 
+import { panelBlurActive } from '../atoms'
+import { onBlurRegionsChange, setBlurCanvas } from './canvasBlur'
 import { sharedComposerRef } from './composerRef'
+import { PanelBlurEffect, type PanelBlurQuality } from './PanelBlurEffect'
 import { SelectedObjectsContext } from './selectedObjects'
 
 export type AOQuality = 'full' | 'low' | 'off'
@@ -42,10 +46,13 @@ const disableAOTransparencyDetection = (
 export const PostProcessing = ({
   aoQuality,
   enableOutline = true,
+  panelBlurQuality = 'high',
   multisampling = 0,
 }: {
   aoQuality: AOQuality
   enableOutline?: boolean
+  /** Resolution of the frosted-panel blur (see canvasBlur.ts). */
+  panelBlurQuality?: PanelBlurQuality
   // Composer MSAA samples; 0 disables it. Probed by the caller (probeMaxSamples)
   // so it never exceeds what the GPU can allocate at this resolution.
   multisampling?: number
@@ -67,6 +74,26 @@ export const PostProcessing = ({
       patched.current = true
     }
   }, [])
+
+  const gl = useThree((s) => s.gl)
+  const invalidate = useThree((s) => s.invalidate)
+  // Frosts the canvas behind registered DOM panels, on every tier: it's three
+  // small passes in a composer that runs anyway.
+  const panelBlur = useMemo(() => new PanelBlurEffect(panelBlurQuality), [panelBlurQuality])
+  useEffect(() => {
+    setBlurCanvas(gl.domElement)
+    panelBlur.setBackground(getComputedStyle(document.body).backgroundColor)
+    panelBlurActive.set(true)
+    // Panels move without the scene changing (sidebar toggles, resizes); redraw.
+    const unsubscribe = onBlurRegionsChange(invalidate)
+    invalidate()
+    return () => {
+      unsubscribe()
+      panelBlurActive.set(false)
+      setBlurCanvas(null)
+      panelBlur.dispose()
+    }
+  }, [panelBlur, gl, invalidate])
 
   const aoEnabled = aoQuality !== 'off'
   const isLow = aoQuality === 'low'
@@ -101,6 +128,9 @@ export const PostProcessing = ({
       />,
     )
   }
+
+  // Last, so it blurs the finished frame (AO included).
+  effects.push(<primitive key="panel-blur" object={panelBlur} dispose={null} />)
 
   // No enableNormalPass: N8AO reconstructs normals from the composer's depth
   // texture and never reads the NormalPass, which would otherwise re-render

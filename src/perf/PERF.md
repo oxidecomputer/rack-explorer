@@ -606,10 +606,51 @@ Panels now use the backgrounds the low-tier path already used (`bg-default/60`�
 the per-tier class branches are gone. The landing modal's full-screen `backdrop-blur-xl`
 stays: the scene is mostly still while the modal is open.
 
-If the frosted look is wanted back, do the blur inside WebGL instead: a final
-post-processing pass that blurs the frame at quarter resolution inside each panel's screen
-rect. That needs the panel rects fed in (sidebar open/close animation, resize, card heights)
-and a rounded-rect mask, but should cost ~0.1–0.3ms rather than ~2.6ms. Not attempted.
+The frosted look came back in WebGL instead; see the next section.
+
+## Frosted panels in WebGL (`PanelBlurEffect`)
+
+The panels are frosted again, by the post-processing chain rather than the browser:
+
+- Panels register with `canvasBlur.ts` (`useFrostedPanel`), which measures each one's rect,
+  corner radius and effective opacity relative to the canvas, clipped by `overflow`
+  ancestors. It re-measures only on DOM mutations (style/class/childList under `body`) and
+  resizes, and asks the canvas to redraw when a rect changes, so `frameloop="demand"` still
+  works.
+- `PanelBlurEffect` runs last in the composer: a 4-tap box downsample to one texel per 2 CSS
+  px (4 on low tier), then a separable Gaussian with σ = 12 CSS px, matching CSS
+  `blur(12px)` at any DPR. A rounded-rect mask swaps the blurred frame in under each panel,
+  composited over the page background colour (the canvas is transparent) and blended with
+  `SRC` so the selection outline can't show through.
+- Panels keep their original translucent tints while the effect runs, and fall back to
+  near-opaque ones when it doesn't (`?post=none`, or before the post-processing chunk
+  loads).
+
+Measured as in the previous section (compositor: orbit trace, 1440×900 at 2× DPR, mean of 3
+runs; WebGL: `?perf=idle-rack`, mean of 3 runs). CSS blur = `884c7e3`, no blur = `52e741d`.
+
+| Compositor per frame, orbiting | CSS blur | No blur | WebGL blur |
+| ------------------------------ | -------- | ------- | ---------- |
+| GPU, free explore              | 3.13ms   | 0.67ms  | 0.63ms     |
+| GPU, guided tour               | 3.03ms   | 0.68ms  | 0.71ms     |
+| CPU, free explore              | 0.27ms   | 0.10ms  | 0.08ms     |
+
+| WebGL GPU p50 (`idle-rack`) | No blur | WebGL blur          |
+| --------------------------- | ------- | ------------------- |
+| `dpr=1`                     | 0.87ms  | 1.16ms (+0.29)      |
+| `dpr=2`                     | 2.19ms  | 2.35ms (noise)      |
+| `dpr=4`                     | 6.55ms  | 5.94ms (noise)      |
+| Draw calls                  | 137     | 140 (3 blur passes) |
+
+- Compositor cost is the same as having no blur at all; the blur's own cost is within run
+  noise at `dpr` 2 and 4, and ~0.3ms at `dpr=1` (fixed per-pass overhead, not fill: the
+  low-tier resolution measured the same).
+- With the scene still, nothing renders (0 draw calls over 1s). Hiding a panel while idle
+  triggers exactly one redraw, and the frosted patch goes with it.
+- Visually matched against the real CSS `blur(12px)` with panel backgrounds made
+  transparent: same strength and falloff, rounded corners intact.
+- Limits: up to 8 panels (`MAX_BLUR_REGIONS`); a layout change caused only by inserting a
+  stylesheet won't trigger a re-measure. Tour step pips and tour-arrow hover aren't frosted.
 
 ## Not done yet (found in this pass)
 

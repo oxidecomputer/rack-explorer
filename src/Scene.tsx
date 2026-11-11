@@ -794,6 +794,7 @@ function SceneContent({
                   : aoQuality
             }
             enableOutline={postMode !== 'ao'}
+            panelBlurQuality={lowTier ? 'low' : 'high'}
             multisampling={multisampling}
           />
         )}
