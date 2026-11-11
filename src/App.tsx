@@ -247,7 +247,12 @@ function App() {
             href={isKiosk ? undefined : 'https://oxide.computer'}
             target={isKiosk ? undefined : '_blank'}
           >
-            <div className="text-raise text-mono-xs group-hover:text-raise group-hover:link-with-underline opacity-40">
+            <div
+              className={clsx(
+                'text-raise text-mono-xs opacity-40 transition-[color,opacity]',
+                !isKiosk && 'group-hover:text-default group-hover:opacity-100',
+              )}
+            >
               Oxide Computer Company
             </div>
             <div className="text-sans-sm text-default">3D Explorer</div>
