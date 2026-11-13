@@ -57,6 +57,9 @@ interface InstancedGLBModelProps {
   textures?: Record<string, string>
   /** Multiplier on the AnimationMixer's timeScale (default 1). */
   animationSpeed?: number
+  /** Render only these instance indexes (the rest stay allocated but hidden,
+   *  so changing this doesn't rebuild the batches). Null = all. */
+  visibleInstances?: ReadonlySet<number> | null
 }
 
 const DRAG_THRESHOLD = 5
@@ -74,9 +77,11 @@ export const InstancedGLBModel = memo(function InstancedGLBModel({
   selectionOffset,
   textures,
   animationSpeed = 1,
+  visibleInstances = null,
 }: InstancedGLBModelProps) {
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null)
   const gl = useThree((s) => s.gl)
+  const invalidate = useThree((s) => s.invalidate)
   const gltf = useLoader(GLTFLoader, path, (loader) => {
     loader.setDRACOLoader(dracoLoader)
   })
@@ -356,13 +361,24 @@ export const InstancedGLBModel = memo(function InstancedGLBModel({
       const im = instancedMeshes[mIdx]
       const subCount = meshes[mIdx].matrices.length
       for (let sledIdx = 0; sledIdx < instances.length; sledIdx++) {
-        const hide = !!(hideSelected && sledIdx === selectedIndex)
+        const hide =
+          (visibleInstances !== null && !visibleInstances.has(sledIdx)) ||
+          !!(hideSelected && sledIdx === selectedIndex)
         for (let subIdx = 0; subIdx < subCount; subIdx++) {
           im.setVisibilityAt(sledIdx * subCount + subIdx, !hide)
         }
       }
     }
-  }, [instancedMeshes, meshes, instances, selectedIndex, hideSelected])
+    invalidate()
+  }, [
+    instancedMeshes,
+    meshes,
+    instances,
+    selectedIndex,
+    hideSelected,
+    visibleInstances,
+    invalidate,
+  ])
 
   // Dispose InstancedMesh2 instances and their cloned geometries. We can't
   // dispose synchronously in the cleanup because React StrictMode's synthetic
@@ -415,7 +431,7 @@ export const InstancedGLBModel = memo(function InstancedGLBModel({
       }}
       onClick={(e) => {
         e.stopPropagation()
-        if (navigationMode.get() === 'guided') return
+        if (navigationMode.get() !== 'free') return
         if (pointerDownPos.current) {
           const dx = e.clientX - pointerDownPos.current.x
           const dy = e.clientY - pointerDownPos.current.y

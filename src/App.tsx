@@ -6,13 +6,7 @@
  * Copyright Oxide Computer Company
  */
 
-import {
-  Close8Icon,
-  Images16Icon,
-  Monitoring16Icon,
-  NextArrow12Icon,
-  Question16Icon,
-} from '@oxide/design-system/icons/react'
+import { Close8Icon, Question16Icon } from '@oxide/design-system/icons/react'
 import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
 import { AnimatePresence, motion, MotionConfig } from 'motion/react'
@@ -23,13 +17,10 @@ import {
   activeTourStepIndex,
   activeVideoTour,
   activeVideoTourStepIndex,
-  exitGuidedMode,
   goToNextTour,
   goToTourStep,
   isVideoTour,
   kioskMode,
-  landingOpen,
-  lowTierRendering,
   maybeStartFreeTutorial,
   mobileOutlineOpen,
   navigationMode,
@@ -38,6 +29,7 @@ import {
   seekVideo,
   selectedId,
   setKioskMode,
+  sidebarTab,
   specificationsOpen,
   startIdleTour,
   startTour,
@@ -46,17 +38,23 @@ import {
 import { IdleTourOverlay } from './components/IdleTourOverlay'
 import { useFrostedPanel } from './components/canvasBlur'
 import { Card } from './components/Card'
+import {
+  ConfiguratorPanel,
+  ConfiguratorSummary,
+  RackCountStepper,
+} from './components/Configurator'
 import { ContactSales } from './components/ContactSales'
 import { CookiePopup } from './components/CookiePopup'
 import { FreeTutorial } from './components/FreeTutorial'
 import { GuidedTourOutline } from './components/GuidedTourOutline'
 import { GuidedTourPanel } from './components/GuidedTourPanel'
 import { SidebarIcon } from './components/Icons'
-import { LandingModal } from './components/LandingModal'
 import { MobileOutlineOverlay } from './components/MobileOutlineOverlay'
 import { MobileSpecsDrawer } from './components/MobileSpecsDrawer'
 import { OptionsDropdown } from './components/OptionsDropdown'
 import { Outline } from './components/Outline'
+import { PerformanceNotice } from './components/PerformanceNotice'
+import { SidebarTabs, TourCard } from './components/SidebarNav'
 import { Bar, OutlineSkeleton, SpecificationsSkeleton } from './components/Skeletons'
 import { Specifications } from './components/Specifications'
 import { StepPips } from './components/StepPips'
@@ -67,33 +65,19 @@ import { VideoPlayPauseFlash } from './components/VideoPlayPauseFlash'
 import { VideoTourPlayer } from './components/VideoTourPlayer'
 import { VideoTourTimeline } from './components/VideoTourTimeline'
 import { getNode, inheritInstanceIndex } from './data/componentTree'
-import { getFirstStandardTour, getTour } from './data/guidedTours'
+import { getFirstStandardTour } from './data/guidedTours'
+import { applyInitialRoute, startRouting } from './routing'
 import { Scene } from './Scene'
 import { useKeyboardNavigation } from './useKeyboardNavigation'
 import { useKiosk } from './useKiosk'
 
-// Deep link: `?tour=<id>` jumps straight into the named tour, skipping the
-// landing modal. Runs at module load — before the first React render — so the
-// initial paint already reflects the tour state and the right sidebar doesn't
-// animate from "open" to "hidden". The param is stripped so a refresh doesn't
-// trap the user in it.
-{
-  const url = new URL(window.location.href)
-  const tourId = url.searchParams.get('tour')
-  if (tourId) {
-    const tour = getTour(tourId)
-    if (tour) {
-      startTour(tour.id)
-      landingOpen.set(false)
-    }
-    url.searchParams.delete('tour')
-    window.history.replaceState({}, '', url.pathname + url.search + url.hash)
-  }
-}
+// The URL picks the starting mode (see routing.ts). Runs at module load, before
+// the first render, so the right sidebar doesn't animate from "open" to "hidden".
+applyInitialRoute()
 
 // `?kiosk=1` / `?kiosk=0` turns kiosk mode on or off (persisted), then the
-// param is stripped. A kiosk boots straight into the idle tour rather than the
-// landing modal, unless a `?tour=` deep link already chose where to start.
+// param is stripped. A kiosk boots straight into the idle tour, unless the URL
+// already chose where to start.
 {
   const url = new URL(window.location.href)
   const kiosk = url.searchParams.get('kiosk')
@@ -102,7 +86,7 @@ import { useKiosk } from './useKiosk'
     url.searchParams.delete('kiosk')
     window.history.replaceState({}, '', url.pathname + url.search + url.hash)
   }
-  if (kioskMode.get() && landingOpen.get()) startIdleTour()
+  if (kioskMode.get() && navigationMode.get() === 'free') startIdleTour()
 }
 
 /** Kiosk mode's exit hatch: the header (and Options with it) is hidden from
@@ -140,18 +124,21 @@ function App() {
   const currentNavigationMode = useValue(navigationMode)
   const specsOpen = useValue(specificationsOpen)
   const currentSelectedId = useValue(selectedId)
-  const isLandingOpen = useValue(landingOpen)
   const isSceneReady = useValue(sceneReady)
+  // Panels show skeletons until the scene has loaded.
+  const isLoading = !isSceneReady
   const currentTour = useValue(activeTour)
   const currentStepIndex = useValue(activeTourStepIndex)
   const currentVideoTour = useValue(activeVideoTour)
   const currentVideoStepIndex = useValue(activeVideoTourStepIndex)
   const isGuided = currentNavigationMode === 'guided'
+  const isConfigure = currentNavigationMode === 'configure'
+  const isFree = currentNavigationMode === 'free'
   const isVideo = useValue(isVideoTour)
   const isStartScreen = useValue(tourStartScreen)
   const isStandardTour = isGuided && !isVideo
-  const isLowTier = useValue(lowTierRendering)
   const isKiosk = useValue(kioskMode)
+  const currentTab = useValue(sidebarTab)
   const exitHoldTimer = useRef<number | null>(null)
 
   const cancelExitHold = () => {
@@ -192,19 +179,29 @@ function App() {
     const mm = window.matchMedia('(min-width: 1000px)')
     const apply = () => {
       if (mm.matches) return
-      const inFree = navigationMode.get() === 'free'
-      if (!landingOpen.get() && !inFree) return
+      // Free explore and the configurator are desktop-only.
+      if (navigationMode.get() === 'guided') return
       startTour(getFirstStandardTour().id)
-      landingOpen.set(false)
     }
     apply()
     mm.addEventListener('change', apply)
     return () => mm.removeEventListener('change', apply)
   }, [])
 
+  // After the mobile redirect above, so that lands as a URL replace, not a push.
+  useEffect(() => startRouting(), [])
+
+  // First visit on desktop: once the scene is up, point out the controls.
+  useEffect(() => {
+    if (!isSceneReady || navigationMode.get() !== 'free') return
+    if (!window.matchMedia('(min-width: 1000px)').matches) return
+    const timer = window.setTimeout(maybeStartFreeTutorial, 400)
+    return () => window.clearTimeout(timer)
+  }, [isSceneReady])
+
   const breadcrumbPath = findPath(currentSelectedId)
 
-  const breadcrumbsEnabled = !isGuided
+  const breadcrumbsEnabled = isFree
 
   return (
     <MotionConfig reducedMotion="user">
@@ -219,22 +216,6 @@ function App() {
       </motion.div>
 
       <div className="pointer-events-none absolute inset-0 flex h-dvh flex-col">
-        {/* Blur overlay — behind sidebars */}
-        <AnimatePresence>
-          {isLandingOpen && (
-            <motion.div
-              className={clsx(
-                'pointer-events-none absolute inset-0',
-                isLowTier ? 'bg-default/70' : 'backdrop-blur-xl',
-              )}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5 }}
-            />
-          )}
-        </AnimatePresence>
-
         {/* Hidden kiosk exit hatch */}
         {isKiosk && (
           <div
@@ -266,12 +247,22 @@ function App() {
             href={isKiosk ? undefined : 'https://oxide.computer'}
             target={isKiosk ? undefined : '_blank'}
           >
-            <div className="text-raise text-mono-xs group-hover:text-raise group-hover:link-with-underline opacity-40">
+            <div
+              className={clsx(
+                'text-raise text-mono-xs opacity-40 transition-[color,opacity]',
+                !isKiosk && 'group-hover:text-default group-hover:opacity-100',
+              )}
+            >
               Oxide Computer Company
             </div>
             <div className="text-sans-sm text-default">3D Explorer</div>
           </a>
-          {!isGuided && (
+          {isConfigure && (
+            <div className="text-mono-xs text-secondary max-1000:hidden flex flex-1 items-center justify-center select-none">
+              Rack configurator
+            </div>
+          )}
+          {isFree && (
             <div className="text-secondary max-1000:hidden flex flex-1 items-center justify-center gap-2 select-none">
               <button
                 disabled={!breadcrumbsEnabled}
@@ -342,7 +333,7 @@ function App() {
           )}
           <div className="flex w-64 items-center justify-end gap-2">
             <OptionsDropdown />
-            {!isLandingOpen && !isGuided && (
+            {isFree && (
               <button
                 onClick={restartFreeTutorial}
                 className="hover:bg-hover/80 target-8 max-1000:hidden text-tertiary hover:text-default flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-neutral-900/10 bg-transparent transition-colors"
@@ -351,7 +342,7 @@ function App() {
                 <Question16Icon className="h-4 w-4" />
               </button>
             )}
-            {!isLandingOpen && !(isGuided && isStartScreen) && (
+            {!(isGuided && isStartScreen) && (
               <button
                 onClick={() => mobileOutlineOpen.set(true)}
                 className="1000:hidden hover:bg-hover target-8 border-default rounded border p-1.5"
@@ -366,55 +357,28 @@ function App() {
         <div className="relative z-10 flex min-h-0 grow p-4">
           <nav className="max-1000:hidden pointer-events-auto flex h-full flex-col gap-2">
             <Card
-              title={
-                isLandingOpen ? (
-                  <Bar className="h-3 w-28" />
-                ) : isGuided ? (
-                  'Guided tour & help'
-                ) : (
-                  'Explore the hardware'
-                )
-              }
-              contentKey={isLandingOpen ? 'skeleton' : isGuided ? 'guided' : 'free'}
+              title={isLoading ? <Bar className="h-3 w-28" /> : <SidebarTabs />}
+              contentKey={isLoading ? 'skeleton' : currentTab}
             >
-              {isLandingOpen ? (
+              {isLoading ? (
                 <OutlineSkeleton />
-              ) : isGuided ? (
+              ) : currentTab === 'configure' ? (
+                <ConfiguratorPanel />
+              ) : currentTab === 'tours' ? (
                 <GuidedTourOutline />
               ) : (
                 <Outline />
               )}
             </Card>
             <CookiePopup />
-            {!isLandingOpen && (
-              <button
-                onClick={() => {
-                  if (isGuided) {
-                    exitGuidedMode()
-                    if (isKiosk) maybeStartFreeTutorial()
-                  } else {
-                    const first = getFirstStandardTour()
-                    startTour(first.id)
-                  }
-                }}
-                className="group text-accent hover:bg-accent-hover text-mono-xs bg-accent hover:bg-accent-secondary-hover flex w-full items-center justify-between rounded-md border border-current/5 px-2.5 py-2 transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  {isGuided ? <Images16Icon /> : <Monitoring16Icon />}
-                  {isGuided ? 'Free Explore' : 'Guided tour'}
-                </div>
-                <div className="translate-x-0 transition-transform group-hover:translate-x-0.5">
-                  <NextArrow12Icon />
-                </div>
-              </button>
-            )}
+            {!isLoading && isFree && <TourCard />}
           </nav>
 
           {/* Center area between sidebars — tour controls live here */}
           <div className="relative min-h-0 min-w-0 grow">
             {isVideo && !isStartScreen && <VideoPlayPauseFlash />}
             {/* Standard tour: pips + prev/next arrows */}
-            {isStandardTour && currentTour && !isLandingOpen && !isStartScreen && (
+            {isStandardTour && currentTour && !isStartScreen && (
               <>
                 <div className="max-1000:hidden max-1000:bottom-[216px] pointer-events-auto absolute bottom-4 left-1/2 z-20 -translate-x-1/2">
                   <StepPips />
@@ -455,8 +419,16 @@ function App() {
 
             <AnimatePresence>{isGuided && <TourStartScreen />}</AnimatePresence>
 
+            <PerformanceNotice />
+
+            {isConfigure && (
+              <div className="max-1000:hidden pointer-events-auto absolute bottom-4 left-1/2 z-20 -translate-x-1/2">
+                <RackCountStepper />
+              </div>
+            )}
+
             {/* Video tour: timeline + player */}
-            {isVideo && currentVideoTour && !isLandingOpen && !isStartScreen && (
+            {isVideo && currentVideoTour && !isStartScreen && (
               <>
                 <div className="pointer-events-auto absolute top-0 right-0 z-20">
                   <AnimatePresence>
@@ -510,26 +482,38 @@ function App() {
           >
             <Card
               title={
-                isLandingOpen ? (
+                isLoading ? (
                   <Bar className="h-3 w-20" />
                 ) : isStandardTour ? (
                   'Guide'
+                ) : isConfigure ? (
+                  'Summary'
                 ) : (
                   'Specifications'
                 )
               }
-              contentKey={isLandingOpen ? 'skeleton' : isStandardTour ? 'guide' : 'specs'}
+              contentKey={
+                isLoading
+                  ? 'skeleton'
+                  : isStandardTour
+                    ? 'guide'
+                    : isConfigure
+                      ? 'configure'
+                      : 'specs'
+              }
             >
-              {isLandingOpen ? (
+              {isLoading ? (
                 <SpecificationsSkeleton />
               ) : isStandardTour ? (
                 <GuidedTourPanel />
+              ) : isConfigure ? (
+                <ConfiguratorSummary />
               ) : (
                 <Specifications />
               )}
             </Card>
             <ContactSales
-              loading={isLandingOpen}
+              loading={isLoading}
               ref={contactFrostRef}
               className={clsx(
                 'hover:bg-hover/80 block w-64 rounded-md border border-neutral-900/10 p-2.5 transition-colors',
@@ -543,7 +527,7 @@ function App() {
           <CookiePopup />
         </div>
 
-        {!isLandingOpen && !isVideo && !(isGuided && isStartScreen) && (
+        {!isVideo && !(isGuided && isStartScreen) && (
           <motion.button
             initial={false}
             animate={{ x: specsOpen ? -6 : 0 }}
@@ -560,17 +544,9 @@ function App() {
           </motion.button>
         )}
 
-        {!isLandingOpen && <MobileSpecsDrawer />}
+        {!isLoading && <MobileSpecsDrawer />}
         <MobileOutlineOverlay />
         <FreeTutorial />
-
-        <AnimatePresence>
-          {isLandingOpen && (
-            <div className="absolute inset-0 z-20">
-              <LandingModal />
-            </div>
-          )}
-        </AnimatePresence>
 
         <IdleTourOverlay />
       </div>

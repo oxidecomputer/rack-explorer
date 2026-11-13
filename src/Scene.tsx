@@ -12,7 +12,15 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useValue } from '@tldraw/state-react'
 import CameraControlsImpl from 'camera-controls'
 import { useReducedMotion } from 'motion/react'
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentProps,
+} from 'react'
 import * as THREE from 'three'
 
 import {
@@ -30,6 +38,7 @@ import {
   maxZoomMultiplier,
   navigationMode,
   postProcessingSetting,
+  rackCount,
   resolutionSetting,
   sceneReady,
   selectedId,
@@ -40,8 +49,10 @@ import {
   specificationsOpen,
   togglePlayWithFlash,
   tourStartScreen,
+  visibleSledSlots,
 } from './atoms'
 import { CanvasExporter } from './components/CanvasExporter'
+import { ConfiguratorOverlay } from './components/ConfiguratorOverlay'
 import { Hitbox } from './components/Hitbox'
 import { InstancedGLBModel } from './components/InstancedGLBModel'
 import { MOBILE_SPECS_PANEL_HEIGHT } from './components/MobileSpecsDrawer'
@@ -62,6 +73,7 @@ import {
   resolveWaypoint,
   type ModelConfig,
 } from './data/componentTree'
+import { getLayoutBounds, getLayoutWaypoint, RACK_SIZE } from './data/configurator'
 import { detectSoftwareRendering, probeMaxBufferSize, probeMaxSamples } from './gpuProbe'
 import { AdaptivePerformanceMonitor } from './perf/AdaptivePerformanceMonitor'
 import { eventsWithoutHover } from './perf/eventsWithoutHover'
@@ -70,6 +82,17 @@ import { markInit, parsePerfFlags, type PerfFlags } from './perf/harness'
 import { prefetchDrillInModels, preloadRackModels } from './preload'
 
 const perfFlags = parsePerfFlags()
+
+/** One raised-floor tile: a rack's width. */
+const FLOOR_TILE = RACK_SIZE[0]
+/** Center the modelled rack on its tiles: one tile wide, and two tiles deep
+ *  with an equal margin front and back (≈ (1200 − 1060) / 2 = 70 mm). Grid
+ *  lines fall on multiples of the tile from this point. */
+const FLOOR_TILE_OFFSET: [number, number, number] = [
+  FLOOR_TILE / 2,
+  0,
+  RACK_SIZE[2] / 2 + (2 * FLOOR_TILE - RACK_SIZE[2]) / 2,
+]
 
 // Perf ablation: when ?perforations=off, skip GLBs whose alpha-test geometry
 // (Perforations material) drives extra fragment cost.
@@ -132,7 +155,7 @@ function HDRIEnvironment() {
   }, [rotX, rotY, rotZ, intensity, showBackground, invalidate])
   return (
     <Environment
-      files="./common/hdri.jpg"
+      files="/common/hdri.jpg"
       environmentIntensity={intensity}
       environmentRotation={rotation}
       background={showBackground}
@@ -179,6 +202,51 @@ function RackShadow() {
     >
       <planeGeometry args={[1, 1.75]} />
     </mesh>
+  )
+}
+
+/** Floor: raised data center tiles, one rack wide (600 mm), with the
+ *  modelled rack centered on a 1 × 2 tile footprint. Faded out from the rack
+ *  rather than the camera so a zoomed-out configurator layout keeps its
+ *  floor. Its own component so a rack-count change re-renders only this. */
+function DataCenterFloor() {
+  const isConfigure = useValue(navigationMode) === 'configure'
+  const configuredRacks = useValue(rackCount)
+  const racks = isConfigure ? configuredRacks : 1
+  // Fade the floor out just past the furthest rack.
+  const fade = useMemo(() => {
+    const { min, max } = getLayoutBounds(racks)
+    return Math.max(22, Math.hypot(max[0] - min[0], max[2] - min[2]) + 10)
+  }, [racks])
+  // Grid's cellSize is in the plane's local units, so size the plane with
+  // `args` (not `scale`) to keep tiles in world units.
+  const size = fade * 2.5
+  return (
+    <Grid
+      args={[size, size]}
+      cellSize={FLOOR_TILE}
+      sectionSize={FLOOR_TILE}
+      sectionColor="#373F41"
+      cellColor="#373F41"
+      position={FLOOR_TILE_OFFSET}
+      fadeDistance={fade}
+      fadeFrom={0}
+      fadeStrength={1}
+    />
+  )
+}
+
+/** InstancedGLBModel that, for compute sleds, shows only the configured bays.
+ *  Reads the bays itself so a sled-count change doesn't re-render the scene. */
+function InstancedModel({
+  configurableSleds,
+  ...props
+}: Omit<ComponentProps<typeof InstancedGLBModel>, 'visibleInstances'> & {
+  configurableSleds: boolean
+}) {
+  const slots = useValue(visibleSledSlots)
+  return (
+    <InstancedGLBModel {...props} visibleInstances={configurableSleds ? slots : null} />
   )
 }
 
@@ -288,7 +356,32 @@ const FIXED_FOV = 15
 // (1.0 = bbox edges touch frame edges). Overridable per-waypoint.
 const DEFAULT_FIT_FRACTION = 1 / 1.5
 
+/** Horizontal space a sidebar takes from the canvas: its 256px card plus the
+ *  16px page padding. */
+const SIDEBAR_INSET = 272
+/** Space kept clear at the top (header) and bottom (rack stepper) when the
+ *  configurator frames its layout. Symmetric, since the view isn't offset
+ *  vertically. */
+const CONFIGURE_VERTICAL_INSET = 80
+
+/** Far plane for normal framing; CameraFitter raises it for big layouts. */
+const BASE_FAR = 100
+
+type ZoomBlend = {
+  /** Distance at or below which the orbit centers on `from`. */
+  near: number
+  /** Distance at which it centers on `to` (the fitted, max zoom-out). */
+  far: number
+  from: [number, number, number]
+  to: [number, number, number]
+}
+
+const _blendTarget = new THREE.Vector3()
+const _rackFitBox = new THREE.Box3()
+const _rackFitMin = new THREE.Vector3()
+const _rackFitMax = new THREE.Vector3()
 const _camTarget = new THREE.Vector3()
+const _boxSize = new THREE.Vector3()
 const _forward = new THREE.Vector3()
 const _worldUp = new THREE.Vector3(0, 1, 0)
 const _right = new THREE.Vector3()
@@ -365,6 +458,7 @@ function computeFitPosition(
   windowAspect: number,
   fitFraction: number | undefined,
   verticalFitScale: number = 1,
+  horizontalFitScale: number = 1,
 ): [number, number, number] {
   _camTarget.fromArray(waypointTarget)
   // Camera direction points from target toward camera; forward is the inverse.
@@ -392,7 +486,7 @@ function computeFitPosition(
   // Distance such that the projected dimension is `f` × window dimension.
   // verticalFitScale only tightens height — the canvas is still full-width.
   const dH = maxY / (f * verticalFitScale * tanHalfFov)
-  const dW = maxX / (f * tanHalfFov * windowAspect)
+  const dW = maxX / (f * horizontalFitScale * tanHalfFov * windowAspect)
   const dist = Math.max(dH, dW)
 
   _newPos.copy(_camTarget).addScaledVector(_forward, -dist)
@@ -411,7 +505,14 @@ function CameraFitter({
   const isVideo = useValue(isVideoTour)
   const isStartScreen = useValue(tourStartScreen)
   const tourStep = useValue(activeTourStep)
-  const stepWaypoint = navMode === 'guided' ? (tourStep?.waypoint ?? null) : null
+  const racks = useValue(rackCount)
+  const specsOpen = useValue(specificationsOpen)
+  // Configure mode frames the whole floor layout rather than a component.
+  const configWaypoint = useMemo(
+    () => (navMode === 'configure' ? getLayoutWaypoint(racks) : null),
+    [navMode, racks],
+  )
+  const stepWaypoint = navMode === 'guided' ? (tourStep?.waypoint ?? null) : configWaypoint
   const fitFractionMult = useValue(fitFractionMultiplier)
   const maxZoomMult = useValue(maxZoomMultiplier)
   const isIdleTour = useValue(idleTourActive)
@@ -419,6 +520,72 @@ function CameraFitter({
   const isFirstFitRef = useRef(true)
   const lastFitKeyRef = useRef('')
   const invalidate = useThree((s) => s.invalidate)
+  // Configure mode: zooming slides the orbit center from the whole layout
+  // (at the fitted, max zoom-out distance) to the modelled rack (at the
+  // single-rack framing distance or closer). Set at each fit; null elsewhere.
+  const zoomBlendRef = useRef<ZoomBlend | null>(null)
+  // Only the user's own zooming drives the blend, not a fit's animated dolly.
+  const userControlRef = useRef(false)
+  const lastBlendDistanceRef = useRef<number | null>(null)
+  // Half the diagonal of the last framed volume.
+  const framedRadiusRef = useRef(0)
+
+  // Keep the framed volume (and the floor fading out behind it) inside the
+  // clip range. Uses the camera's current distance as well as how far the user
+  // may dolly out, so while a fit is still flying in from a big layout to a
+  // small one the far plane shrinks with the camera, not ahead of it.
+  useFrame(({ camera }) => {
+    const controls = controlsRef.current
+    if (!controls) return
+    const reach = Math.max(controls.maxDistance, controls.distance)
+    const far = Math.max(BASE_FAR, (reach + framedRadiusRef.current) * 1.5)
+    const cam = camera as THREE.PerspectiveCamera
+    if (Math.abs(cam.far - far) > 0.01 * far) {
+      cam.far = far
+      cam.updateProjectionMatrix()
+    }
+  })
+
+  useEffect(() => {
+    const controls = controlsRef.current
+    if (!controls) return
+    const onControl = () => {
+      userControlRef.current = true
+    }
+    // The wheel emits only 'control'; drags emit 'controlstart' first.
+    controls.addEventListener('control', onControl)
+    controls.addEventListener('controlstart', onControl)
+    return () => {
+      controls.removeEventListener('control', onControl)
+      controls.removeEventListener('controlstart', onControl)
+    }
+  }, [controlsRef])
+
+  useFrame(() => {
+    const controls = controlsRef.current
+    const blend = zoomBlendRef.current
+    if (!controls || !blend || !userControlRef.current) return
+    const distance = controls.distance
+    const last = lastBlendDistanceRef.current
+    lastBlendDistanceRef.current = distance
+    if (last === null || Math.abs(distance - last) < 1e-5) return
+    const span = blend.far - blend.near
+    if (span < 1e-3) return
+    const t = (d: number) => Math.min(1, Math.max(0, (d - blend.near) / span))
+    // Shift by the change in blend rather than snapping to it, so any pan the
+    // user has applied is kept.
+    const dt = t(distance) - t(last)
+    if (dt === 0) return
+    controls.getTarget(_blendTarget, true)
+    controls.moveTo(
+      _blendTarget.x + (blend.to[0] - blend.from[0]) * dt,
+      _blendTarget.y + (blend.to[1] - blend.from[1]) * dt,
+      _blendTarget.z + (blend.to[2] - blend.from[2]) * dt,
+      // Instant: the dolly distance driving this is already smoothed, so an
+      // eased move here would trail behind the zoom.
+      false,
+    )
+  })
 
   useEffect(() => {
     invalidate()
@@ -441,7 +608,11 @@ function CameraFitter({
     const wpKey = stepWaypoint
       ? `${stepWaypoint.direction.join(',')}|${stepWaypoint.target.join(',')}|${stepWaypoint.scale?.join(',') ?? ''}|${stepWaypoint.fitFraction ?? ''}`
       : ''
-    const fitKey = `${sel}|${navMode}|${size.width}|${size.height}|${panelVisible}|${wpKey}|${fitFractionMult}|${maxZoomMult}`
+    // The configurator frames a wide layout, so fit it into the canvas left
+    // between the sidebars (and the header and rack stepper), not the whole
+    // canvas. CameraOffset already centers the view in that space.
+    const fitBetweenPanels = navMode === 'configure' && !isMobile
+    const fitKey = `${sel}|${navMode}|${size.width}|${size.height}|${panelVisible}|${wpKey}|${fitFractionMult}|${maxZoomMult}|${fitBetweenPanels && specsOpen}`
     if (fitKey === lastFitKeyRef.current) return
 
     // Step-level waypoint overrides the selected component's default. When the
@@ -474,6 +645,11 @@ function CameraFitter({
     const verticalFitScale = panelVisible
       ? (size.height - MOBILE_SPECS_PANEL_HEIGHT) / size.height
       : 1
+    const panelsWidth = fitBetweenPanels ? SIDEBAR_INSET * (specsOpen ? 2 : 1) : 0
+    const horizontalFitScale = Math.max(0.2, (size.width - panelsWidth) / size.width)
+    const fitVerticalScale = fitBetweenPanels
+      ? Math.max(0.2, (size.height - 2 * CONFIGURE_VERTICAL_INSET) / size.height)
+      : verticalFitScale
     const baseFitFraction = waypoint.fitFraction ?? DEFAULT_FIT_FRACTION
     const position = computeFitPosition(
       box,
@@ -481,7 +657,8 @@ function CameraFitter({
       waypoint.target,
       aspect,
       baseFitFraction * fitFractionMult,
-      verticalFitScale,
+      fitVerticalScale,
+      horizontalFitScale,
     )
 
     const fitDistance = Math.hypot(
@@ -489,6 +666,39 @@ function CameraFitter({
       position[1] - waypoint.target[1],
       position[2] - waypoint.target[2],
     )
+
+    zoomBlendRef.current = null
+    userControlRef.current = false
+    lastBlendDistanceRef.current = null
+    if (navMode === 'configure' && configWaypoint) {
+      // Distance at which the modelled rack alone fills the same space.
+      const rack = getLayoutWaypoint(1)
+      const [rw, rh, rd] = rack.scale!
+      const [rx, ry, rz] = rack.target
+      _rackFitBox.set(
+        _rackFitMin.set(rx - rw / 2, ry - rh / 2, rz - rd / 2),
+        _rackFitMax.set(rx + rw / 2, ry + rh / 2, rz + rd / 2),
+      )
+      const nearPos = computeFitPosition(
+        _rackFitBox,
+        configWaypoint.direction,
+        rack.target,
+        aspect,
+        (rack.fitFraction ?? DEFAULT_FIT_FRACTION) * fitFractionMult,
+        fitVerticalScale,
+        horizontalFitScale,
+      )
+      zoomBlendRef.current = {
+        near: Math.hypot(
+          nearPos[0] - rack.target[0],
+          nearPos[1] - rack.target[1],
+          nearPos[2] - rack.target[2],
+        ),
+        far: fitDistance,
+        from: rack.target,
+        to: waypoint.target,
+      }
+    }
     // Zoom-out cap: distance needed to frame the whole rack from the current
     // target along the current waypoint direction. Reverts to fitDistance when
     // already at rack level (or larger than rack, e.g. mobile aspect), so the
@@ -520,6 +730,9 @@ function CameraFitter({
     const minDolly = drilledIn ? MIN_DOLLY_DISTANCE_DRILLED : MIN_DOLLY_DISTANCE_TOP
     controlsRef.current.minDistance = Math.min(fitDistance, minDolly)
     controlsRef.current.maxDistance = maxDistance * maxZoomMult
+
+    // Far plane follows this (see the far-plane useFrame above).
+    framedRadiusRef.current = box.getSize(_boxSize).length() / 2
 
     const animate = !isFirstFitRef.current && !reducedMotion
     isFirstFitRef.current = false
@@ -753,6 +966,8 @@ function SceneContent({
 
   const currentNavigationMode = useValue(navigationMode)
   const isGuidedMode = currentNavigationMode === 'guided'
+  const isConfigureMode = currentNavigationMode === 'configure'
+  const isFreeMode = currentNavigationMode === 'free'
   const isVideo = useValue(isVideoTour)
   const isStartScreen = useValue(tourStartScreen)
   const videoClickActive = isVideo && !isStartScreen
@@ -770,18 +985,7 @@ function SceneContent({
       ) : (
         <HDRIEnvironment />
       )}
-      {!lowTier && (
-        <Grid
-          cellSize={0.025}
-          sectionSize={0.025}
-          sectionColor="#373F41"
-          cellColor="#373F41"
-          scale={15}
-          position={[0, 0, 0]}
-          fadeDistance={25}
-          fadeStrength={0.5}
-        />
-      )}
+      {!lowTier && <DataCenterFloor />}
       {!isolatedToId && <RackShadow />}
       <ModifiedSelection>
         {postMode !== 'none' && (
@@ -814,7 +1018,7 @@ function SceneContent({
               togglePlayWithFlash()
               return
             }
-            if (isGuidedMode) return
+            if (!isFreeMode) return
 
             if (pointerDownPos.current) {
               const dx = e.clientX - pointerDownPos.current.x
@@ -841,7 +1045,7 @@ function SceneContent({
           }}
           onDoubleClick={(e) => {
             e.stopPropagation()
-            if (isGuidedMode) return
+            if (!isFreeMode) return
             const current = selectedId.get()
             if (!current) return
             const base = current.split(':')[0]
@@ -961,13 +1165,14 @@ function SceneContent({
               return (
                 <group key={node.id}>
                   {models.map((model, i) => (
-                    <InstancedGLBModel
+                    <InstancedModel
                       key={`${node.id}-${i}`}
                       path={model.path}
                       instances={instancesById[node.id]}
                       selectionOffset={node.selectionOffset}
                       textures={model.textures}
                       animationSpeed={model.animationSpeed}
+                      configurableSleds={node.id === 'compute-sled'}
                     />
                   ))}
                 </group>
@@ -991,6 +1196,7 @@ function SceneContent({
         </group>
       </ModifiedSelection>
       {isGuidedMode && <TourAnnotations />}
+      {isConfigureMode && <ConfiguratorOverlay />}
       <CameraControls
         ref={cameraControlsRef}
         maxPolarAngle={Math.PI / 2}
@@ -1285,7 +1491,6 @@ const SceneCanvas = ({
       ]
     : [5, 5, 10]
   const currentNavigationMode = useValue(navigationMode)
-  const isGuidedMode = currentNavigationMode === 'guided'
   const isVideo = useValue(isVideoTour)
   const isStartScreen = useValue(tourStartScreen)
   const videoClickActive = isVideo && !isStartScreen
@@ -1308,7 +1513,7 @@ const SceneCanvas = ({
           position: initialPosition,
           fov: FIXED_FOV,
           near: 1,
-          far: 100,
+          far: BASE_FAR,
         }}
         events={eventsWithoutHover}
         performance={{ current: 1, min: 0.5, max: 1, debounce: 200 }}
@@ -1331,7 +1536,7 @@ const SceneCanvas = ({
             togglePlayWithFlash()
             return
           }
-          if (isGuidedMode) return
+          if (currentNavigationMode !== 'free') return
           const now = performance.now()
           if (now - lastMissTime.current < 400) {
             const current = selectedId.get()

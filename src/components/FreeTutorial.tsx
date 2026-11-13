@@ -17,8 +17,8 @@ import {
   FREE_TUTORIAL_STEP_COUNT,
   freeTutorialStepIndex,
   kioskMode,
-  landingOpen,
   navigationMode,
+  sceneReady,
 } from '../atoms'
 
 // Touch screens (e.g. an iPad, which gets this desktop layout in landscape)
@@ -34,8 +34,8 @@ const STEPS: {
 }[] = [
   {
     body: IS_TOUCH
-      ? 'The rack tree of components. Tap any item to focus on it.'
-      : 'The rack tree of components. Click any item to focus on it. Use Arrow Up and Down to step through adjacent items, Enter to drill down or Esc to go back up.',
+      ? 'The rack tree of components. Tap any item to focus on it, or switch to Tours for a guided walkthrough.'
+      : 'The rack tree of components. Click any item to focus on it. Use Arrow Up and Down to step through adjacent items, Enter to drill down or Esc to go back up. Switch to Tours for a guided walkthrough.',
     position: 'left-72',
     alignToCards: true,
   },
@@ -71,11 +71,11 @@ const EXIT = { opacity: 0, y: 4, transition: { duration: 0.2, ease: EASE_OUT_QUA
 export function FreeTutorial() {
   const stepIndex = useValue(freeTutorialStepIndex)
   const mode = useValue(navigationMode)
-  const isLandingOpen = useValue(landingOpen)
+  const isSceneReady = useValue(sceneReady)
   const isKiosk = useValue(kioskMode)
   const [isDirty, setIsDirty] = useState(false)
 
-  const visible = stepIndex !== null && mode === 'free' && !isLandingOpen
+  const visible = stepIndex !== null && mode === 'free' && isSceneReady
   const step = stepIndex !== null ? STEPS[stepIndex] : null
   const isLast = stepIndex === FREE_TUTORIAL_STEP_COUNT - 1
   const isFirst = stepIndex === 0

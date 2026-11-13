@@ -16,7 +16,6 @@ import { useState } from 'react'
 import {
   debugMode,
   kioskMode,
-  landingOpen,
   navigationMode,
   postProcessingSetting,
   qualitySetting,
@@ -112,15 +111,12 @@ function Segmented<T extends string>({
 }
 
 export function OptionsDropdown() {
-  const [openState, setOpen] = useState(false)
+  const [open, setOpen] = useState(false)
   const isShowcaseMode = useValue(showcaseMode)
   const isDebugMode = useValue(debugMode)
   const currentNavigationMode = useValue(navigationMode)
   const isGuided = currentNavigationMode === 'guided'
-  const isLandingOpen = useValue(landingOpen)
   const isKiosk = useValue(kioskMode)
-  // While landing modal is open, the dropdown is force-hidden.
-  const open = openState && !isLandingOpen
 
   // Kept away from kiosk visitors; holding the top-left corner exits kiosk mode.
   if (isKiosk) return null
@@ -129,7 +125,6 @@ export function OptionsDropdown() {
     <div className="max-1000:hidden relative z-40 w-full">
       <button
         onClick={() => setOpen(!open)}
-        disabled={isLandingOpen}
         className="text-mono-xs text-secondary bg-default hover:bg-hover border-neutral-0 flex h-8 w-full items-center gap-1.5 rounded border p-2 disabled:pointer-events-none disabled:opacity-50"
       >
         <PrevArrow12Icon

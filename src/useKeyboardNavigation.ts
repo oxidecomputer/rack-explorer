@@ -15,7 +15,6 @@ import {
   activeVideoTourStepIndex,
   goToNextTour,
   goToTourStep,
-  landingOpen,
   navigationMode,
   seekVideo,
   selectedId,
@@ -74,7 +73,8 @@ export function useKeyboardNavigation() {
         return
       }
 
-      if (landingOpen.get()) return
+      // The configurator's only inputs are its own form controls.
+      if (navigationMode.get() === 'configure') return
 
       if (navigationMode.get() !== 'guided') {
         // Free mode

@@ -9,6 +9,7 @@
 import { computed, atom as createAtom, type Atom, type AtomOptions } from '@tldraw/state'
 
 import { findClosestModelAncestorId } from './data/componentTree'
+import { DEFAULT_CONFIG, getFilledSledSlots, type RackConfig } from './data/configurator'
 import {
   getFirstStandardTour,
   getVideoTourStepAtTime,
@@ -21,7 +22,7 @@ import { isStandalone } from './util/standalone'
 // refreshable (no React components), so an edit to it — or to any non-
 // refreshable upstream dep like componentTree.ts — causes Vite to re-import it
 // and reset every atom to its default. Caching by name on import.meta.hot.data
-// hands back the same instance, so atom values (landingOpen, sceneReady,
+// hands back the same instance, so atom values (sceneReady, navigationMode,
 // selectedId, etc.) survive the reload.
 const atomCache: Map<string, Atom<unknown, unknown>> | null = import.meta.hot
   ? (import.meta.hot.data.atomCache ??= new Map())
@@ -56,11 +57,78 @@ export const outlineId = computed('outlineId', () =>
  *  clip-bearing mesh. */
 export const selectionAnimGateOpen = atom('selectionAnimGateOpen', true)
 
-type NavigationMode = 'free' | 'guided'
+type NavigationMode = 'free' | 'guided' | 'configure'
 export const navigationMode = atom<NavigationMode>('navigationMode', 'free')
 
+/** Free explore is the only mode where clicking/keyboard picks components. */
+export const isFreeMode = computed('isFreeMode', () => navigationMode.get() === 'free')
+
+/** The left sidebar's tabs, one per mode: picking a tab switches mode, and
+ *  Tours opens on the first tour's start screen. */
+type SidebarTab = 'components' | 'tours' | 'configure'
+const TAB_BY_MODE = { free: 'components', guided: 'tours', configure: 'configure' } as const
+export const sidebarTab = computed<SidebarTab>(
+  'sidebarTab',
+  () => TAB_BY_MODE[navigationMode.get()],
+)
+
+export function setSidebarTab(tab: SidebarTab) {
+  if (tab === sidebarTab.get()) return
+  if (tab === 'tours') startTour(getFirstStandardTour().id)
+  else if (tab === 'configure') startConfigure()
+  else exitGuidedMode()
+}
+
+// Rack configurator
+export const rackConfig = atom<RackConfig>('rackConfig', DEFAULT_CONFIG)
+
+export function updateRackConfig(patch: Partial<RackConfig>) {
+  rackConfig.update((c) => ({ ...c, ...patch }))
+}
+
+export function resetRackConfig() {
+  rackConfig.set(DEFAULT_CONFIG)
+}
+
+// Narrow views of rackConfig. Computeds only notify when their own value
+// changes, so e.g. the 3D scene doesn't re-render when memory changes and the
+// options panel doesn't re-render when only the rack count does.
+export const rackCount = computed('rackCount', () => rackConfig.get().racks)
+const sledCount = computed('sledCount', () => rackConfig.get().sleds)
+
+/** Every option except the rack count. */
+export const sledConfig = computed(
+  'sledConfig',
+  () => {
+    const config: Partial<RackConfig> = { ...rackConfig.get() }
+    delete config.racks
+    return config as Omit<RackConfig, 'racks'>
+  },
+  {
+    isEqual: (a, b) => (Object.keys(a) as (keyof typeof a)[]).every((k) => a[k] === b[k]),
+  },
+)
+
+/** Sled bays to render in the modelled rack. Null (every bay) outside
+ *  configure mode. A new Set only when the sled count or mode changes. */
+export const visibleSledSlots = computed('visibleSledSlots', () =>
+  navigationMode.get() === 'configure' ? getFilledSledSlots(sledCount.get()) : null,
+)
+
+/** Enter the configurator from any mode. */
+export function startConfigure() {
+  navigationMode.set('configure')
+  showcaseMode.set(false)
+  freeTutorialStepIndex.set(null)
+  activeTourId.set(null)
+  activeTourStepIndex.set(0)
+  videoTourPlaying.set(false)
+  videoTourCurrentTime.set(0)
+  tourStartScreen.set(true)
+  selectedId.set('oxide-rack')
+}
+
 export const specificationsOpen = atom('specificationsOpen', true)
-export const landingOpen = atom('landingOpen', true)
 export const sceneReady = atom('sceneReady', false)
 
 // Mobile-only UI state
@@ -117,7 +185,6 @@ export const idleTourActive = atom('idleTourActive', false)
 /** Reset everything a previous visitor may have left behind and start the
  *  idle tour on the first step of the overview tour, past its start screen. */
 export function startIdleTour() {
-  landingOpen.set(false)
   freeTutorialStepIndex.set(null)
   mobileOutlineOpen.set(false)
   specificationsOpen.set(true)
@@ -290,7 +357,7 @@ export const tourStartScreen = atom('tourStartScreen', true)
 
 /** True when the start screen is being shown as a result of advancing past the
  *  previous tour's last step (rather than picking a tour from the sidebar or
- *  landing). Used to surface a "Contact Sales" CTA below the start screen as a
+ *  the tour card). Used to surface a "Contact Sales" CTA below the start screen as a
  *  subtle touchpoint at the natural break between tours. */
 export const cycledFromPreviousTour = atom('cycledFromPreviousTour', false)
 
@@ -314,6 +381,7 @@ export function startTour(tourId: string) {
 
   navigationMode.set('guided')
   showcaseMode.set(false)
+  freeTutorialStepIndex.set(null)
   activeTourId.set(tourId)
   videoTourPlaying.set(false)
   tourStartScreen.set(true)
@@ -331,7 +399,7 @@ export function startTour(tourId: string) {
   }
 }
 
-/** Exit guided mode entirely */
+/** Exit guided or configure mode back to free explore */
 export function exitGuidedMode() {
   navigationMode.set('free')
   selectedId.set('oxide-rack')

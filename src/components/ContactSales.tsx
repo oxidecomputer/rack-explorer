@@ -38,7 +38,7 @@ export function ContactSales({
         <div className="min-w-0 grow">
           <div className="text-mono-xs text-tertiary">Contact Sales</div>
           <p className="text-default text-sans-sm mt-1 pr-1">
-            Discuss your needs and business goals with our team of experts.
+            Discuss your needs and business goals with our team of experts
           </p>
         </div>
         <svg
@@ -69,7 +69,7 @@ export function ContactSales({
             Contact Sales <OpenLink12Icon className="text-quaternary" />
           </div>
           <p className="text-default text-sans-sm mt-1 max-w-90 pr-2">
-            Discuss your computing requirements and business goals with our team of experts.
+            Discuss your computing requirements and business goals with our team of experts
           </p>
         </>
       )}
