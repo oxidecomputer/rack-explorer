@@ -96,19 +96,16 @@ export function resetRackConfig() {
 export const rackCount = computed('rackCount', () => rackConfig.get().racks)
 const sledCount = computed('sledCount', () => rackConfig.get().sleds)
 
-/** Per-sled options, without the rack count. */
+/** Every option except the rack count. */
 export const sledConfig = computed(
   'sledConfig',
   () => {
-    const { sleds, memoryId, driveId, drivesPerSled } = rackConfig.get()
-    return { sleds, memoryId, driveId, drivesPerSled }
+    const config: Partial<RackConfig> = { ...rackConfig.get() }
+    delete config.racks
+    return config as Omit<RackConfig, 'racks'>
   },
   {
-    isEqual: (a, b) =>
-      a.sleds === b.sleds &&
-      a.memoryId === b.memoryId &&
-      a.driveId === b.driveId &&
-      a.drivesPerSled === b.drivesPerSled,
+    isEqual: (a, b) => (Object.keys(a) as (keyof typeof a)[]).every((k) => a[k] === b[k]),
   },
 )
 

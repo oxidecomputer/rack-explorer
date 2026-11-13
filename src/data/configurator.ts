@@ -6,83 +6,107 @@
  * Copyright Oxide Computer Company
  */
 
-// Rack configurator: the options a buyer can choose (2nd Gen sleds only), the totals
+// Rack configurator: the options a buyer can choose (Turin sleds only), the totals
 // they add up to, and where extra racks sit on the data center floor.
 
 import { getNode, type ComponentWaypoint } from './componentTree'
 
 type Vec3 = [number, number, number]
 
-export type ConfigOption = {
-  id: string
-  label: string
-  detail: string
-}
+export type ConfigOption = { id: string; label: string; detail: string }
 
 // ——— Options ———
+// Mirrors the configurable lines of the Oxide price list (Turin compute sled,
+// 0x1 rack). Fixed lines — switches, power shelves, PSUs, boot drive — aren't
+// exposed.
 
-/** Sled slots that can be populated: every bay in the rack. (The published
- *  spec lists up to 24 2nd Gen sleds per rack.) */
-export const MAX_SLEDS = 32
+/** OXC-C-TCS: 8–24 Turin compute sleds per rack. */
+export const MAX_SLEDS = 24
 export const MIN_SLEDS = 8
 /** Sleds are added in pairs. */
 export const SLED_STEP = 2
 
+/** OXC-S-U2-*: 2–10 U.2 NVMe drives per sled. */
 export const MAX_DRIVES_PER_SLED = 10
-export const MIN_DRIVES_PER_SLED = 1
+export const MIN_DRIVES_PER_SLED = 2
+
+/** OXC-MEM-DDR5-*: 6–12 DIMMs per sled. */
+export const MAX_DIMMS_PER_SLED = 12
+export const MIN_DIMMS_PER_SLED = 6
+
+/** OXC-O-*: 4–64 QSFP transceivers per rack. */
+export const MAX_TRANSCEIVERS = 64
+export const MIN_TRANSCEIVERS = 4
 
 export const MAX_RACKS = 100
 export const MIN_RACKS = 1
 
-/** Per-sled CPU. One SKU for now; the spec only quotes the top bin. */
-export const CPU = {
-  label: 'AMD EPYC 9005 Series',
-  cores: 192,
-  threads: 384,
-}
+type Sku = { sku: string }
 
-/** `watts` is the estimated draw of all 12 DIMMs in a sled. */
-export const MEMORY_OPTIONS: (ConfigOption & { gib: number; watts: number })[] = [
-  { id: '768', label: '768 GiB', detail: '12 × 64 GiB DDR5', gib: 768, watts: 60 },
-  { id: '1152', label: '1152 GiB', detail: '12 × 96 GiB DDR5', gib: 1152, watts: 84 },
-  { id: '1536', label: '1.5 TiB', detail: '12 × 128 GiB DDR5', gib: 1536, watts: 108 },
-]
+/** One CPU per sled. */
+export const CPU_OPTIONS: (ConfigOption & Sku & { cores: number; threads: number })[] = [
+  { id: '9555P', sku: 'OXC-CPU-AMD9555P', cores: 64, threads: 128 },
+  { id: '9575F', sku: 'OXC-CPU-AMD9575F', cores: 64, threads: 128 },
+  { id: '9655P', sku: 'OXC-CPU-AMD9655P', cores: 96, threads: 192 },
+  { id: '9755', sku: 'OXC-CPU-AMD9755', cores: 128, threads: 256 },
+  { id: '9845', sku: 'OXC-CPU-AMD9845', cores: 160, threads: 320 },
+  { id: '9965', sku: 'OXC-CPU-AMD9965', cores: 192, threads: 384 },
+].map((o) => ({ ...o, label: `EPYC ${o.id}`, detail: `${o.cores}C / ${o.threads}T` }))
 
-/** `watts` is the estimated active draw of one drive. */
-export const DRIVE_OPTIONS: (ConfigOption & { tb: number; watts: number })[] = [
-  { id: '3.84', label: '3.84 TB', detail: 'U.2 NVMe', tb: 3.84, watts: 12 },
-  { id: '7.68', label: '7.68 TB', detail: 'U.2 NVMe', tb: 7.68, watts: 13 },
-  { id: '15.36', label: '15.36 TB', detail: 'U.2 NVMe', tb: 15.36, watts: 14 },
-  { id: '30.72', label: '30.72 TB', detail: 'U.2 NVMe', tb: 30.72, watts: 16 },
-]
+export const MEMORY_OPTIONS: (ConfigOption & Sku & { gib: number })[] = [
+  { gib: 64, detail: 'DDR5' },
+  { gib: 96, detail: 'DDR5' },
+  { gib: 128, detail: 'DDR5' },
+  { gib: 256, detail: '3DS DDR5' },
+].map((o) => ({
+  ...o,
+  id: `${o.gib}`,
+  sku: `OXC-MEM-DDR5-${o.gib}`,
+  label: `${o.gib} GiB`,
+}))
 
-// ——— Power ———
-// Rough estimates for a loaded rack, not measurements. Tune these against
-// real numbers before quoting them to anyone.
+export const DRIVE_OPTIONS: (ConfigOption & Sku & { tb: number })[] = [
+  { tb: 3.2 },
+  { tb: 3.84 },
+  { tb: 6.4 },
+].map((o) => ({
+  ...o,
+  id: `${o.tb}`,
+  sku: `OXC-S-U2-${o.tb}`,
+  label: `${o.tb} TB`,
+  detail: 'U.2 NVMe',
+}))
 
-/** Switches, power shelf conversion losses, and other per-rack overhead. */
-const RACK_BASE_WATTS = 1500
-/** Board, fans, NICs and service processor in each sled. */
-const SLED_BASE_WATTS = 150
-/** CPU under sustained load. */
-const CPU_WATTS = 400
-
-/** Published maximum with 1+1 redundant power shelves. */
-export const MAX_RATED_RACK_KW = 21.6
+/** Uplink optics in the switches. */
+export const TRANSCEIVER_OPTIONS: (ConfigOption & Sku)[] = [
+  { id: '100G-SR4', detail: 'QSFP28' },
+  { id: '100G-FR1', detail: 'QSFP28' },
+  { id: '100G-CWDM4', detail: 'QSFP28' },
+  { id: '100G-LR4', detail: 'QSFP28' },
+  { id: '200G-FR4', detail: 'QSFP56' },
+].map((o) => ({ ...o, sku: `OXC-O-${o.id}`, label: o.id.replace('-', ' ') }))
 
 export type RackConfig = {
   sleds: number
+  cpuId: string
   memoryId: string
+  dimmsPerSled: number
   driveId: string
   drivesPerSled: number
+  transceiverId: string
+  transceivers: number
   racks: number
 }
 
 export const DEFAULT_CONFIG: RackConfig = {
   sleds: 16,
-  memoryId: '1152',
-  driveId: '7.68',
+  cpuId: '9655P',
+  memoryId: '128',
+  dimmsPerSled: 12,
+  driveId: '3.84',
   drivesPerSled: 10,
+  transceiverId: '100G-FR1',
+  transceivers: 8,
   racks: 1,
 }
 
@@ -94,26 +118,27 @@ export type RackTotals = {
   memoryGiB: number
   storageTB: number
   drives: number
-  powerKW: number
 }
 
-const getMemory = (id: string) =>
-  MEMORY_OPTIONS.find((o) => o.id === id) ?? MEMORY_OPTIONS[0]
-const getDrive = (id: string) => DRIVE_OPTIONS.find((o) => o.id === id) ?? DRIVE_OPTIONS[0]
+const pick = <T extends { id: string }>(options: T[], id: string) =>
+  options.find((o) => o.id === id) ?? options[0]
+
+export const getCpu = (id: string) => pick(CPU_OPTIONS, id)
+export const getMemory = (id: string) => pick(MEMORY_OPTIONS, id)
+export const getDrive = (id: string) => pick(DRIVE_OPTIONS, id)
+export const getTransceiver = (id: string) => pick(TRANSCEIVER_OPTIONS, id)
 
 export function getRackTotals(config: RackConfig): RackTotals {
+  const cpu = getCpu(config.cpuId)
   const memory = getMemory(config.memoryId)
   const drive = getDrive(config.driveId)
   const drives = config.sleds * config.drivesPerSled
-  const sledWatts =
-    SLED_BASE_WATTS + CPU_WATTS + memory.watts + config.drivesPerSled * drive.watts
   return {
-    cores: config.sleds * CPU.cores,
-    threads: config.sleds * CPU.threads,
-    memoryGiB: config.sleds * memory.gib,
+    cores: config.sleds * cpu.cores,
+    threads: config.sleds * cpu.threads,
+    memoryGiB: config.sleds * config.dimmsPerSled * memory.gib,
     storageTB: drives * drive.tb,
     drives,
-    powerKW: (RACK_BASE_WATTS + config.sleds * sledWatts) / 1000,
   }
 }
 
@@ -124,12 +149,13 @@ export function scaleTotals(totals: RackTotals, factor: number): RackTotals {
     memoryGiB: totals.memoryGiB * factor,
     storageTB: totals.storageTB * factor,
     drives: totals.drives * factor,
-    powerKW: totals.powerKW * factor,
   }
 }
 
 const numberFormat = new Intl.NumberFormat('en-US')
-const decimalFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 })
+const decimalFormat = new Intl.NumberFormat('en-US', {
+  maximumFractionDigits: 1,
+})
 
 export const formatCount = (n: number) => numberFormat.format(n)
 

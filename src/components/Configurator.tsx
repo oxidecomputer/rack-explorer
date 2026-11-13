@@ -9,7 +9,6 @@
 import { Refresh16Icon } from '@oxide/design-system/icons/react'
 import { useValue } from '@tldraw/state-react'
 import clsx from 'clsx'
-import { motion } from 'motion/react'
 import { useState } from 'react'
 
 import {
@@ -21,30 +20,45 @@ import {
   updateRackConfig,
 } from '../atoms'
 import {
-  CPU,
+  CPU_OPTIONS,
   DEFAULT_CONFIG,
   DRIVE_OPTIONS,
   formatCount,
   formatMemory,
   formatStorage,
+  getCpu,
+  getDrive,
+  getMemory,
   getRackTotals,
+  getTransceiver,
+  MAX_DIMMS_PER_SLED,
   MAX_DRIVES_PER_SLED,
   MAX_RACKS,
-  MAX_RATED_RACK_KW,
   MAX_SLEDS,
+  MAX_TRANSCEIVERS,
   MEMORY_OPTIONS,
+  MIN_DIMMS_PER_SLED,
   MIN_DRIVES_PER_SLED,
   MIN_RACKS,
   MIN_SLEDS,
+  MIN_TRANSCEIVERS,
   RACK_DIMENSIONS_MM,
   scaleTotals,
   SLED_STEP,
+  TRANSCEIVER_OPTIONS,
   type ConfigOption,
   type RackTotals,
 } from '../data/configurator'
 import { InputNumber } from './InputNumber'
+import { InputSelect } from './InputSelect'
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+}: {
+  title: React.ReactNode
+  children: React.ReactNode
+}) {
   return (
     <div className="flex flex-col gap-2">
       <div className="text-mono-xs text-tertiary">{title}</div>
@@ -56,48 +70,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 /** Full-bleed rule across the card, past its padding. */
 const Divider = () => <hr className="border-secondary -mx-3 border-t" />
 
-function OptionGrid({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string
-  options: ConfigOption[]
-  value: string
-  onChange: (id: string) => void
-}) {
-  return (
-    <div role="group" aria-label={label} className="flex flex-col gap-1.5">
-      {options.map((option) => {
-        const selected = option.id === value
-        return (
-          <button
-            key={option.id}
-            aria-pressed={selected}
-            onClick={() => onChange(option.id)}
-            className={clsx(
-              'flex items-baseline justify-between gap-2 rounded-md border px-2.5 py-1.5 transition-colors',
-              selected
-                ? 'border-accent bg-accent text-accent'
-                : 'border-secondary text-tertiary hover:bg-hover hover:text-secondary',
-            )}
-          >
-            <span className="text-sans-sm">{option.label}</span>
-            <span
-              className={clsx(
-                'text-mono-xs',
-                selected ? 'text-accent-secondary' : 'text-quaternary',
-              )}
-            >
-              {option.detail}
-            </span>
-          </button>
-        )
-      })}
-    </div>
-  )
-}
+/** Native selects show one line per option, so fold the detail in. */
+const withDetail = (options: ConfigOption[]) =>
+  options.map((o) => ({ id: o.id, label: `${o.label} / ${o.detail}` }))
 
 /** Left sidebar: the configuration options. */
 export function ConfiguratorPanel() {
@@ -117,25 +92,38 @@ export function ConfiguratorPanel() {
 
       <Divider />
 
-      <Section title="Memory per sled">
-        <OptionGrid
-          label="Memory per sled"
-          options={MEMORY_OPTIONS}
-          value={config.memoryId}
-          onChange={(memoryId) => updateRackConfig({ memoryId })}
-        />
-      </Section>
+      <InputSelect
+        label="CPU"
+        options={withDetail(CPU_OPTIONS)}
+        value={config.cpuId}
+        onChange={(cpuId) => updateRackConfig({ cpuId })}
+      />
 
       <Divider />
 
-      <Section title="NVMe drive capacity">
-        <OptionGrid
-          label="NVMe drive capacity"
-          options={DRIVE_OPTIONS}
-          value={config.driveId}
-          onChange={(driveId) => updateRackConfig({ driveId })}
-        />
-      </Section>
+      <InputSelect
+        label="DIMM capacity"
+        options={withDetail(MEMORY_OPTIONS)}
+        value={config.memoryId}
+        onChange={(memoryId) => updateRackConfig({ memoryId })}
+      />
+
+      <InputNumber
+        label="DIMMs per sled"
+        value={config.dimmsPerSled}
+        min={MIN_DIMMS_PER_SLED}
+        max={MAX_DIMMS_PER_SLED}
+        onChange={(dimmsPerSled) => updateRackConfig({ dimmsPerSled })}
+      />
+
+      <Divider />
+
+      <InputSelect
+        label="NVMe drive capacity"
+        options={withDetail(DRIVE_OPTIONS)}
+        value={config.driveId}
+        onChange={(driveId) => updateRackConfig({ driveId })}
+      />
 
       <InputNumber
         label="NVMe drives per sled"
@@ -143,6 +131,24 @@ export function ConfiguratorPanel() {
         min={MIN_DRIVES_PER_SLED}
         max={MAX_DRIVES_PER_SLED}
         onChange={(drivesPerSled) => updateRackConfig({ drivesPerSled })}
+      />
+
+      <Divider />
+
+      <InputSelect
+        label="Uplink transceivers"
+        options={withDetail(TRANSCEIVER_OPTIONS)}
+        value={config.transceiverId}
+        onChange={(transceiverId) => updateRackConfig({ transceiverId })}
+      />
+
+      <InputNumber
+        label="Transceivers"
+        hint="per rack"
+        value={config.transceivers}
+        min={MIN_TRANSCEIVERS}
+        max={MAX_TRANSCEIVERS}
+        onChange={(transceivers) => updateRackConfig({ transceivers })}
       />
     </div>
   )
@@ -194,85 +200,38 @@ function SpecRow({ label, value }: { label: string; value: string }) {
   )
 }
 
-const kwFormat = new Intl.NumberFormat('en-US', {
-  minimumFractionDigits: 1,
-  maximumFractionDigits: 1,
-})
-const formatKW = (kw: number) => `${kwFormat.format(kw)} kW`
-
-/** Estimated draw of one rack against its rated maximum. */
-function PowerBar({ kw }: { kw: number }) {
-  const fraction = Math.min(1, kw / MAX_RATED_RACK_KW)
-  const overRated = kw > MAX_RATED_RACK_KW
-  return (
-    <div
-      className={clsx(
-        'rounded-md border px-2.5 py-2 transition-colors',
-        overRated ? 'border-destructive-secondary' : 'border-secondary',
-      )}
-    >
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="text-mono-xs text-quaternary">Est. power draw</span>
-        <span
-          className={clsx(
-            'text-sans-md tabular-nums transition-colors',
-            overRated ? 'text-destructive' : 'text-raise',
-          )}
-        >
-          {formatKW(kw)}
-        </span>
-      </div>
-      <div className="bg-tertiary mt-2 h-1.5 overflow-hidden rounded-full">
-        <motion.div
-          className={clsx(
-            'h-full rounded-full transition-colors',
-            overRated ? 'bg-(--content-destructive)' : 'bg-(--content-secondary)',
-          )}
-          initial={false}
-          animate={{ width: `${fraction * 100}%` }}
-          transition={{ type: 'spring', duration: 0.5, bounce: 0 }}
-        />
-      </div>
-      <div
-        className={clsx(
-          'text-mono-xs mt-1.5 text-right',
-          overRated ? 'text-destructive-secondary' : 'text-quaternary',
-        )}
-      >
-        {overRated ? 'Exceeds max rated' : 'Max rated'}: {MAX_RATED_RACK_KW} kW
-      </div>
-    </div>
-  )
-}
-
 /** Right sidebar: what the configuration adds up to. */
 export function ConfiguratorSummary() {
   const config = useValue(rackConfig)
   const perRack = getRackTotals(config)
   const multiRack = config.racks > 1
+  const cpu = getCpu(config.cpuId)
+  const memory = getMemory(config.memoryId)
+  const drive = getDrive(config.driveId)
+  const transceiver = getTransceiver(config.transceiverId)
   const { height, width, depth } = RACK_DIMENSIONS_MM
 
   return (
     <div className="flex flex-col gap-4">
       {multiRack ? (
         <>
-          <Section title={`Total · ${config.racks} racks`}>
+          <Section
+            title={
+              <>
+                Total <span className="text-quaternary">/</span> {config.racks} racks
+              </>
+            }
+          >
             <TotalsGrid totals={scaleTotals(perRack, config.racks)} />
-            <Stat
-              label="Est. power draw"
-              value={formatKW(perRack.powerKW * config.racks)}
-            />
           </Section>
           <Divider />
           <Section title="Per rack">
             <TotalsGrid totals={perRack} />
-            <PowerBar kw={perRack.powerKW} />
           </Section>
         </>
       ) : (
         <Section title="Rack totals">
           <TotalsGrid totals={perRack} />
-          <PowerBar kw={perRack.powerKW} />
         </Section>
       )}
 
@@ -281,11 +240,19 @@ export function ConfiguratorSummary() {
       <div className="flex flex-col gap-3 select-text">
         <SpecRow
           label="Compute sleds"
-          value={`${config.sleds} × ${CPU.cores} cores / ${CPU.threads} threads`}
+          value={`${config.sleds} × AMD EPYC ${cpu.id} (${cpu.cores} cores / ${cpu.threads} threads)`}
+        />
+        <SpecRow
+          label="Memory per sled"
+          value={`${config.dimmsPerSled} × ${memory.label} ${memory.detail} (${formatMemory(config.dimmsPerSled * memory.gib)})`}
         />
         <SpecRow
           label="NVMe drives"
-          value={`${formatCount(perRack.drives)} per rack (${config.drivesPerSled} per sled)`}
+          value={`${formatCount(perRack.drives)} × ${drive.label} per rack (${config.drivesPerSled} per sled)`}
+        />
+        <SpecRow
+          label="Uplink transceivers"
+          value={`${config.transceivers} × ${transceiver.label} ${transceiver.detail}`}
         />
         <SpecRow label="Switching capacity" value="12.8 Tbit/s per rack" />
         <SpecRow label="Per-sled networking" value="2 × 100GbE" />
